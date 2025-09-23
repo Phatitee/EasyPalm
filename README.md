@@ -1,1 +1,2 @@
 # EasyPalm
+run : npm start
