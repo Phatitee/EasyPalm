@@ -411,61 +411,94 @@ def get_stock_levels():
 @bp.route('/salesorders', methods=['POST'])
 def create_sales_order():
     data = request.get_json()
-    if not data or not data.get('p_id') or not data.get('f_id') or not data.get('s_quantity'):
-        return jsonify({'message': 'Missing required data'}), 400
-    
+    if not data or not data.get('f_id') or not isinstance(data.get('items'), list) or not data['items']:
+        return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
+
     try:
-        # ในระบบจริงควรมีการสร้าง sale_order_number อัตโนมัติ
+        # สร้างเลขที่เอกสาร
+        last_order = models.SalesOrder.query.order_by(models.SalesOrder.sale_order_number.desc()).first()
+        if last_order and last_order.sale_order_number.startswith('SO'):
+            last_num = int(last_order.sale_order_number[2:])
+            new_so_number = f'SO{last_num + 1:03d}'
+        else:
+            new_so_number = 'SO001'
+
+        # --- Logic การตัดสต็อก ---
+        main_warehouse_id = 'W001' # สมมติว่าตัดจากคลังหลักเสมอ
+        for item_data in data['items']:
+            stock_level = models.StockLevel.query.filter_by(
+                p_id=item_data['p_id'],
+                warehouse_id=main_warehouse_id
+            ).first()
+
+            # ตรวจสอบว่ามีของพอขายมั้ย
+            if not stock_level or stock_level.quantity < float(item_data['quantity']):
+                product_name = models.Product.query.get(item_data['p_id']).p_name
+                return jsonify({'message': f'สินค้า "{product_name}" มีไม่พอขาย!'}), 400
+            
+            # ลดสต็อก
+            stock_level.quantity -= float(item_data['quantity'])
+
+        # คำนวณราคารวม
+        total_price = sum(item['quantity'] * item['price_per_unit'] for item in data['items'])
+
+        # สร้างใบสั่งขาย
         new_order = models.SalesOrder(
-            sale_order_number=data['sale_order_number'], 
-            p_id=data['p_id'],
+            sale_order_number=new_so_number,
             f_id=data['f_id'],
-            s_quantity=data['s_quantity'],
-            s_total_price=data['s_total_price'],
+            s_total_price=total_price,
             s_date=datetime.utcnow()
         )
         db.session.add(new_order)
+
+        # สร้างรายการสินค้าย่อย
+        for item_data in data['items']:
+            order_item = models.SalesOrderItem(
+                sale_order_number=new_so_number,
+                p_id=item_data['p_id'],
+                quantity=item_data['quantity'],
+                price_per_unit=item_data['price_per_unit']
+            )
+            db.session.add(order_item)
+
         db.session.commit()
         return jsonify(new_order.to_dict()), 201
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': str(e)}), 500
     
     # เพิ่มฟังก์ชันนี้ต่อท้ายไฟล์ routes.py
 
-# backend/app/routes.py
+# --- API สำหรับการจ่ายเงิน และ อัปเดตสต็อก ---
 @bp.route('/purchaseorders/<string:order_number>/pay', methods=['PUT'])
 def mark_order_as_paid(order_number):
     try:
         order = models.PurchaseOrder.query.get_or_404(order_number)
-
+        
         if order.payment_status == 'Paid':
             return jsonify({'message': 'ใบเสร็จนี้ถูกประมวลผลไปแล้ว'}), 409
 
-        # สมมติว่าของทั้งหมดเข้าคลังหลัก 'W001'
         main_warehouse = models.Warehouse.query.filter_by(warehouse_id='W001').first()
         if not main_warehouse:
             return jsonify({'message': 'ไม่พบคลังสินค้าหลัก (W001) ในระบบ'}), 500
 
         for item in order.items:
-            # ค้นหาสต็อกของสินค้านี้ในคลังนี้โดยเฉพาะ
             stock_level = models.StockLevel.query.filter_by(
                 p_id=item.p_id,
                 warehouse_id=main_warehouse.warehouse_id
             ).first()
 
             if stock_level:
-                # ถ้ามีอยู่แล้ว ให้อัปเดตจำนวน
                 stock_level.quantity = (stock_level.quantity or 0) + item.quantity
             else:
-                # ถ้ายังไม่มี ให้สร้างรายการสต็อกใหม่
                 new_stock_level = models.StockLevel(
                     p_id=item.p_id,
                     warehouse_id=main_warehouse.warehouse_id,
                     quantity=item.quantity
                 )
                 db.session.add(new_stock_level)
-
+            
             print(f"อัปเดตสต็อก: {item.p_id} ในคลัง {main_warehouse.warehouse_id} เพิ่มขึ้น {item.quantity}")
 
         order.payment_status = 'Paid'
@@ -475,6 +508,7 @@ def mark_order_as_paid(order_number):
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': str(e)}), 500
+
     
     # --- API for Admin Dashboard Summary ---
 @bp.route('/admin/dashboard-summary', methods=['GET'])
@@ -523,3 +557,4 @@ def get_admin_dashboard_summary():
     except Exception as e:
         print(f"Error in dashboard summary: {str(e)}")
         return jsonify({'message': str(e)}), 500
+    

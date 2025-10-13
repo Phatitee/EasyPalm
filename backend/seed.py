@@ -1,7 +1,10 @@
 # backend/seed.py
 from app import create_app, db
 # Import Models ทั้งหมดที่จำเป็น
-from app.models import Farmer, Product, PurchaseOrder, SalesOrder, Employee, PurchaseOrderItem, Warehouse, StockLevel
+from app.models import (
+    Farmer, Product, PurchaseOrder, SalesOrder, Employee, 
+    PurchaseOrderItem, Warehouse, StockLevel, SalesOrderItem
+)
 from datetime import datetime
 
 def seed_data():

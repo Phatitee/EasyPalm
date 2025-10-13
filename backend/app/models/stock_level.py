@@ -1,4 +1,3 @@
-# backend/app/models/stock_level.py
 from app import db
 
 class StockLevel(db.Model):

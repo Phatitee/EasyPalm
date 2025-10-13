@@ -16,6 +16,7 @@ class PurchaseOrder(db.Model):
     farmer = db.relationship('Farmer', back_populates='purchase_orders')
     stock_ins = db.relationship('StockTransactionIn', back_populates='purchase_order')
 
+
     # --- แก้ไข/ตรวจสอบบรรทัดนี้: ต้องมี back_populates='purchase_order' ---
     items = db.relationship('PurchaseOrderItem', back_populates='purchase_order', cascade="all, delete-orphan")
 

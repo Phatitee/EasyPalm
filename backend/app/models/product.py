@@ -10,11 +10,11 @@ class Product(db.Model):
     effective_date = db.Column(db.DateTime)
 
     # --- Relationships ---
-    sales_orders = db.relationship('SalesOrder', back_populates='product')
-
-    # --- (จุดที่ 1 ที่ต้องแก้) เพิ่มความสัมพันธ์นี้เข้าไป ---
-    # บอกว่า Product 1 ตัว สามารถอยู่ใน "รายการสินค้าที่ถูกซื้อ" (PurchaseOrderItem) ได้หลายครั้ง
     purchase_order_items = db.relationship('PurchaseOrderItem', back_populates='product')
+    stock_levels = db.relationship('StockLevel', back_populates='product', cascade="all, delete-orphan")
+    sales_order_items = db.relationship('SalesOrderItem', back_populates='product', cascade="all, delete-orphan")
+    # --- (นี่คือบรรทัดที่ขาดไป!) เพิ่มความสัมพันธ์ไปยัง StockLevel ---
+    stock_levels = db.relationship('StockLevel', back_populates='product', cascade="all, delete-orphan")
 
     def to_dict(self):
         return {

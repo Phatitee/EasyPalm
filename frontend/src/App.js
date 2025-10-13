@@ -17,6 +17,7 @@ import PurchaseHistory from './pages/PurchaseHistory';
 import ProductPriceList from './pages/ProductPriceList';
 import AdminDashboard from './pages/AdminDashboard';
 import StockLevel from './pages/StockLevel';
+import CreateSalesOrder from './pages/CreateSalesOrder';
 
 // สร้าง Admin Dashboard เปล่าๆ ไว้ก่อน
 
@@ -82,6 +83,7 @@ function App() {
         <Route path="/purchase-history" element={<ProtectedRoute user={user}><PurchaseHistory /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute user={user}><ProductPriceList user={user} products={products} onPriceUpdate={fetchProducts} error={productsError} /></ProtectedRoute>} />
         <Route path="/stock" element={<ProtectedRoute user={user}><StockLevel /></ProtectedRoute>} />
+        <Route path="/sell" element={<ProtectedRoute user={user}><CreateSalesOrder /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
