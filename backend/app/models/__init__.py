@@ -16,3 +16,4 @@ from .stock_transaction import StockTransactionIn, StockTransactionOut, StockTra
 from .warehouse import Warehouse
 from .role_authorization import RoleAuthorization
 from .purchase_order_item import PurchaseOrderItem
+from .stock_level import StockLevel

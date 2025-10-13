@@ -3,7 +3,8 @@
 from flask import request, jsonify, Blueprint
 from . import models  # Import the 'models' object which contains all our model classes
 from . import db  # Import the 'db' object for database sessions
-from sqlalchemy import func     
+from sqlalchemy import func  
+   
 from datetime import datetime, timedelta
 
 # 1. Create a Blueprint
@@ -398,12 +399,11 @@ def create_farmer():
         return jsonify({'message': 'เกิดข้อผิดพลาดฝั่งเซิร์ฟเวอร์'}), 500
     
 # --- Get Warehouse Stock ---
-@bp.route('/warehouse', methods=['GET'])
-def get_warehouse_stock():
+@bp.route('/stock', methods=['GET'])
+def get_stock_levels():
     try:
-        warehouses = models.Warehouse.query.all()
-        # อย่าลืมเพิ่ม to_dict() ใน Warehouse Model
-        return jsonify([w.to_dict() for w in warehouses])
+        all_stock = models.StockLevel.query.all()
+        return jsonify([s.to_dict() for s in all_stock])
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
@@ -432,15 +432,46 @@ def create_sales_order():
         return jsonify({'message': str(e)}), 500
     
     # เพิ่มฟังก์ชันนี้ต่อท้ายไฟล์ routes.py
+
+# backend/app/routes.py
 @bp.route('/purchaseorders/<string:order_number>/pay', methods=['PUT'])
 def mark_order_as_paid(order_number):
     try:
         order = models.PurchaseOrder.query.get_or_404(order_number)
 
-        order.payment_status = 'Paid' # อัปเดตสถานะ
+        if order.payment_status == 'Paid':
+            return jsonify({'message': 'ใบเสร็จนี้ถูกประมวลผลไปแล้ว'}), 409
 
+        # สมมติว่าของทั้งหมดเข้าคลังหลัก 'W001'
+        main_warehouse = models.Warehouse.query.filter_by(warehouse_id='W001').first()
+        if not main_warehouse:
+            return jsonify({'message': 'ไม่พบคลังสินค้าหลัก (W001) ในระบบ'}), 500
+
+        for item in order.items:
+            # ค้นหาสต็อกของสินค้านี้ในคลังนี้โดยเฉพาะ
+            stock_level = models.StockLevel.query.filter_by(
+                p_id=item.p_id,
+                warehouse_id=main_warehouse.warehouse_id
+            ).first()
+
+            if stock_level:
+                # ถ้ามีอยู่แล้ว ให้อัปเดตจำนวน
+                stock_level.quantity = (stock_level.quantity or 0) + item.quantity
+            else:
+                # ถ้ายังไม่มี ให้สร้างรายการสต็อกใหม่
+                new_stock_level = models.StockLevel(
+                    p_id=item.p_id,
+                    warehouse_id=main_warehouse.warehouse_id,
+                    quantity=item.quantity
+                )
+                db.session.add(new_stock_level)
+
+            print(f"อัปเดตสต็อก: {item.p_id} ในคลัง {main_warehouse.warehouse_id} เพิ่มขึ้น {item.quantity}")
+
+        order.payment_status = 'Paid'
         db.session.commit()
         return jsonify(order.to_dict())
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': str(e)}), 500

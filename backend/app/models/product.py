@@ -1,6 +1,6 @@
 # backend/app/models/product.py
 from app import db
-from datetime import datetime # อาจจะต้อง import datetime ถ้ามีการใช้งาน
+from datetime import datetime
 
 class Product(db.Model):
     __tablename__ = 'product'
@@ -10,16 +10,16 @@ class Product(db.Model):
     effective_date = db.Column(db.DateTime)
 
     # --- Relationships ---
-    #purchase_orders = db.relationship('PurchaseOrder', back_populates='product')
     sales_orders = db.relationship('SalesOrder', back_populates='product')
 
-    # --- เพิ่มฟังก์ชันนี้เข้าไป ---
+    # --- (จุดที่ 1 ที่ต้องแก้) เพิ่มความสัมพันธ์นี้เข้าไป ---
+    # บอกว่า Product 1 ตัว สามารถอยู่ใน "รายการสินค้าที่ถูกซื้อ" (PurchaseOrderItem) ได้หลายครั้ง
+    purchase_order_items = db.relationship('PurchaseOrderItem', back_populates='product')
+
     def to_dict(self):
-        """Converts the Product object to a dictionary for JSON serialization."""
         return {
             'p_id': self.p_id,
             'p_name': self.p_name,
             'price_per_unit': self.price_per_unit,
-            # Convert datetime to string if it exists, otherwise None
             'effective_date': self.effective_date.isoformat() if self.effective_date else None
         }

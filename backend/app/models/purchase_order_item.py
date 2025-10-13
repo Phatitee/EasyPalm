@@ -9,10 +9,10 @@ class PurchaseOrderItem(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     price_per_unit = db.Column(db.Float, nullable=False)
 
-    # Relationship ไปยัง Product (ถูกต้องแล้ว)
-    product = db.relationship('Product')
+    # --- (จุดที่ 2 ที่ต้องแก้) แก้ไข Relationship นี้: เพิ่ม back_populates='purchase_order_items' ---
+    product = db.relationship('Product', back_populates='purchase_order_items')
 
-    # --- เพิ่ม/ตรวจสอบ Relationship นี้: ต้องมี back_populates='items' ---
+    # Relationship กลับไปยังใบสั่งซื้อแม่ (อันนี้ถูกต้องแล้ว)
     purchase_order = db.relationship('PurchaseOrder', back_populates='items')
 
     def to_dict(self):
