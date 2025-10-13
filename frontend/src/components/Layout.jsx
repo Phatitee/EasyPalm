@@ -32,6 +32,7 @@ const Layout = ({ user, children }) => {
                     <p className="px-2 pt-4 text-xs text-gray-400">ข้อมูล</p>
                     <Link to="/stock" className="block px-2 py-2 text-sm rounded hover:bg-gray-700">ตรวจสอบสต็อก</Link>
                     <Link to="/farmers" className="block px-2 py-2 text-sm rounded hover:bg-gray-700">ข้อมูลเกษตรกร</Link>
+                    <Link to="/industry" className="block px-2 py-2 text-sm rounded hover:bg-gray-700">ข้อมูลโรงงานลูกค้า</Link>
 
                     <p className="px-2 pt-4 text-xs text-gray-400">การเงิน</p>
                     <Link to="/payments" className="block px-2 py-2 text-sm rounded hover:bg-gray-700">จัดการชำระเงิน</Link>

@@ -558,3 +558,52 @@ def get_admin_dashboard_summary():
         print(f"Error in dashboard summary: {str(e)}")
         return jsonify({'message': str(e)}), 500
     
+@bp.route('/food-industries', methods=['GET'])
+def get_food_industries():
+    try:
+        industries = models.FoodIndustry.query.order_by(models.FoodIndustry.F_name).all()
+        return jsonify([i.to_dict() for i in industries])
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+# --- [POST] /food-industries ---
+# สำหรับฟอร์ม "เพิ่ม Food_Industry"
+@bp.route('/food-industries', methods=['POST'])
+def create_food_industry():
+    data = request.get_json()
+    if not data or not data.get('F_name') or not data.get('F_tel'):
+        return jsonify({'message': 'กรุณากรอกข้อมูล ชื่อและเบอร์โทร'}), 400
+
+    try:
+        # สร้าง ID อัตโนมัติ (ตัวอย่าง)
+        last_industry = models.FoodIndustry.query.order_by(models.FoodIndustry.F_id.desc()).first()
+        if last_industry and last_industry.F_id.startswith('C'): # C for Customer/Company
+            last_num = int(last_industry.F_id[1:])
+            new_id = f'C{last_num + 1:03d}'
+        else:
+            new_id = 'C001'
+
+        new_industry = models.FoodIndustry(
+            F_id=new_id,
+            F_name=data['F_name'],
+            F_tel=data['F_tel'],
+            F_address=data.get('F_address', '')
+        )
+        db.session.add(new_industry)
+        db.session.commit()
+        return jsonify(new_industry.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500
+    
+# --- (ใหม่!) [DELETE] /food-industries/<id> ---
+@bp.route('/food-industries/<string:f_id>', methods=['DELETE'])
+def delete_food_industry(f_id):
+    try:
+        industry = models.FoodIndustry.query.get_or_404(f_id)
+        db.session.delete(industry)
+        db.session.commit()
+        return jsonify({'message': f'ลบข้อมูล {f_id} สำเร็จ'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500

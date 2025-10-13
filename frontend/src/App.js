@@ -18,6 +18,8 @@ import ProductPriceList from './pages/ProductPriceList';
 import AdminDashboard from './pages/AdminDashboard';
 import StockLevel from './pages/StockLevel';
 import CreateSalesOrder from './pages/CreateSalesOrder';
+import IndustryManagement from './pages/IndustryManagement';
+import AddIndustryPage from './pages/AddIndustryPage';
 
 // สร้าง Admin Dashboard เปล่าๆ ไว้ก่อน
 
@@ -84,6 +86,8 @@ function App() {
         <Route path="/products" element={<ProtectedRoute user={user}><ProductPriceList user={user} products={products} onPriceUpdate={fetchProducts} error={productsError} /></ProtectedRoute>} />
         <Route path="/stock" element={<ProtectedRoute user={user}><StockLevel /></ProtectedRoute>} />
         <Route path="/sell" element={<ProtectedRoute user={user}><CreateSalesOrder /></ProtectedRoute>} />
+        <Route path="/industry" element={<ProtectedRoute user={user}><IndustryManagement /></ProtectedRoute>} />
+        <Route path="/industry/add" element={<ProtectedRoute user={user}><AddIndustryPage /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
