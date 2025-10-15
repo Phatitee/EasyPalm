@@ -85,7 +85,7 @@ const CreateSalesOrder = () => {
         
         const salesData = {
             // **สำคัญ:** Backend อาจจะต้องปรับตามว่ารับเป็น f_id หรือ industry_id
-            f_id: selectedIndustry.F_id, 
+            food_industry_id: selectedIndustry.F_id, 
             items: items.map(item => ({
                 p_id: item.p_id,
                 quantity: parseFloat(item.quantity),
@@ -93,7 +93,8 @@ const CreateSalesOrder = () => {
             }))
         };
         // --- END: ส่วนที่แก้ไข ---
-
+    // debug: ดูข้อมูลก่อนส่ง
+    console.log('Sales payload:', salesData);
         try {
             const response = await axios.post('http://127.0.0.1:5000/salesorders', salesData);
             alert(`บันทึกการขายสำเร็จ! เลขที่ใบเสร็จ: ${response.data.sale_order_number}`);

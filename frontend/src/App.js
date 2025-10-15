@@ -23,6 +23,7 @@ import AddIndustryPage from './pages/industry/AddIndustryPage';
 import AddFarmerPage from './pages/farmer/AddFarmerPage';
 import EditFarmerPage from './pages/farmer/EditFarmerPage';
 import EditIndustryPage from './pages/industry/EditIndustryPage';
+import SalesHistory from './pages/employee/SalesHistory';
 
 
 // สร้าง Admin Dashboard เปล่าๆ ไว้ก่อน
@@ -95,6 +96,7 @@ function App() {
         <Route path="/industry/edit/:id" element={<ProtectedRoute user={user}><EditIndustryPage /></ProtectedRoute>} />
         <Route path="/farmer/add" element={<ProtectedRoute user={user}><AddFarmerPage /></ProtectedRoute>} />
         <Route path="/farmer/edit/:id" element={<ProtectedRoute user={user}><EditFarmerPage /></ProtectedRoute>} />
+        <Route path="/sales-history" element={<ProtectedRoute user={user}><SalesHistory /></ProtectedRoute>} />
 
       </Routes>
     </Router>
