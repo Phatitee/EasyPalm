@@ -539,7 +539,7 @@ def handle_sales_orders():
                 models.FoodIndustry.F_name.label('food_industry_name')
             ).join(
                 models.FoodIndustry, 
-                models.FoodIndustry.F_id == models.SalesOrder.f_id
+                models.FoodIndustry.F_id == models.SalesOrder.food_industry_id
             )
             
             # Apply Filters (ค้นหาตามชื่อลูกค้า)
