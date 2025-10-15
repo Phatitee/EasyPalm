@@ -7,19 +7,23 @@ import './App.css';
 // Import Layouts และ Pages ทั้งหมด
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout'; // <-- Import Layout ใหม่
-import MainPage from './pages/mainpage';
-import EasyPlamLogin from './pages/EasyPlamLogin';
-import EmployeeDashboard from './pages/EmployeeMangement';
-import PurchaseProduct from './pages/PurchaseProduct';
-import PaymentManagement from './pages/PaymentManagement';
-import FarmerManagement from './pages/FarmerManagement';
-import PurchaseHistory from './pages/PurchaseHistory';
-import ProductPriceList from './pages/ProductPriceList';
-import AdminDashboard from './pages/AdminDashboard';
-import StockLevel from './pages/StockLevel';
-import CreateSalesOrder from './pages/CreateSalesOrder';
-import IndustryManagement from './pages/IndustryManagement';
-import AddIndustryPage from './pages/AddIndustryPage';
+import MainPage from './pages/main/mainpage';
+import EasyPlamLogin from './pages/main/EasyPlamLogin';
+import EmployeeDashboard from './pages/employee/EmployeeMangement';
+import PurchaseProduct from './pages/employee/PurchaseProduct';
+import PaymentManagement from './pages/employee/PaymentManagement';
+import FarmerManagement from './pages/farmer/FarmerManagement';
+import PurchaseHistory from './pages/employee/PurchaseHistory';
+import ProductPriceList from './pages/employee/ProductPriceList';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import StockLevel from './pages/employee/StockLevel';
+import CreateSalesOrder from './pages/employee/CreateSalesOrder';
+import IndustryManagement from './pages/industry/IndustryManagement';
+import AddIndustryPage from './pages/industry/AddIndustryPage';
+import AddFarmerPage from './pages/farmer/AddFarmerPage';
+import EditFarmerPage from './pages/farmer/EditFarmerPage';
+import EditIndustryPage from './pages/industry/EditIndustryPage';
+
 
 // สร้าง Admin Dashboard เปล่าๆ ไว้ก่อน
 
@@ -88,6 +92,10 @@ function App() {
         <Route path="/sell" element={<ProtectedRoute user={user}><CreateSalesOrder /></ProtectedRoute>} />
         <Route path="/industry" element={<ProtectedRoute user={user}><IndustryManagement /></ProtectedRoute>} />
         <Route path="/industry/add" element={<ProtectedRoute user={user}><AddIndustryPage /></ProtectedRoute>} />
+        <Route path="/industry/edit/:id" element={<ProtectedRoute user={user}><EditIndustryPage /></ProtectedRoute>} />
+        <Route path="/farmer/add" element={<ProtectedRoute user={user}><AddFarmerPage /></ProtectedRoute>} />
+        <Route path="/farmer/edit/:id" element={<ProtectedRoute user={user}><EditFarmerPage /></ProtectedRoute>} />
+
       </Routes>
     </Router>
   );

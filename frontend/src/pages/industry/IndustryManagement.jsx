@@ -1,13 +1,14 @@
-// frontend/src/pages/IndustryPage.jsx
+// frontend/src/pages/IndustryManagement.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 
-const IndustryPage = () => {
+const IndustryManagement = () => {
     const [industries, setIndustries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchIndustries = async () => {
         try {
@@ -36,6 +37,11 @@ const IndustryPage = () => {
         }
     };
 
+    const filteredIndustries = industries.filter(industry =>
+        industry.F_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        industry.F_tel.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (loading) return <p>กำลังโหลด...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
 
@@ -52,6 +58,16 @@ const IndustryPage = () => {
                 </Link>
             </div>
 
+            <div className="mb-4">
+                <input
+                    type="text"
+                    placeholder="ค้นหาชื่อโรงงานหรือเบอร์โทร..."
+                    className="p-2 border rounded w-full md:w-1/3"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+            </div>
+
             <div className="bg-white shadow-md rounded-lg overflow-x-auto">
                 <table className="min-w-full leading-normal">
                     <thead>
@@ -64,13 +80,16 @@ const IndustryPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {industries.length > 0 ? industries.map((ind) => (
+                        {filteredIndustries.length > 0 ? filteredIndustries.map((ind) => (
                             <tr key={ind.F_id}>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">{ind.F_id}</td>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">{ind.F_name}</td>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">{ind.F_tel}</td>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">{ind.F_address}</td>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
+                                    <Link to={`/industry/edit/${ind.F_id}`} className="text-yellow-500 hover:text-yellow-700 mr-2">
+                                        <Pencil size={20} />
+                                    </Link>
                                     <button onClick={() => handleDelete(ind.F_id, ind.F_name)} className="text-red-500 hover:text-red-700">
                                         <Trash2 size={20} />
                                     </button>
@@ -88,4 +107,4 @@ const IndustryPage = () => {
     );
 };
 
-export default IndustryPage;
+export default IndustryManagement;
