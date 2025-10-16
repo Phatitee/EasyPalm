@@ -1,4 +1,5 @@
 # EasyPalm
+
 #### คำสั่งใน Project
 ```
 pip install flask flask-sqlalchemy flask-migrate flask-cors
