@@ -1,17 +1,21 @@
 # EasyPalm
 #### คำสั่งใน Project
 ```
+pip install flask flask-sqlalchemy flask-migrate flask-cors
 
 run : npm start
-```
-#### ติดตั้ง Node.js
-##### Windows
-``` ดาวน์โหลด https://nodejs.org/
-เลือก LTS (Long Term Support)
-ดับเบิลคลิกติดตั้ง → ติ๊ก “Add to PATH”
-เช็คเวอร์ชัน:
-node -v
-npm -v 
+python -m venv venv
+pip install -r requirements.txt
+
+.\venv\Scripts\activate
+
+run backend (ใน ../backend):  
+python seed.py
+python run.py
+
+run frontend (ใน ../frontend) :
+npm install
+npm start
 ```
 
 
