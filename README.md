@@ -1,8 +1,8 @@
 # EasyPalm
 #### คำสั่งใน Project
 ```
-
-run : npm start
+run(backend) : python run.py (อยู่ใน terminal .\venv\Scripts\activate)
+run(fontend) : npm start
 ```
 #### ติดตั้ง Node.js
 ##### Windows
