@@ -13,6 +13,7 @@ class Farmer(db.Model):
     # --- Relationships ---
     # One-to-Many: A farmer can have many purchase orders and sales orders.
     purchase_orders = db.relationship('PurchaseOrder', back_populates='farmer')
+    sales_orders = db.relationship('SalesOrder', back_populates='farmer')
 
     def to_dict(self):
         """แปลง Object ของ Farmer ให้เป็น Dictionary"""

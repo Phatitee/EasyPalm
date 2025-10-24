@@ -1,12 +1,12 @@
 // frontend/src/App.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 
 // Import Layouts และ Pages ทั้งหมด
-import Layout from './components/Layout';
-import AdminLayout from './components/AdminLayout'; // <-- Import Layout ใหม่
+import Layout from './components/layouts/Layout'; // Layout สำหรับ Employee
+import AdminLayout from './components/layouts/AdminLayout'; // Layout สำหรับ Admin
 import MainPage from './pages/main/mainpage';
 import EasyPlamLogin from './pages/main/EasyPlamLogin';
 import EmployeeDashboard from './pages/employee/EmployeeMangement';
@@ -23,27 +23,43 @@ import AddIndustryPage from './pages/industry/AddIndustryPage';
 import AddFarmerPage from './pages/farmer/AddFarmerPage';
 import EditFarmerPage from './pages/farmer/EditFarmerPage';
 import EditIndustryPage from './pages/industry/EditIndustryPage';
-import SalesHistory from './pages/employee/SalesHistory';
 
 
-// สร้าง Admin Dashboard เปล่าๆ ไว้ก่อน
-
-// Component ป้องกันเส้นทาง (เวอร์ชันอัปเกรด!)
-const ProtectedRoute = ({ user, children }) => {
+// --- Component จัดการ Layout และการยืนยันตัวตนสำหรับ Employee ---
+const EmployeeLayoutWrapper = ({ user }) => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-
-  // --- Logic การเลือก Layout ตาม Role ---
+  // ถ้าเป็น Admin ให้ redirect ไปหน้า admin dashboard แทน
   if (user.e_role === 'Admin') {
-    return <AdminLayout user={user}>{children}</AdminLayout>;
+    return <Navigate to="/admin/dashboard" replace />;
   }
-  // Role อื่นๆ ใช้ Layout ปกติ
-  return <Layout user={user}>{children}</Layout>;
+  // ถ้าเป็น Role อื่นๆ ที่ถูกต้อง ให้แสดง Layout ปกติ
+  return (
+    <Layout user={user}>
+      <Outlet /> {/* <-- จุดสำคัญ: หน้าลูก (Nested Route) จะถูก render ตรงนี้ */}
+    </Layout>
+  );
 };
 
+// --- Component จัดการ Layout และการยืนยันตัวตนสำหรับ Admin ---
+const AdminLayoutWrapper = ({ user }) => {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  // ถ้าไม่ใช่ Admin ให้ redirect ไปหน้าหลักของ employee
+  if (user.e_role !== 'Admin') {
+    return <Navigate to="/purchase" replace />;
+  }
+  return (
+    <AdminLayout user={user}>
+      <Outlet /> {/* <-- หน้าลูกของ Admin จะถูก render ตรงนี้ */}
+    </AdminLayout>
+  );
+};
+
+
 function App() {
-    // ... (ส่วน state และ fetchProducts เหมือนเดิมเป๊ะ) ...
     const [user, setUser] = useState(null);
     const [products, setProducts] = useState([]);
     const [productsError, setProductsError] = useState(null);
@@ -70,33 +86,38 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
+        {/* === Public Routes (ไม่มี Layout) === */}
         <Route 
           path="/" 
           element={<MainPage products={products} error={productsError} user={user} onPriceUpdate={fetchProducts} />} 
         />
         <Route path="/login" element={<EasyPlamLogin setUser={setUser} />} />
 
-        {/* --- Admin Routes --- */}
-        <Route path="/admin/dashboard" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/employees" element={<ProtectedRoute user={user}><EmployeeDashboard /></ProtectedRoute>} />
-        <Route path="/admin/dashboard" element={<ProtectedRoute user={user}><AdminDashboard /></ProtectedRoute>} />
-        
+        {/* === Admin Routes (ทั้งหมดจะอยู่ภายใต้ AdminLayout) === */}
+        <Route element={<AdminLayoutWrapper user={user} />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/employees" element={<EmployeeDashboard />} />
+          {/* สามารถเพิ่ม Route ของ Admin อื่นๆ ที่นี่ได้ */}
+        </Route>
 
-        {/* --- Employee Routes --- */}
-        <Route path="/purchase" element={<ProtectedRoute user={user}><PurchaseProduct /></ProtectedRoute>} />
-        <Route path="/payments" element={<ProtectedRoute user={user}><PaymentManagement /></ProtectedRoute>} />
-        <Route path="/farmers" element={<ProtectedRoute user={user}><FarmerManagement /></ProtectedRoute>} />
-        <Route path="/purchase-history" element={<ProtectedRoute user={user}><PurchaseHistory /></ProtectedRoute>} />
-        <Route path="/products" element={<ProtectedRoute user={user}><ProductPriceList user={user} products={products} onPriceUpdate={fetchProducts} error={productsError} /></ProtectedRoute>} />
-        <Route path="/stock" element={<ProtectedRoute user={user}><StockLevel /></ProtectedRoute>} />
-        <Route path="/sell" element={<ProtectedRoute user={user}><CreateSalesOrder /></ProtectedRoute>} />
-        <Route path="/industry" element={<ProtectedRoute user={user}><IndustryManagement /></ProtectedRoute>} />
-        <Route path="/industry/add" element={<ProtectedRoute user={user}><AddIndustryPage /></ProtectedRoute>} />
-        <Route path="/industry/edit/:id" element={<ProtectedRoute user={user}><EditIndustryPage /></ProtectedRoute>} />
-        <Route path="/farmer/add" element={<ProtectedRoute user={user}><AddFarmerPage /></ProtectedRoute>} />
-        <Route path="/farmer/edit/:id" element={<ProtectedRoute user={user}><EditFarmerPage /></ProtectedRoute>} />
-        <Route path="/sales-history" element={<ProtectedRoute user={user}><SalesHistory /></ProtectedRoute>} />
+        {/* === Employee Routes (ทั้งหมดจะอยู่ภายใต้ Layout ปกติ) === */}
+        <Route element={<EmployeeLayoutWrapper user={user} />}>
+          <Route path="/purchase" element={<PurchaseProduct />} />
+          <Route path="/payments" element={<PaymentManagement />} />
+          <Route path="/farmers" element={<FarmerManagement />} />
+          <Route path="/purchase-history" element={<PurchaseHistory />} />
+          <Route path="/products" element={<ProductPriceList user={user} products={products} onPriceUpdate={fetchProducts} error={productsError} />} />
+          <Route path="/stock" element={<StockLevel />} />
+          <Route path="/sell" element={<CreateSalesOrder />} />
+          <Route path="/industry" element={<IndustryManagement />} />
+          <Route path="/industry/add" element={<AddIndustryPage />} />
+          <Route path="/industry/edit/:id" element={<EditIndustryPage />} />
+          <Route path="/farmer/add" element={<AddFarmerPage />} />
+          <Route path="/farmer/edit/:id" element={<EditFarmerPage />} />
+        </Route>
+        
+        {/* Optional: Route สำหรับหน้าที่ไม่พบ */}
+        <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>
     </Router>

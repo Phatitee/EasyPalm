@@ -455,65 +455,48 @@ def get_stock_levels():
 
 @bp.route('/salesorders', methods=['GET', 'POST'])
 def handle_sales_orders():
-    """Handles creating (POST) and retrieving (GET) sales orders with filtering."""
+    """Handles creating (POST) and retrieving (GET) sales orders."""
     
-    # --- [POST] Create New Sales Order & Deduct Stock ---
+    # --- Create New Sales Order & Deduct Stock ---
     if request.method == 'POST':
         data = request.get_json()
-        
-        # *** ตรวจสอบว่ามี f_id (รหัสโรงงานลูกค้า) ถูกส่งมาหรือไม่ ***
-        if not data or not data.get('food_industry_id') or not isinstance(data.get('items'), list) or not data['items']:
-            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน: ต้องระบุ food_industry_id และรายการสินค้า'}), 400
-        
-        # ตรวจสอบว่า Food Industry ID มีอยู่ในระบบหรือไม่
-        if not models.FoodIndustry.query.get(data['food_industry_id']):
-             return jsonify({'message': f"ไม่พบ Food Industry ID: {data['food_industry_id']}"}), 404
-
+        if not data or not data.get('f_id') or not isinstance(data.get('items'), list) or not data['items']:
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
         try:
-            # Check stock levels before proceeding (โค้ดเดิม)
+            # Check stock levels before proceeding
             main_warehouse_id = 'W001'
             for item_data in data['items']:
                 stock_level = models.StockLevel.query.filter_by(
                     p_id=item_data['p_id'], warehouse_id=main_warehouse_id
                 ).first()
                 if not stock_level or stock_level.quantity < float(item_data['quantity']):
-                    try:
-                        product = models.Product.query.get(item_data['p_id'])
-                        product_name = product.p_name if product else item_data['p_id']
-                    except AttributeError:
-                        product_name = item_data['p_id']
-                        
-                    return jsonify({'message': f'สินค้า "{product_name}" มีไม่พอขาย! (คงเหลือ: {stock_level.quantity if stock_level else 0})'}), 400
+                    product_name = models.Product.query.get(item_data['p_id']).p_name
+                    return jsonify({'message': f'สินค้า "{product_name}" มีไม่พอขาย!'}), 400
             
-            # Deduct stock (โค้ดเดิม)
+            # All items have sufficient stock, proceed to create order and deduct stock
             for item_data in data['items']:
                 stock_level = models.StockLevel.query.filter_by(
                     p_id=item_data['p_id'], warehouse_id=main_warehouse_id
                 ).first()
                 stock_level.quantity -= float(item_data['quantity'])
 
-            # Generate new SO number (โค้ดเดิม)
+            # Generate new SO number
             last_order = models.SalesOrder.query.order_by(models.SalesOrder.sale_order_number.desc()).first()
             new_so_number = 'SO001'
             if last_order and last_order.sale_order_number.startswith('SO'):
-                try:
-                    last_num = int(last_order.sale_order_number[2:])
-                    new_so_number = f'SO{last_num + 1:03d}'
-                except ValueError:
-                    pass # Fallback to SO001 if parsing fails
+                last_num = int(last_order.sale_order_number[2:])
+                new_so_number = f'SO{last_num + 1:03d}'
             
-            total_price = sum(float(item['quantity']) * float(item['price_per_unit']) for item in data['items'])
+            total_price = sum(item['quantity'] * item['price_per_unit'] for item in data['items'])
 
-            # *** สร้าง SalesOrder พร้อมบันทึก f_id ***
             new_order = models.SalesOrder(
                 sale_order_number=new_so_number,
-                food_industry_id=data['food_industry_id'], # <<< บันทึกรหัสโรงงานลูกค้าที่นี่
+                f_id=data['f_id'],
                 s_total_price=total_price,
                 s_date=datetime.utcnow()
             )
             db.session.add(new_order)
             
-            # Create SalesOrderItem (โค้ดเดิม)
             for item_data in data['items']:
                 order_item = models.SalesOrderItem(
                     sale_order_number=new_so_number,
@@ -527,61 +510,14 @@ def handle_sales_orders():
             return jsonify(new_order.to_dict()), 201
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating sales order: {e}")
-            return jsonify({'message': f'เกิดข้อผิดพลาดในการบันทึกใบขาย: {str(e)}'}), 500
+            return jsonify({'message': str(e)}), 500
     
-    # --- [GET] Get All Sales Orders with Filters (โค้ดเดิมที่ปรับปรุงในรอบก่อน) ---
+    # --- Get All Sales Orders ---
     else:
         try:
-            # Query for SalesOrder and join with FoodIndustry and fetch items
-            query = db.session.query(
-                models.SalesOrder, 
-                models.FoodIndustry.F_name.label('food_industry_name')
-            ).join(
-                models.FoodIndustry, 
-                models.FoodIndustry.F_id == models.SalesOrder.food_industry_id
-            )
-            
-            # Apply Filters (ค้นหาตามชื่อลูกค้า)
-            if search_name := request.args.get('name'):
-                query = query.filter(models.FoodIndustry.F_name.ilike(f'%{search_name}%'))
-            
-            if start_date_str := request.args.get('start_date'):
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-                query = query.filter(models.SalesOrder.s_date >= start_date)
-            
-            if end_date_str := request.args.get('end_date'):
-                # Include the entire end date
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
-                query = query.filter(models.SalesOrder.s_date < end_date)
-
-            orders_with_names = query.order_by(models.SalesOrder.s_date.desc()).all()
-            
-            # Format results and fetch items
-            results = []
-            for order, food_industry_name in orders_with_names:
-                order_dict = order.to_dict()
-                order_dict['food_industry_name'] = food_industry_name
-                
-                # Fetch Order Items
-                items_query = db.session.query(
-                    models.SalesOrderItem,
-                    models.Product.p_name.label('product_name')
-                ).join(
-                    models.Product, 
-                    models.Product.p_id == models.SalesOrderItem.p_id
-                ).filter(
-                    models.SalesOrderItem.sale_order_number == order.sale_order_number
-                ).all()
-
-                order_dict['items'] = [{**item.to_dict(), 'product_name': product_name} for item, product_name in items_query]
-
-                results.append(order_dict)
-
-            return jsonify(results)
+            orders = models.SalesOrder.query.order_by(models.SalesOrder.s_date.desc()).all()
+            return jsonify([order.to_dict() for order in orders])
         except Exception as e:
-            # Use 500 server error for unexpected errors
-            print(f"Error getting sales orders: {e}")
             return jsonify({'message': str(e)}), 500
 
 

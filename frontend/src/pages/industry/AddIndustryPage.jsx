@@ -1,4 +1,3 @@
-// frontend/src/pages/AddIndustryPage.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -32,10 +31,9 @@ const AddIndustryPage = () => {
             setSuccess(`เพิ่มข้อมูลลูกค้า "${response.data.F_name}" สำเร็จ!`);
             setFormData({ F_name: '', F_tel: '', F_address: '' }); // Clear form
 
-            // หลังจากบันทึกสำเร็จ ให้เด้งกลับไปหน้า list
             setTimeout(() => {
                 navigate('/industry');
-            }, 1500); //หน่วงเวลา 1.5 วินาทีเพื่อให้เห็นข้อความ success
+            }, 1500);
 
         } catch (err) {
             setError('เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message));
@@ -43,53 +41,60 @@ const AddIndustryPage = () => {
     };
 
     return (
-        <div>
-            <h1 className="text-2xl font-bold mb-4">เพิ่มรายชื่อโรงงานลูกค้า</h1>
-            <form onSubmit={handleSubmit} className="max-w-lg mx-auto bg-white p-8 rounded-lg shadow-md space-y-4">
-                <div>
-                    <label htmlFor="F_name" className="block text-sm font-medium text-gray-700">ชื่อโรงงาน/บริษัท *</label>
+        <div className="max-w-3xl mx-auto px-4 py-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">เพิ่มรายชื่อโรงงานลูกค้า</h1>
+            <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+                <div className="mb-4">
+                    <label htmlFor="F_name" className="block text-gray-700 text-sm font-bold mb-2">ชื่อโรงงาน/บริษัท *</label>
                     <input
                         type="text"
                         name="F_name"
                         id="F_name"
                         value={formData.F_name}
                         onChange={handleChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
                         required
                     />
                 </div>
-                <div>
-                    <label htmlFor="F_tel" className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์ *</label>
+                <div className="mb-4">
+                    <label htmlFor="F_tel" className="block text-gray-700 text-sm font-bold mb-2">เบอร์โทรศัพท์ *</label>
                     <input
                         type="text"
                         name="F_tel"
                         id="F_tel"
                         value={formData.F_tel}
                         onChange={handleChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
                         required
                     />
                 </div>
-                <div>
-                    <label htmlFor="F_address" className="block text-sm font-medium text-gray-700">ที่อยู่</label>
+                <div className="mb-6">
+                    <label htmlFor="F_address" className="block text-gray-700 text-sm font-bold mb-2">ที่อยู่</label>
                     <textarea
                         name="F_address"
                         id="F_address"
                         rows="3"
                         value={formData.F_address}
                         onChange={handleChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
                     ></textarea>
                 </div>
                 
-                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                {success && <p className="text-green-500 text-sm text-center">{success}</p>}
+                {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
+                {success && <p className="text-green-500 text-sm text-center mb-4">{success}</p>}
 
-                <div className="flex gap-4 pt-2">
-                    <button type="button" onClick={() => navigate('/industry')} className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md">
+                <div className="flex items-center justify-end gap-4">
+                    <button 
+                        type="button" 
+                        onClick={() => navigate('/industry')} 
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-5 rounded-lg transition duration-150 ease-in-out"
+                    >
                         ยกเลิก
                     </button>
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
+                    <button 
+                        type="submit" 
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-5 rounded-lg transition duration-150 ease-in-out"
+                    >
                         บันทึกข้อมูล
                     </button>
                 </div>

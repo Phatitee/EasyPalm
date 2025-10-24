@@ -1,10 +1,15 @@
 // frontend/src/pages/mainpage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
+// 1. Import ไอคอนมาแทนที่ emoji
+import { 
+    TreePalm, PlusCircle, Trash2, UserCheck, CheckCircle, XCircle, 
+    User, Package, Phone, AlertTriangle 
+} from 'lucide-react';
 
 // --- สร้าง Component สำหรับการ์ดแสดงราคาแต่ละใบ (แบบโชว์อย่างเดียว) ---
 const PriceCard = ({ product }) => {
-    // กำหนดสีของการ์ดตามชื่อสินค้า
+    // ... (ส่วนนี้เหมือนเดิม)
     const cardStyles = {
         "เกรด A": { color: "green", label: "คุณภาพสูงสุด" },
         "เกรด B": { color: "orange", label: "คุณภาพดี" },
@@ -30,8 +35,10 @@ const PriceCard = ({ product }) => {
                 </p>
                 <p className="text-gray-500">฿ / กก.</p>
             </div>
-            <p className="mt-4 text-sm text-gray-600">
-                📦 ปริมาณรับซื้อ <span className="font-semibold text-gray-800">N/A</span>
+            
+            <p className="mt-4 text-sm text-gray-600 flex items-center">
+                <Package size={16} className="mr-2 text-gray-500" />
+                ปริมาณรับซื้อ <span className="font-semibold text-gray-800 ml-1">N/A</span>
             </p>
         </div>
     );
@@ -47,19 +54,22 @@ const MainPage = ({ products, error, user }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 p-6">
+        // --- ★★★ นี่คือจุดที่แก้ไข ★★★ ---
+        // เปลี่ยน from-white เป็น from-green-50
+        <div className="min-h-screen bg-gradient-to-b from-green-50 to-orange-50 p-6">
             <header className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">eP</div>
-                    <span className="font-bold text-lg text-gray-800">easyPalm</span>
+                    <TreePalm size={28} className="text-green-600" />
+                    <span className="font-bold text-xl text-gray-800">EasyPalm</span>
                 </div>
-                    <button className="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1" onClick={handlelogin}>
-                        <span>👤</span> พนักงาน
-                    </button>
+
+                <button className="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1" onClick={handlelogin}>
+                    <User size={20} /> พนักงาน
+                </button>
             </header>
 
             <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-gray-800">ราคารับซื้อปาล์มวันนี้</h1>
+                <h1 className="text-4xl font-bold text-gray-800">ราคารับซื้อปาล์มวันนี้</h1>
                 <p className="text-gray-500 text-sm">อัพเดตราคาและปริมาณรับซื้อล่าสุดสำหรับแต่ละเกรด</p>
             </div>
 
@@ -86,13 +96,18 @@ const MainPage = ({ products, error, user }) => {
                         <span>ยอดจ่ายโดยประมาณ</span>
                         <span className="font-semibold">N/A</span>
                     </div>
-                    <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition">
-                        📞 ติดต่อสอบถาม
+
+                    <button className="w-full bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">
+                        <Phone size={18} />
+                        ติดต่อสอบถาม
                     </button>
                 </div>
                 <div className="bg-orange-50 rounded-2xl shadow p-6 border border-orange-200">
-                    <h3 className="font-bold text-orange-700 mb-2">⚠️ แจ้งเตือน</h3>
-                    <p className="text-gray-700 text-sm">
+                    <div className="flex items-center mb-2">
+                         <AlertTriangle size={20} className="text-orange-700 mr-2" />
+                         <h3 className="font-bold text-orange-700">แจ้งเตือน</h3>
+                    </div>
+                    <p className="text-gray-700 text-sm pl-7">
                         พรุ่งนี้ราคาการเกรด A อาจมีการปรับขึ้นเล็กน้อย โปรดติดตาม
                     </p>
                 </div>
