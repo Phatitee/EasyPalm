@@ -2,8 +2,9 @@
 # โฟลเดอร์ที่เก็บ library ทั้งหมดของ Python ไม่ควร push ขึ้นไป
 venv/
 .venv/
+..venv/
+...venv/
 
-# Python cache files
 # ไฟล์ที่ Python สร้างขึ้นมาอัตโนมัติ
 __pycache__/
 *.pyc
