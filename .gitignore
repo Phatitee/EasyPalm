@@ -1,0 +1,23 @@
+# Virtual Environment
+venv/
+.venv/
+..venv/
+...venv/
+env/
+.virtualenv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# SQLite
+*.db
+*.sqlite3
+
+# Flask instance and env
+instance/
+.env
+
+# IDE / Editor
+.vscode/
+.idea/

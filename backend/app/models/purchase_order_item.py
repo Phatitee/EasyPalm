@@ -1,5 +1,6 @@
 # backend/app/models/purchase_order_item.py
 from app import db
+from sqlalchemy.orm import relationship
 
 class PurchaseOrderItem(db.Model):
     __tablename__ = 'purchaseorderitem'
@@ -9,13 +10,14 @@ class PurchaseOrderItem(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     price_per_unit = db.Column(db.Float, nullable=False)
 
-    # --- (จุดที่ 2 ที่ต้องแก้) แก้ไข Relationship นี้: เพิ่ม back_populates='purchase_order_items' ---
-    product = db.relationship('Product', back_populates='purchase_order_items')
+    product = relationship('Product', back_populates='purchase_order_items')
+    purchase_order = relationship('PurchaseOrder', back_populates='items')
 
-    # Relationship กลับไปยังใบสั่งซื้อแม่ (อันนี้ถูกต้องแล้ว)
-    purchase_order = db.relationship('PurchaseOrder', back_populates='items')
+    # --- (เพิ่ม) สร้างความสัมพันธ์ไปยัง StockTransactionIn จากตรงนี้ ---
+    stock_ins = relationship("StockTransactionIn", back_populates="purchase_order_item")
 
     def to_dict(self):
+        # ... โค้ดส่วนนี้เหมือนเดิม ...
         return {
             'product_name': self.product.p_name if self.product else 'N/A',
             'quantity': self.quantity,

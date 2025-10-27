@@ -1,25 +1,28 @@
 # backend/app/models/product.py
 from app import db
-from datetime import datetime
+from sqlalchemy.orm import relationship
 
 class Product(db.Model):
     __tablename__ = 'product'
     p_id = db.Column(db.String(5), primary_key=True)
     p_name = db.Column(db.String(100), nullable=False)
+    
+    # --- (จุดแก้ไข) เพิ่มคอลัมน์ p_unit ที่ขาดไป ---
+    p_unit = db.Column(db.Float)
+    
     price_per_unit = db.Column(db.Float)
     effective_date = db.Column(db.DateTime)
 
     # --- Relationships ---
-    purchase_order_items = db.relationship('PurchaseOrderItem', back_populates='product')
-    stock_levels = db.relationship('StockLevel', back_populates='product', cascade="all, delete-orphan")
-    sales_order_items = db.relationship('SalesOrderItem', back_populates='product', cascade="all, delete-orphan")
-    # --- (นี่คือบรรทัดที่ขาดไป!) เพิ่มความสัมพันธ์ไปยัง StockLevel ---
-    stock_levels = db.relationship('StockLevel', back_populates='product', cascade="all, delete-orphan")
+    stock_levels = relationship('StockLevel', back_populates='product')
+    purchase_order_items = relationship('PurchaseOrderItem', back_populates='product')
+    sales_order_items = relationship('SalesOrderItem', back_populates='product')
 
     def to_dict(self):
         return {
             'p_id': self.p_id,
             'p_name': self.p_name,
+            'p_unit': self.p_unit,
             'price_per_unit': self.price_per_unit,
-            'effective_date': self.effective_date.isoformat() if self.effective_date else None
+            'effective_date': self.effective_date.isoformat() if self.effective_date else None,
         }

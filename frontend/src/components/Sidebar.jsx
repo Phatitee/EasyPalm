@@ -1,61 +1,54 @@
-// src/components/Sidebar.jsx
+// frontend/src/components/Sidebar.jsx
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, DollarSign, FileText, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { MENU_CONFIG } from '../config/menuConfig'; // <-- 1. Import พิมพ์เขียวเมนู
+import { TreePalm } from 'lucide-react';
 
-// สร้างข้อมูลเมนูเพื่อให้จัดการง่าย
-const menuItems = [
-    { icon: LayoutDashboard, text: 'ภาพรวมหลัก', path: '/' },
-    { icon: ShoppingCart, text: 'รับซื้อสินค้า', path: '/purchase' },
-    { icon: DollarSign, text: 'ขายสินค้า', path: '/sell' },
-    { icon: FileText, text: 'รายการ', path: '/transactions' },
-    { icon: Settings, text: 'ตั้งค่า', path: '/settings' },
-];
+const Sidebar = ({ isOpen }) => {
+    const { user } = useAuth();
 
-const Sidebar = ({ isOpen, toggleSidebar }) => {
+    // 2. ดึงเมนูที่ถูกต้องสำหรับ Role ปัจจุบัน, ถ้าไม่เจอให้ใช้ Array ว่าง
+    const menuSections = MENU_CONFIG[user?.e_role] || [];
+
+    const navLinkClass = ({ isActive }) =>
+        `flex items-center p-3 text-sm rounded-lg transition-colors ${!isOpen ? 'justify-center' : ''} ${
+            isActive
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'text-gray-800 hover:bg-orange-50 hover:text-orange-700'
+        }`;
+
     return (
-        <aside 
-            className={`
-                bg-[#111827] text-gray-200 flex flex-col 
-                transition-all duration-300 ease-in-out
-                ${isOpen ? 'w-64' : 'w-20'}
-            `}
-        >
-            {/* Logo and Toggle Button */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-700 h-16">
-                <span className={`font-regular text-xl whitespace-nowrap ${!isOpen && 'hidden'}`}>
-                    EasyPalm
-                </span>
-                <button 
-                    onClick={toggleSidebar} 
-                    className="p-2 rounded-full hover:bg-gray-700"
-                >
-                    {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-                </button>
+        <aside className={`bg-white flex flex-col transition-all duration-300 ${isOpen ? 'w-60' : 'w-20'} z-20 shadow-lg`}>
+            <div className="flex items-center justify-center p-4 h-16">
+                <div className={`flex items-center gap-3 ${!isOpen ? 'scale-0 w-0' : 'w-auto'} transition-transform duration-200`}>
+                    <TreePalm className="text-green-600 flex-shrink-0" size={32} />
+                    <span className="font-semibold text-2xl whitespace-nowrap text-gray-800">EasyPalm</span>
+                </div>
+                {!isOpen && (
+                    <TreePalm className="text-green-600" size={32} />
+                )}
             </div>
 
-            {/* Navigation Menu */}
-            <nav className="flex-1 px-3 py-4 space-y-2">
-                {menuItems.map((item, index) => (
-                    <a 
-                        key={index} 
-                        href={item.path} 
-                        className={`
-                            flex items-center p-3 rounded-lg hover:bg-gray-700
-                            ${item.text === 'รับซื้อสินค้า' ? 'bg-gray-900' : ''} // Active state example
-                        `}
-                    >
-                        <item.icon className="h-6 w-6" />
-                        <span className={`ml-4 whitespace-nowrap transition-opacity duration-200 ${!isOpen && 'hidden'}`}>
-                            {item.text}
-                        </span>
-                    </a>
+            <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto border-t border-gray-100 mt-4 pt-4">
+                {menuSections.map(section => (
+                    <div key={section.title}>
+                        <p className={`px-3 text-xs text-gray-500 whitespace-nowrap ${!isOpen ? 'hidden' : ''}`}>{section.title}</p>
+                        <div className="mt-2 space-y-1">
+                            {section.items.map(item => (
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    className={navLinkClass}
+                                >
+                                    <item.icon size={20} />
+                                    <span className={`ml-4 whitespace-nowrap ${!isOpen && 'hidden'}`}>{item.text}</span>
+                                </NavLink>
+                            ))}
+                        </div>
+                    </div>
                 ))}
             </nav>
-
-            {/* Sidebar Footer (Optional) */}
-            <div className="p-4 border-t border-gray-700">
-                {/* You can add user profile or other info here */}
-            </div>
         </aside>
     );
 };

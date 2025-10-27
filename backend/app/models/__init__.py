@@ -7,12 +7,12 @@
 # For example, instead of `from app.models.product import Product`,
 # you can just do `from . import models` and then use `models.Product`.
 
-from .employee import Employee
+from .employee import Employee, EmployeeRole
 from .farmer import Farmer
 from .product import Product
 from .purchase_order import PurchaseOrder
 from .sales_order import SalesOrder
-from .stock_transaction import StockTransactionIn, StockTransactionOut, StockTransactionReturn
+from .stock_transaction import StockTransactionIn, StockTransactionOut, StockTransactionReturn, SalesOrderItemCost
 from .warehouse import Warehouse
 from .role_authorization import RoleAuthorization
 from .purchase_order_item import PurchaseOrderItem

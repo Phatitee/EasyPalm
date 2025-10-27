@@ -1,4 +1,6 @@
+# backend/app/models/sales_order_item.py
 from app import db
+from sqlalchemy.orm import relationship
 
 class SalesOrderItem(db.Model):
     __tablename__ = 'salesorderitem'
@@ -8,8 +10,14 @@ class SalesOrderItem(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     price_per_unit = db.Column(db.Float, nullable=False)
 
-    sales_order = db.relationship('SalesOrder', back_populates='items')
-    product = db.relationship('Product', back_populates='sales_order_items')
+    sales_order = relationship('SalesOrder', back_populates='items')
+    
+    # --- (Corrected) This now matches the definition in product.py ---
+    product = relationship('Product', back_populates='sales_order_items')
+    
+    costs = relationship('SalesOrderItemCost', back_populates='sales_order_item', cascade="all, delete-orphan")
+    stock_outs = relationship("StockTransactionOut", back_populates="sales_order_item")
+    stock_returns = relationship("StockTransactionReturn", back_populates="sales_order_item")
 
     def to_dict(self):
         return {

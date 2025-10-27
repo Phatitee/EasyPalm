@@ -30,6 +30,14 @@ const AdminLayout = ({ user, children }) => {
                      <Link to="/products" className="flex items-center gap-3 px-2 py-2 text-sm rounded hover:bg-slate-700">
                        <DollarSign size={18} /> จัดการราคาสินค้า
                     </Link>
+
+                    {/* เอาไว้ลบ */}
+                    <Link to="/admin/warehouse-management" className="flex items-center gap-3 px-2 py-2 text-sm rounded hover:bg-slate-700">
+                       <Users size={18} /> จัดการคลังสินค้า
+                    </Link>
+
+
+
                     {/* สามารถเพิ่มเมนูอื่นๆ สำหรับ Admin ได้ที่นี่ */}
                 </nav>
             </aside>

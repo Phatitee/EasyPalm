@@ -1,4 +1,15 @@
 from app import db
+import enum
+
+# --- (เพิ่ม) Enum สำหรับ Role ใหม่ทั้งหมด ---
+class EmployeeRole(enum.Enum):
+    ADMIN = 'admin'
+    PURCHASING = 'purchasing'
+  
+    WAREHOUSE = 'warehouse'
+    SALES = 'sales'
+    ACCOUNTANT = 'accountant'
+    EXECUTIVE = 'executive'
 
 class Employee(db.Model):
     __tablename__ = 'employee'
@@ -13,7 +24,7 @@ class Employee(db.Model):
     e_date_of_issue = db.Column(db.DateTime)
     e_expired_date = db.Column(db.DateTime)
     position = db.Column(db.String(100), nullable=False)
-    e_role = db.Column(db.String(20), nullable=False)
+    e_role = db.Column(db.Enum(EmployeeRole), nullable=False)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     e_modified_date = db.Column(db.DateTime)
@@ -22,7 +33,7 @@ class Employee(db.Model):
         return {
             'e_id': self.e_id,
             'e_name': self.e_name,
-            'e_role': self.e_role,
+            'e_role': self.e_role.value if self.e_role else None,
             'position': self.position,
             'e_email': self.e_email,
             'e_tel': self.e_tel
