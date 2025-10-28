@@ -92,7 +92,7 @@ def handle_products():
         products = models.Product.query.all()
         return jsonify([p.to_dict() for p in products])
 
-@bp.route('/products/<int:p_id>', methods=['GET', 'PUT', 'DELETE'])
+@bp.route('/products/<string:p_id>', methods=['GET', 'PUT', 'DELETE'])
 def handle_product(p_id):
     """Handles fetching (GET), updating (PUT), or deleting (DELETE) a single product."""
     product = models.Product.query.get_or_404(p_id)
@@ -118,11 +118,9 @@ def handle_product(p_id):
 #   EMPLOYEE MANAGEMENT
 # ==============================================================================
 
-@bp.route('/employees', methods=['GET', 'POST'])
 def handle_employees():
     """Handles fetching all employees (GET) and creating a new employee (POST)."""
     
-    # --- Create New Employee ---
     if request.method == 'POST':
         data = request.get_json()
         required_fields = ['e_name', 'e_citizen_id_card', 'username', 'password', 'e_role', 'position']
@@ -130,7 +128,6 @@ def handle_employees():
             return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
 
         try:
-            # Generate new employee ID
             last_employee = models.Employee.query.order_by(models.Employee.e_id.desc()).first()
             if last_employee and last_employee.e_id.startswith('E'):
                 last_num = int(last_employee.e_id[1:])
@@ -138,19 +135,26 @@ def handle_employees():
             else:
                 new_id = 'E001'
 
+            # ★★★ FIX: แปลงค่า string 'admin' ให้เป็น EmployeeRole.ADMIN ก่อนบันทึก ★★★
+            try:
+                role_enum = EmployeeRole(data['e_role'])
+            except ValueError:
+                return jsonify({'message': f"Role '{data['e_role']}' ไม่ถูกต้อง"}), 400
+            # ★★★ END FIX ★★★
+
             new_employee = models.Employee(
                 e_id=new_id,
                 e_name=data['e_name'],
                 username=data['username'],
                 password=data['password'],
-                e_role=data['e_role'],
+                e_role=role_enum, # <-- ใช้ค่าที่แปลงแล้ว
                 position=data['position'],
                 e_citizen_id_card=data['e_citizen_id_card'],
                 e_email=data.get('e_email'),
                 e_tel=data.get('e_tel'),
-                e_gender=data.get('e_gender'),
-                e_citizen_address=data.get('e_citizen_address'),
-                e_address=data.get('e_address')
+                e_gender=data.get('e_gender', 'Male'),
+                e_citizen_address=data.get('e_citizen_address', ''),
+                e_address=data.get('e_address', '')
             )
             db.session.add(new_employee)
             db.session.commit()
@@ -161,8 +165,7 @@ def handle_employees():
                 return jsonify({'message': 'Username หรือ เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว'}), 409
             return jsonify({'message': str(e)}), 500
 
-    # --- Get All Employees ---
-    else:
+    else: # GET
         try:
             employees = models.Employee.query.all()
             return jsonify([e.to_dict() for e in employees])
@@ -174,24 +177,31 @@ def handle_employee(e_id):
     """Handles updating (PUT) or deleting (DELETE) a single employee."""
     employee = models.Employee.query.get_or_404(e_id)
 
-    # --- Update Employee ---
     if request.method == 'PUT':
         data = request.get_json()
         try:
             employee.e_name = data.get('e_name', employee.e_name)
-            employee.e_role = data.get('e_role', employee.e_role)
             employee.position = data.get('position', employee.position)
             employee.e_email = data.get('e_email', employee.e_email)
             employee.e_tel = data.get('e_tel', employee.e_tel)
+            
+            # ★★★ FIX: แปลงค่า string 'admin' ให้เป็น EmployeeRole.ADMIN ก่อนบันทึก ★★★
+            if 'e_role' in data:
+                try:
+                    employee.e_role = EmployeeRole(data['e_role'])
+                except ValueError:
+                    return jsonify({'message': f"Role '{data['e_role']}' ไม่ถูกต้อง"}), 400
+            # ★★★ END FIX ★★★
+
             if data.get('password'):
                 employee.password = data['password']
+            
             db.session.commit()
             return jsonify(employee.to_dict())
         except Exception as e:
             db.session.rollback()
             return jsonify({'message': str(e)}), 500
 
-    # --- Delete Employee ---
     if request.method == 'DELETE':
         try:
             db.session.delete(employee)
@@ -518,13 +528,35 @@ def mark_order_as_paid(order_number):
 
 @bp.route('/stock', methods=['GET'])
 def get_stock_levels():
-    """Retrieves all current stock levels."""
+    """Retrieves all current stock levels and includes average cost."""
     try:
-        all_stock = models.StockLevel.query.all()
-        return jsonify([s.to_dict() for s in all_stock])
+        # ดึงข้อมูลสต็อกเฉพาะรายการที่ยังเหลืออยู่
+        stock_levels = models.StockLevel.query.filter(models.StockLevel.quantity > 0).all()
+        results = []
+        for sl in stock_levels:
+            # ค้นหาล็อตสินค้าขาเข้าทั้งหมดของสินค้านี้ที่ยังเหลืออยู่
+            fifo_lots = models.StockTransactionIn.query.filter(
+                models.StockTransactionIn.p_id == sl.p_id,
+                models.StockTransactionIn.warehouse_id == sl.warehouse_id,
+                models.StockTransactionIn.remaining_quantity > 0
+            ).all()
+
+            total_cost = sum(lot.remaining_quantity * lot.unit_cost for lot in fifo_lots)
+            total_quantity = sum(lot.remaining_quantity for lot in fifo_lots)
+            
+            # คำนวณต้นทุนเฉลี่ยแบบถ่วงน้ำหนัก (ป้องกันการหารด้วยศูนย์)
+            average_cost = (total_cost / total_quantity) if total_quantity > 0 else 0
+
+            # เพิ่มข้อมูลต้นทุนเฉลี่ยเข้าไปในผลลัพธ์
+            stock_data = sl.to_dict()
+            stock_data['average_cost'] = round(average_cost, 2)
+            results.append(stock_data)
+
+        return jsonify(results)
+
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-    
+
 # ==============================================================================
 #   WAREHOUSE MANAGEMENT (สร้างใหม่สำหรับเจ้าหน้าที่คลังสินค้า)
 # ==============================================================================
@@ -644,6 +676,55 @@ def ship_sales_order(order_number):
         db.session.rollback()
         return jsonify({'message': str(e)}), 500
 
+# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+#   (โค้ดที่เพิ่มเข้ามาใหม่)
+# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+@bp.route('/api/purchasing/warehouse-summary', methods=['GET'])
+def get_warehouse_summary():
+    """ Provides a summary of stock levels for each warehouse. """
+    try:
+        warehouses = models.Warehouse.query.all()
+        summary = []
+        for w in warehouses:
+            # Calculate total stock in this warehouse by summing quantities from StockLevel
+            current_stock_agg = db.session.query(
+                func.sum(models.StockLevel.quantity)
+            ).filter(
+                models.StockLevel.warehouse_id == w.warehouse_id
+            ).scalar() or 0.0
+
+            summary.append({
+                'warehouse_id': w.warehouse_id,
+                'warehouse_name': w.warehouse_name,
+                'location': w.location,
+                'capacity': w.capacity,
+                'current_stock': float(current_stock_agg),
+                'remaining_capacity': float(w.capacity - current_stock_agg)
+            })
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@bp.route('/api/warehouse/shipment-history', methods=['GET'])
+def get_shipment_history():
+    """ (API ใหม่) ดึงประวัติการเบิกสินค้าทั้งหมด (Shipped, Delivered) """
+    try:
+        query = models.SalesOrder.query.filter(
+            models.SalesOrder.shipment_status.in_(['Shipped', 'Delivered'])
+        )
+
+        # Filter by customer name if provided
+        if search_name := request.args.get('name'):
+            # Join with FoodIndustry model to filter by F_name
+            query = query.join(models.FoodIndustry).filter(
+                models.FoodIndustry.F_name.ilike(f'%{search_name}%')
+            )
+
+        orders = query.order_by(models.SalesOrder.s_date.desc()).all()
+        return jsonify([order.to_dict() for order in orders])
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
 
 # ==============================================================================
 #   SALES MANAGEMENT
@@ -651,9 +732,8 @@ def ship_sales_order(order_number):
 
 @bp.route('/salesorders', methods=['GET', 'POST'])
 def handle_sales_orders():
-    """Handles creating (POST) and retrieving (GET) sales orders."""
+    """Handles creating (POST) and retrieving (GET) sales orders with filtering."""
     
-    # --- (แก้ไขใหม่ทั้งหมด) Create New Sales Order, Deduct Stock, and Calculate COGS ---
     if request.method == 'POST':
         data = request.get_json()
         required_fields = ['f_id', 'items', 'warehouse_id']
@@ -662,36 +742,37 @@ def handle_sales_orders():
         
         warehouse_id = data['warehouse_id']
         
-        # ใช้ transaction block เพื่อให้มั่นใจว่าถ้ามีข้อผิดพลาดจะ rollback ทั้งหมด
         try:
-            # --- Step 1: ตรวจสอบสต็อกคงเหลือทั้งหมดก่อน ---
+            # --- Step 1: ตรวจสอบสต็อก (เหมือนเดิม) ---
             for item_data in data['items']:
-                stock_level = models.StockLevel.query.filter_by(
-                    p_id=item_data['p_id'], warehouse_id=warehouse_id
-                ).first()
+                stock_level = models.StockLevel.query.filter_by(p_id=item_data['p_id'], warehouse_id=warehouse_id).first()
                 if not stock_level or stock_level.quantity < float(item_data['quantity']):
                     product = models.Product.query.get(item_data['p_id'])
                     return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอขาย!'}), 400
 
-            # --- Step 2: สร้าง Sales Order หลักและรายการย่อย ---
+            # --- Step 2: สร้าง Sales Order ---
             last_order = models.SalesOrder.query.order_by(models.SalesOrder.sale_order_number.desc()).first()
             new_so_number = 'SO001'
             if last_order and last_order.sale_order_number.startswith('SO'):
                 last_num = int(last_order.sale_order_number[2:])
                 new_so_number = f'SO{last_num + 1:03d}'
             
-            total_price = sum(item['quantity'] * item['price_per_unit'] for item in data['items'])
+            total_price = sum(float(item['quantity']) * float(item['price_per_unit']) for item in data['items'])
 
+            # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            # ★★★ FIX: เปลี่ยน f_id เป็น F_id ให้ตรงกับ Model ★★★
+            # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
             new_order = models.SalesOrder(
                 sale_order_number=new_so_number,
-                f_id=data['f_id'],
+                F_id=data['f_id'], # <--- แก้ไขตรงนี้
                 s_total_price=total_price,
-                s_date=datetime.utcnow(),
-                shipment_status='Pending'
+                s_date=datetime.utcnow()
+                # shipment_status จะใช้ค่า default 'Pending' จาก Model
             )
             db.session.add(new_order)
             
-            # สร้าง SalesOrderItem และเก็บไว้ใน list ชั่วคราว
+            # ... (โค้ดส่วนที่เหลือของการสร้าง SO Items และคำนวณ COGS เหมือนเดิม) ...
+            
             new_order_items = []
             for item_data in data['items']:
                 order_item = models.SalesOrderItem(
@@ -703,72 +784,78 @@ def handle_sales_orders():
                 db.session.add(order_item)
                 new_order_items.append(order_item)
             
-            # Commit ครั้งแรกเพื่อให้ได้ so_item_id
             db.session.flush()
 
-            # --- Step 3: คำนวณ COGS และตัดสต็อก (FIFO Logic) ---
             for item in new_order_items:
                 quantity_to_sell = item.quantity
                 cogs_for_item = 0.0
-
-                # 3.1 ค้นหาล็อตสินค้าที่ยังเหลืออยู่ โดยเรียงจากเก่าสุด (FIFO)
                 stock_in_lots = models.StockTransactionIn.query.filter(
                     models.StockTransactionIn.p_id == item.p_id,
                     models.StockTransactionIn.warehouse_id == warehouse_id,
                     models.StockTransactionIn.remaining_quantity > 0
                 ).order_by(asc(models.StockTransactionIn.in_transaction_date)).all()
 
-                # 3.2 วนลูปตัดสต็อกในแต่ละล็อต
                 for lot in stock_in_lots:
-                    if quantity_to_sell <= 0:
-                        break
-
+                    if quantity_to_sell <= 0: break
                     quantity_from_this_lot = min(lot.remaining_quantity, quantity_to_sell)
-                    
                     cogs_for_item += quantity_from_this_lot * lot.unit_cost
-                    
                     lot.remaining_quantity -= quantity_from_this_lot
                     quantity_to_sell -= quantity_from_this_lot
 
-                if quantity_to_sell > 0:
-                    # กรณีนี้ไม่ควรจะเกิดขึ้นถ้า Step 1 ทำงานถูกต้อง แต่เป็นการป้องกันไว้
-                    raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
-
-                # 3.3 บันทึก COGS ที่คำนวณได้
-                new_cogs_record = models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item)
-                db.session.add(new_cogs_record)
-
-                # 3.4 สร้าง StockTransactionOut
-                new_stock_out = models.StockTransactionOut(
-                    out_transaction_date=datetime.utcnow(),
-                    p_id=item.p_id,
-                    out_quantity=item.quantity,
-                    warehouse_id=warehouse_id,
-                    so_item_id=item.so_item_id
-                )
-                db.session.add(new_stock_out)
-
-                # 3.5 อัปเดตยอดรวมใน StockLevel
-                stock_level_to_update = models.StockLevel.query.filter_by(
-                    p_id=item.p_id, warehouse_id=warehouse_id
-                ).first()
+                if quantity_to_sell > 0: raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
+                
+                db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
+                db.session.add(models.StockTransactionOut(
+                    out_transaction_date=datetime.utcnow(), p_id=item.p_id, out_quantity=item.quantity,
+                    warehouse_id=warehouse_id, so_item_id=item.so_item_id
+                ))
+                stock_level_to_update = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
                 stock_level_to_update.quantity -= item.quantity
             
-            # --- Step 4: Commit transaction ทั้งหมด ---
             db.session.commit()
             return jsonify(new_order.to_dict()), 201
 
         except Exception as e:
             db.session.rollback()
-            return jsonify({'message': str(e)}), 500
+            # ส่ง error message ที่แท้จริงกลับไปเพื่อ debug ได้ง่ายขึ้น
+            return jsonify({'message': f"เกิดข้อผิดพลาด: {str(e)}"}), 500
     
-    # --- Get All Sales Orders (โค้ดส่วนนี้เหมือนเดิม) ---
-    else:
+    else: # GET request
         try:
-            orders = models.SalesOrder.query.order_by(models.SalesOrder.s_date.desc()).all()
+            query = models.SalesOrder.query
+            status_filter = request.args.get('status')
+            if status_filter:
+                query = query.filter(models.SalesOrder.shipment_status == status_filter)
+            
+            orders = query.order_by(models.SalesOrder.s_date.desc()).all()
             return jsonify([order.to_dict() for order in orders])
         except Exception as e:
             return jsonify({'message': str(e)}), 500
+        
+@bp.route('/salesorders/<string:order_number>/confirm-delivery', methods=['PUT'])
+def confirm_delivery(order_number):
+    try:
+        order = models.SalesOrder.query.get_or_404(order_number)
+        if order.shipment_status != 'Shipped':
+            return jsonify({'message': f'ไม่สามารถยืนยันได้ สถานะปัจจุบันคือ {order.shipment_status}'}), 409
+
+        # เมื่อยืนยันแล้ว สถานะจะเปลี่ยนเป็น Delivered
+        order.shipment_status = 'Delivered'
+        order.delivery_status = 'Delivered' # อัปเดตสถานะการส่งมอบด้วย
+        db.session.commit()
+        return jsonify({'message': f'ยืนยันการจัดส่ง SO {order_number} สำเร็จ'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500
+    
+@bp.route('/salesorders/<string:order_number>', methods=['GET'])
+def get_sales_order(order_number):
+    """ (API ใหม่) ดึงข้อมูลใบสั่งขายใบเดียวตามเลขที่ """
+    try:
+        order = models.SalesOrder.query.get_or_404(order_number)
+        return jsonify(order.to_dict())
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 # ==============================================================================
 #   ADMIN DASHBOARD
 # ==============================================================================

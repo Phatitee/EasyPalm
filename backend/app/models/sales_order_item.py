@@ -12,7 +12,6 @@ class SalesOrderItem(db.Model):
 
     sales_order = relationship('SalesOrder', back_populates='items')
     
-    # --- (Corrected) This now matches the definition in product.py ---
     product = relationship('Product', back_populates='sales_order_items')
     
     costs = relationship('SalesOrderItemCost', back_populates='sales_order_item', cascade="all, delete-orphan")
@@ -21,6 +20,8 @@ class SalesOrderItem(db.Model):
 
     def to_dict(self):
         return {
+            # ★★★ เพิ่ม p_id เข้าไปในนี้ ★★★
+            'p_id': self.p_id,
             'product_name': self.product.p_name if self.product else 'N/A',
             'quantity': self.quantity,
             'price_per_unit': self.price_per_unit

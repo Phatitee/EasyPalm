@@ -10,8 +10,8 @@ class FoodIndustry(db.Model):
     F_createDate = db.Column(db.DateTime, default=datetime.utcnow)
     F_modifiedDate = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ความสัมพันธ์: อาจจะผูกกับ SalesOrder ในอนาคต
-    # sales_orders = db.relationship('SalesOrder', back_populates='food_industry')
+    # ★★★ FIX: เพิ่มความสัมพันธ์ที่ถูกต้องกับ SalesOrder ★★★
+    sales_orders = db.relationship('SalesOrder', back_populates='customer')
 
     def to_dict(self):
         return {
