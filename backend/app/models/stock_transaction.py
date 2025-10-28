@@ -7,8 +7,8 @@ class SalesOrderItemCost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     so_item_id = db.Column(db.Integer, db.ForeignKey('salesorderitem.so_item_id'), nullable=False, index=True)
     cogs = db.Column(db.Float, nullable=False)
-    sales_order_item = relationship("SalesOrderItem", back_populates="costs")
-
+    sales_order_item = relationship('SalesOrderItem', back_populates='cost_entry')
+    
 class StockTransactionIn(db.Model):
     __tablename__ = 'stocktransactionin'
     in_transaction_id = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -14,7 +14,7 @@ class SalesOrderItem(db.Model):
     
     product = relationship('Product', back_populates='sales_order_items')
     
-    costs = relationship('SalesOrderItemCost', back_populates='sales_order_item', cascade="all, delete-orphan")
+    cost_entry = relationship('SalesOrderItemCost', back_populates='sales_order_item', uselist=False, cascade="all, delete-orphan")
     stock_outs = relationship("StockTransactionOut", back_populates="sales_order_item")
     stock_returns = relationship("StockTransactionReturn", back_populates="sales_order_item")
 
