@@ -1,5 +1,6 @@
 from app import db
 import enum
+from datetime import datetime
 
 # --- Enum สำหรับ Role ทั้งหมด ---
 class EmployeeRole(enum.Enum):
@@ -23,15 +24,15 @@ class Employee(db.Model):
     e_date_of_issue = db.Column(db.DateTime)
     e_expired_date = db.Column(db.DateTime)
     position = db.Column(db.String(100), nullable=False)
-    
-    # ★★★ FIX: แก้ไขการกำหนดคอลัมน์ Enum ให้ยืดหยุ่น ★★★
-    # บอกให้ SQLAlchemy ใช้ค่า value ('admin') แทนชื่อ ('ADMIN')
-    # และ native_enum=False เพื่อให้ทำงานได้ดีกับ SQLite
+
     e_role = db.Column(db.Enum(EmployeeRole, values_callable=lambda obj: [e.value for e in obj], native_enum=False), nullable=False)
 
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     e_modified_date = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    suspension_date = db.Column(db.DateTime, nullable=True)
+
 
     def to_dict(self):
         # ฟังก์ชันนี้จะแปลงค่า Enum เป็น string 'admin' โดยอัตโนมัติ
@@ -46,4 +47,6 @@ class Employee(db.Model):
             'e_citizen_id_card': self.e_citizen_id_card,
             'e_address': self.e_address,
             'username': self.username,
+            'is_active': self.is_active,
+            'suspension_date': self.suspension_date.isoformat() if self.suspension_date else None,
         }

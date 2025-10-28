@@ -30,6 +30,8 @@ def login():
 
     if not employee or employee.password != data['password']:
         return jsonify({'message': 'Username หรือ Password ไม่ถูกต้อง'}), 401
+    if not employee.is_active:
+        return jsonify({'message': 'บัญชีของคุณถูกระงับสิทธิ์การใช้งาน กรุณาติดต่อผู้ดูแลระบบ'}), 403
     
     # แปลง Enum เป็น string ก่อนส่งค่ากลับ
     user_data = employee.to_dict()
@@ -117,6 +119,61 @@ def handle_product(p_id):
 # ==============================================================================
 #   EMPLOYEE MANAGEMENT
 # ==============================================================================
+@bp.route('/employees', methods=['GET', 'POST'])
+def handle_employees():
+    """Handles fetching all employees (GET) and creating a new employee (POST)."""
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        required_fields = ['e_name', 'e_citizen_id_card', 'username', 'password', 'e_role', 'position']
+        if not all(field in data for field in required_fields):
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
+
+        try:
+            last_employee = models.Employee.query.order_by(models.Employee.e_id.desc()).first()
+            if last_employee and last_employee.e_id.startswith('E'):
+                last_num = int(last_employee.e_id[1:])
+                new_id = f'E{last_num + 1:03d}'
+            else:
+                new_id = 'E001'
+
+            # ★★★ FIX: แปลงค่า string 'admin' ให้เป็น EmployeeRole.ADMIN ก่อนบันทึก ★★★
+            try:
+                # Assuming EmployeeRole is imported or defined in models
+                role_enum = models.EmployeeRole(data['e_role'])
+            except ValueError:
+                return jsonify({'message': f"Role '{data['e_role']}' ไม่ถูกต้อง"}), 400
+            # ★★★ END FIX ★★★
+
+            new_employee = models.Employee(
+                e_id=new_id,
+                e_name=data['e_name'],
+                username=data['username'],
+                password=data['password'],
+                e_role=role_enum, # <-- ใช้ค่าที่แปลงแล้ว
+                position=data['position'],
+                e_citizen_id_card=data['e_citizen_id_card'],
+                e_email=data.get('e_email'),
+                e_tel=data.get('e_tel'),
+                e_gender=data.get('e_gender', 'Male'),
+                e_citizen_address=data.get('e_citizen_address', ''),
+                e_address=data.get('e_address', '')
+            )
+            db.session.add(new_employee)
+            db.session.commit()
+            return jsonify(new_employee.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            if 'UNIQUE constraint failed' in str(e):
+                return jsonify({'message': 'Username หรือ เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว'}), 409
+            return jsonify({'message': str(e)}), 500
+
+    else: # GET
+        try:
+            employees = models.Employee.query.all()
+            return jsonify([e.to_dict() for e in employees])
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
 
 def handle_employees():
     """Handles fetching all employees (GET) and creating a new employee (POST)."""
@@ -171,6 +228,45 @@ def handle_employees():
             return jsonify([e.to_dict() for e in employees])
         except Exception as e:
             return jsonify({'message': str(e)}), 500
+        
+@bp.route('/employees/<string:e_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_employee_by_id(e_id):
+    """Handles GET, PUT, and DELETE for a single employee."""
+    employee = models.Employee.query.get_or_404(e_id)
+
+    if request.method == 'GET':
+        return jsonify(employee.to_dict())
+
+    elif request.method == 'PUT':
+        data = request.get_json()
+        try:
+            employee.e_name = data.get('e_name', employee.e_name)
+            employee.position = data.get('position', employee.position)
+            if 'e_role' in data:
+                employee.e_role = models.EmployeeRole(data['e_role'].lower())
+            employee.e_email = data.get('e_email', employee.e_email)
+            employee.e_tel = data.get('e_tel', employee.e_tel)
+            employee.e_gender = data.get('e_gender', employee.e_gender)
+            employee.e_address = data.get('e_address', employee.e_address)
+            employee.e_citizen_address = data.get('e_citizen_address', employee.e_citizen_address)
+            
+            if data.get('password'):
+                 employee.password = data.get('password')
+
+            db.session.commit()
+            return jsonify({'message': 'อัปเดตข้อมูลพนักงานสำเร็จ'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': str(e)}), 500
+
+    elif request.method == 'DELETE':
+        try:
+            db.session.delete(employee)
+            db.session.commit()
+            return jsonify({'message': f'ลบพนักงาน {e_id} สำเร็จ'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': str(e)}), 500
 
 @bp.route('/employees/<string:e_id>', methods=['PUT', 'DELETE'])
 def handle_employee(e_id):
@@ -210,6 +306,32 @@ def handle_employee(e_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'message': str(e)}), 500
+        
+@bp.route('/employees/<string:e_id>/suspend', methods=['PUT'])
+def suspend_employee(e_id):
+    """ระงับสิทธิ์พนักงาน"""
+    employee = models.Employee.query.get_or_404(e_id)
+    try:
+        employee.is_active = False
+        employee.suspension_date = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'message': f'ระงับสิทธิ์พนักงาน {e_id} เรียบร้อยแล้ว'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500
+
+@bp.route('/employees/<string:e_id>/unsuspend', methods=['PUT'])
+def unsuspend_employee(e_id):
+    """ยกเลิกการระงับสิทธิ์พนักงาน"""
+    employee = models.Employee.query.get_or_404(e_id)
+    try:
+        employee.is_active = True
+        employee.suspension_date = None
+        db.session.commit()
+        return jsonify({'message': f'ยกเลิกการระงับสิทธิ์พนักงาน {e_id} เรียบร้อยแล้ว'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500
 
 
 # ==============================================================================
