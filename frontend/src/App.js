@@ -15,6 +15,7 @@ import MainPage from './pages/main/Mainpage';
 
 // Admin
 import EmployeeMangement from './pages/admin/EmployeeManagement';
+import EmployeeDetail from './pages/admin/EmployeeDetail';
 
 // Purchasing
 import PurchaseProduct from './pages/purchasing/PurchaseProduct';
@@ -101,6 +102,7 @@ function App() {
           
           {/* --- Admin Routes --- */}
           <Route path="/admin/employees" element={<EmployeeMangement />} />
+          <Route path="/admin/employees/:e_id" element={<EmployeeDetail />} /> {/* <-- เพิ่ม Route นี้ */}
           
           {/* --- Purchasing Routes --- */}
           <Route path="/purchasing/create-po" element={<PurchaseProduct />} />

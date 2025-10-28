@@ -106,6 +106,7 @@ export const MENU_CONFIG = {
             title: 'ระบบ',
             items: [
                 { icon: UsersIcon, text: 'จัดการพนักงาน', path: '/admin/employees' },
+                
             ]
         }
     ],
