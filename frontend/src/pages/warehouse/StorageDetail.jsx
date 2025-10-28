@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare, Loader } from 'lucide-react';
+import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign } from 'lucide-react';
 
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
-
     const formattedDate = date 
         ? new Date(date).toLocaleString('th-TH', {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
           })
         : '';
-
     return (
         <div className="flex justify-between items-center text-sm py-1">
             <div className="flex items-center">
@@ -24,7 +22,7 @@ const ActionDetail = ({ icon, label, person, date }) => {
     );
 };
 
-const ShipmentDetails = ({ orderId, onClose }) => {
+const StorageDetail = ({ orderId, onClose }) => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -33,12 +31,13 @@ const ShipmentDetails = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`http://localhost:5000/salesorders/${orderId}`);
-                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
+                // Endpoint is correct for fetching Purchase Order details
+                const response = await fetch(`http://localhost:5000/purchaseorders/${orderId}`);
+                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
                 const data = await response.json();
                 setOrder(data);
             } catch (error) {
-                console.error("Failed to fetch order details:", error);
+                console.error("Failed to fetch PO details:", error);
             } finally {
                 setLoading(false);
             }
@@ -46,43 +45,39 @@ const ShipmentDetails = ({ orderId, onClose }) => {
         fetchOrderDetail();
     }, [orderId]);
 
-    const getStatusChip = (status) => {
-        switch (status) {
-            case 'Paid': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">ชำระเงินแล้ว</span>;
-            case 'Unpaid': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">ยังไม่ชำระ</span>;
-            default: return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800">{status}</span>;
-        }
+    const getStatusChip = (status, type) => {
+        const colors = {
+            payment: { Paid: "bg-green-100 text-green-800", Unpaid: "bg-red-100 text-red-800" },
+            stock: { Completed: "bg-blue-100 text-blue-800", Pending: "bg-yellow-100 text-yellow-800", 'Not Received': "bg-gray-100 text-gray-800" }
+        };
+        const text = { 'Not Received': 'ยังไม่ได้รับ', Pending: 'รอรับเข้าคลัง', Completed: 'รับเข้าคลังแล้ว', Paid: 'จ่ายแล้ว', Unpaid: 'ยังไม่จ่าย' };
+        return <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colors[type][status]}`}>{text[status] || status}</span>;
     };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex justify-center items-center" onClick={onClose}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl m-4" onClick={(e) => e.stopPropagation()}>
                 {loading || !order ? (
-                    <div className="h-96 flex justify-center items-center">
-                        <Loader className="animate-spin text-blue-500" size={40} />
-                    </div>
+                    <div className="h-96 flex justify-center items-center"><Loader className="animate-spin text-blue-500" size={40} /></div>
                 ) : (
                     <div className="p-8 max-h-[90vh] overflow-y-auto">
                         {/* Header */}
                         <div className="flex justify-between items-start border-b pb-4 mb-6">
                             <div>
                                 <h2 className="text-3xl font-bold text-gray-800 flex items-center">
-                                    <Hash className="mr-2 text-blue-600"/>
-                                    ใบสั่งขาย: {order.sale_order_number}
+                                    <Hash className="mr-2 text-purple-600"/>ใบสั่งซื้อ: {order.purchase_order_number}
                                 </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}
-                                </p>
+                                <p className="text-sm text-gray-500 mt-1">วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
                             </div>
                             <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={28} /></button>
                         </div>
 
-                        {/* Body */}
+                        {/* Body using the new layout */}
                         <div className="space-y-8">
                             <div className="space-y-6">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center"><User className="mr-2"/>ข้อมูลลูกค้า</h3>
-                                    <div className="text-gray-800 pl-8"><p>{order.customer_name}</p></div>
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center"><User className="mr-2"/>ข้อมูลเกษตรกร</h3>
+                                    <div className="text-gray-800 pl-8"><p>{order.farmer_name}</p></div>
                                 </div>
                                 <div className="bg-white rounded-lg">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center"><ShoppingCart className="mr-2"/>รายการสินค้า</h3>
@@ -98,9 +93,9 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                                             <tbody className="bg-white divide-y divide-gray-200">
                                                 {order.items.map(item => (
                                                     <tr key={item.p_id}>
-                                                        <td className="px-4 py-2 text-sm text-gray-800">{item.p_name}</td>
-                                                        <td className="px-4 py-2 text-sm text-gray-600 text-right">{item.quantity.toLocaleString()} kg</td>
-                                                        <td className="px-4 py-2 text-sm text-gray-600 text-right">{(item.quantity * item.price_per_unit).toLocaleString('th-TH')}</td>
+                                                        <td className="px-4 py-2 text-sm">{item.p_name}</td>
+                                                        <td className="px-4 py-2 text-sm text-right">{item.quantity.toLocaleString()} kg</td>
+                                                        <td className="px-4 py-2 text-sm text-right font-semibold">{(item.quantity * item.price_per_unit).toLocaleString('th-TH')}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -108,14 +103,14 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-lg border">
-                                    <div className="flex justify-end items-center gap-4">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-sm text-gray-600">สถานะ</span>
-                                            {getStatusChip(order.payment_status)}
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            {getStatusChip(order.payment_status, 'payment')}
+                                            {getStatusChip(order.stock_status, 'stock')}
                                         </div>
                                         <div className="flex flex-col items-end">
                                             <span className="text-sm text-gray-600">ยอดรวมทั้งสิ้น</span>
-                                            <span className="text-2xl font-bold text-gray-900">{parseFloat(order.s_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
+                                            <span className="text-2xl font-bold text-gray-900">{parseFloat(order.b_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -125,9 +120,8 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                                 <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center"><Calendar className="mr-2"/>ประวัติการดำเนินการ</h3>
                                 <div className="space-y-2 pl-8 border-l-2">
                                     <ActionDetail icon={<User size={16} className="mr-3 text-blue-500"/>} label="สร้างโดย" person={order.created_by_name} date={order.created_date} />
-                                    <ActionDetail icon={<Package size={16} className="mr-3 text-purple-500"/>} label="เบิกสินค้าโดย" person={order.shipped_by_name} date={order.shipped_date} />
-                                    <ActionDetail icon={<Truck size={16} className="mr-3 text-orange-500"/>} label="ยืนยันจัดส่งโดย" person={order.delivered_by_name} date={order.delivered_date} />
-                                    <ActionDetail icon={<CheckSquare size={16} className="mr-3 text-green-500"/>} label="ยืนยันรับเงินโดย" person={order.paid_by_name} date={order.paid_date} />
+                                    <ActionDetail icon={<DollarSign size={16} className="mr-3 text-green-500"/>} label="จ่ายเงินโดย" person={order.paid_by_name} date={order.paid_date} />
+                                    <ActionDetail icon={<Package size={16} className="mr-3 text-orange-500"/>} label="รับเข้าคลังโดย" person={order.received_by_name} date={order.received_date} />
                                 </div>
                             </div>
                         </div>
@@ -138,4 +132,4 @@ const ShipmentDetails = ({ orderId, onClose }) => {
     );
 };
 
-export default ShipmentDetails;
+export default StorageDetail;

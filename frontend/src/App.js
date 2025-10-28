@@ -11,7 +11,7 @@ import AppLayout from './components/layouts/AppLayout';
 
 // Pages
 import EasyPlamLogin from './pages/main/EasyPlamLogin';
-import MainPage from './pages/main/Mainpage';
+import MainPage from './pages/main/mainpage';
 
 // Admin
 import EmployeeMangement from './pages/admin/EmployeeManagement';
@@ -23,6 +23,7 @@ import PurchaseHistory from './pages/purchasing/PurchaseHistory';
 import ProductPriceList from './pages/purchasing/ProductPriceList';
 import FarmerManagement from './pages/purchasing/FarmerManagement';
 import WarehouseSummary from './pages/purchasing/WarehouseSummary';
+import PurchaseOrderDetail from './pages/accountant/PurchaseOrderDetail';
 
 // Sales
 import CreateSalesOrder from './pages/sales/CreateSalesOrder';
@@ -43,6 +44,7 @@ import ShipmentDetails from './pages/warehouse/ShipmentDetails';
 // ★★★ แก้ไขบรรทัดนี้: เปลี่ยนการ import ให้ถูกต้อง ★★★
 import PaymentManagement from './pages/accountant/PaymentManagement'; 
 import SoReceipts from './pages/accountant/SoReceipts';
+import ReceiptDetail from './pages/accountant/ReceiptDetail';
 
 // Executive
 import ExecutiveDashboard from './pages/executive/ExecutiveDashboard';
@@ -110,6 +112,8 @@ function App() {
           <Route path="/purchasing/prices" element={<ProductPriceList />} />
           <Route path="/purchasing/farmers" element={<FarmerManagement />} />
           <Route path="/purchasing/stock-summary" element={<WarehouseSummary />} />
+          <Route path="/purchasing/history/:orderNumber" element={<PurchaseOrderDetail />} />
+          
           
           {/* --- Sales Routes --- */}
           <Route path="/sales/create-so" element={<CreateSalesOrder />} />
@@ -135,6 +139,7 @@ function App() {
           <Route path="/accountant/so-receipts" element={<SoReceipts />} />
           <Route path="/accountant/purchase-history" element={<PurchaseHistory />} />
           <Route path="/accountant/sales-history" element={<SalesHistory />} />
+          <Route path="/accountant/so-receipts/:orderNumber" element={<ReceiptDetail />} />
             
           {/* --- Executive Routes --- */}
           <Route path="/executive/dashboard" element={<ExecutiveDashboard />} />

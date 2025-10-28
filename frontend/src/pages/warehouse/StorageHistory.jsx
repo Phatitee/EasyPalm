@@ -1,93 +1,131 @@
-// frontend/src/pages/warehouse/StorageHistory.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Filter, List, Loader, ServerCrash, Inbox, Archive } from 'lucide-react';
+import StorageDetail from './StorageDetail'; // Reuse the existing detail modal
 
 const StorageHistory = () => {
-    const [history, setHistory] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [warehouses, setWarehouses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    
+    // State for filtering and searching
     const [searchTerm, setSearchTerm] = useState('');
+    const [warehouseFilter, setWarehouseFilter] = useState('');
 
+    // State for modal
+    const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    const fetchStorageHistory = useCallback(async () => {
+        setLoading(true);
+        try {
+            // Build the query string with a default status of 'Completed'
+            const params = new URLSearchParams({ status: 'Completed' });
+            if (searchTerm) params.append('search', searchTerm);
+            if (warehouseFilter) params.append('warehouse_id', warehouseFilter);
+            
+            const response = await fetch(`http://localhost:5000/purchaseorders?${params.toString()}`);
+            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการจัดเก็บได้');
+            
+            const data = await response.json();
+            setOrders(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [searchTerm, warehouseFilter]);
+    
+    // Fetch warehouses for the filter dropdown
     useEffect(() => {
-        const fetchHistory = async () => {
-            setLoading(true);
+        const fetchWarehouses = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/warehouse/stock-in-history');
-                if (!response.ok) {
-                    throw new Error('ไม่สามารถดึงข้อมูลประวัติได้');
-                }
-                const data = await response.json();
-                setHistory(data);
-            } catch (error) {
-                console.error('Error fetching storage history:', error);
-            } finally {
-                setLoading(false);
+                const res = await fetch('http://localhost:5000/warehouses');
+                if (!res.ok) throw new Error('Failed to fetch warehouses');
+                setWarehouses(await res.json());
+            } catch (err) {
+                console.error(err);
             }
         };
-
-        fetchHistory();
+        fetchWarehouses();
     }, []);
 
-    // Logic สำหรับกรองข้อมูลตาม searchTerm
-    const filteredHistory = useMemo(() => {
-        if (!searchTerm) {
-            return history;
-        }
-        return history.filter(item =>
-            item.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.warehouse_name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [history, searchTerm]);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchStorageHistory();
+        }, 500); // Debounce search input
+        return () => clearTimeout(timer);
+    }, [fetchStorageHistory]);
 
-    if (loading) {
-        return <div className="p-6 text-center">กำลังโหลดประวัติ...</div>;
-    }
+    const handleRowClick = (orderId) => {
+        setSelectedOrderId(orderId);
+        setIsDetailModalOpen(true);
+    };
 
     return (
-        <div className="p-6">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">ประวัติการจัดเก็บสินค้า</h1>
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <List className="mr-3 text-orange-600"/>
+                ประวัติการจัดเก็บ
+            </h1>
 
-            {/* Search Bar */}
-            <div className="mb-4">
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="ค้นหาตามชื่อสินค้า, เลขที่ PO, หรือชื่อคลัง..."
-                    className="w-full max-w-lg px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            {/* Search and Filter Controls */}
+            <div className="mb-6 p-4 bg-white rounded-2xl shadow-lg flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative w-full md:w-2/3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="ค้นหาตามเลขที่ PO หรือชื่อเกษตรกร..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
+                <div className="relative w-full md:w-1/3">
+                    <Archive className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                        value={warehouseFilter}
+                        onChange={(e) => setWarehouseFilter(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">คลังสินค้าทั้งหมด</option>
+                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                    </select>
+                </div>
             </div>
 
-            {history.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center text-center text-gray-500 bg-white p-10 rounded-lg shadow">
-                    <ClipboardDocumentListIcon className="w-16 h-16 text-gray-400 mb-4" />
-                    <h2 className="text-xl font-semibold">ยังไม่มีประวัติการจัดเก็บ</h2>
-                    <p>เมื่อมีการบันทึกการจัดเก็บสินค้า ข้อมูลจะแสดงที่นี่</p>
+            {/* Content Area */}
+            {loading ? (
+                 <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>
+            ) : error ? (
+                <div className="flex flex-col justify-center items-center h-64 text-red-600 bg-red-50 p-10 rounded-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
+            ) : orders.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
+                    <Inbox size={64} className="mx-auto text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-semibold text-gray-700">ไม่พบข้อมูล</h2>
+                    <p className="mt-2 text-gray-500">ไม่พบประวัติการจัดเก็บที่ตรงกับเงื่อนไข</p>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                            <thead className="bg-gray-100">
+                        <table className="min-w-full divide-y divide-gray-200">
+                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left">วันที่</th>
-                                    <th className="px-6 py-3 text-left">ชื่อสินค้า</th>
-                                    <th className="px-6 py-3 text-right">จำนวน</th>
-                                    <th className="px-6 py-3 text-right">ต้นทุน/หน่วย</th>
-                                    <th className="px-6 py-3 text-left">คลังสินค้า</th>
-                                    <th className="px-6 py-3 text-left">อ้างอิง PO</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เลขที่ PO</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เกษตรกร</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่รับเข้าคลัง</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ยอดรวม</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">ผู้รับผิดชอบ</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {filteredHistory.map(item => (
-                                    <tr key={item.transaction_id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">{format(new Date(item.date), 'dd/MM/yyyy HH:mm')}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap font-medium">{item.product_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right font-semibold text-blue-600">{item.quantity.toFixed(2)}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-gray-600">{item.unit_cost.toFixed(2)}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{item.warehouse_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap font-mono">{item.po_number}</td>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {orders.map(order => (
+                                    <tr key={order.purchase_order_number} onClick={() => handleRowClick(order.purchase_order_number)} className="hover:bg-gray-100 cursor-pointer">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{order.purchase_order_number}</td>
+                                        <td className="px-6 py-4 text-gray-600">{order.farmer_name}</td>
+                                        <td className="px-6 py-4 text-gray-600">{new Date(order.received_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-gray-800">{parseFloat(order.b_total_price).toLocaleString('th-TH')} บาท</td>
+                                        <td className="px-6 py-4 text-center text-gray-600">{order.received_by_name || 'N/A'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -95,6 +133,8 @@ const StorageHistory = () => {
                     </div>
                 </div>
             )}
+            
+            {isDetailModalOpen && <StorageDetail orderId={selectedOrderId} onClose={() => setIsDetailModalOpen(false)} />}
         </div>
     );
 };

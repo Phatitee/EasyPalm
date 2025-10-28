@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader, ServerCrash, CheckCircle, Truck, ClipboardList } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ConfirmDelivery = () => {
     const [shippedOrders, setShippedOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { user } = useAuth();
 
     // ฟังก์ชันสำหรับดึงข้อมูล SO ที่มีสถานะ "Shipped" เท่านั้น
     const fetchShippedOrders = useCallback(async () => {
@@ -38,8 +40,10 @@ const ConfirmDelivery = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:5000/salesorders/${orderNumber}/confirm-delivery`, {
+    const response = await fetch(`http://localhost:5000/salesorders/${orderNumber}/confirm-delivery`, {
                 method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: user.e_id })
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);

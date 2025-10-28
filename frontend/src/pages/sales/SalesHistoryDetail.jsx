@@ -1,120 +1,168 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, ServerCrash, ArrowLeft, User, Calendar, Hash, Package, Truck, CheckCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare, Loader } from 'lucide-react';
 
-// Component สำหรับแสดง Badge สถานะ (เหมือนกับหน้าหลัก)
-const StatusBadge = ({ status }) => {
-    const statusConfig = {
-        Pending: { icon: Package, text: 'รอเบิก', color: 'yellow' },
-        Shipped: { icon: Truck, text: 'จัดส่งแล้ว', color: 'blue' },
-        Delivered: { icon: CheckCheck, text: 'ส่งมอบสำเร็จ', color: 'green' },
-    };
-    const config = statusConfig[status] || { icon: null, text: status, color: 'gray' };
-    
+// Component ย่อยสำหรับแสดงประวัติ
+const ActionDetail = ({ icon, label, person, date }) => {
+    if (!person) return null;
+
+    const formattedDate = date 
+        ? new Date(date).toLocaleString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '';
+
     return (
-        <span className={`px-4 py-2 text-sm font-semibold rounded-full bg-${config.color}-100 text-${config.color}-800 inline-flex items-center gap-2`}>
-            {config.icon && <config.icon size={16} />}
-            {config.text}
-        </span>
+        // ใช้ justify-between เพื่อแยกส่วนซ้าย-ขวาออกจากกัน
+        <div className="flex justify-between items-center text-sm py-1">
+            {/* จัดกลุ่ม icon, label, และ person ไว้ด้วยกันฝั่งซ้าย */}
+            <div className="flex items-center">
+                {icon}
+                <span className="font-semibold w-32 flex-shrink-0">{label}:</span>
+                {/* ★★★ FIX: เพิ่ม whitespace-nowrap เพื่อบังคับให้ชื่ออยู่บรรทัดเดียว ★★★ */}
+                <span className="text-gray-800 whitespace-nowrap">{person}</span>
+            </div>
+            {/* ดันวันที่ไปฝั่งขวา */}
+            {date && <span className="text-gray-500 text-xs text-right whitespace-nowrap ml-4">({formattedDate})</span>}
+        </div>
     );
 };
 
-const SalesHistoryDetail = () => {
-    const { orderNumber } = useParams();
-    const navigate = useNavigate();
+const SalesHistoryDetail = ({ orderId, onClose }) => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const fetchOrderDetails = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`http://localhost:5000/salesorders/${orderNumber}`);
-            if (!response.ok) {
-                throw new Error('ไม่พบข้อมูลใบสั่งขาย');
-            }
-            setOrder(await response.json());
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [orderNumber]);
 
     useEffect(() => {
-        fetchOrderDetails();
-    }, [fetchOrderDetails]);
+        if (!orderId) return;
+        const fetchOrderDetail = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`http://localhost:5000/salesorders/${orderId}`);
+                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
+                const data = await response.json();
+                setOrder(data);
+            } catch (error) {
+                console.error("Failed to fetch order details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchOrderDetail();
+    }, [orderId]);
 
-    if (loading) return <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>;
-    if (error) return <div className="text-center p-10 text-red-500 bg-red-50 rounded-lg"><ServerCrash className="mx-auto mb-2" />{error}</div>;
-    if (!order) return null;
+    const getStatusChip = (status) => {
+        switch (status) {
+            case 'Paid': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">ชำระเงินแล้ว</span>;
+            case 'Unpaid': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">ยังไม่ชำระ</span>;
+            default: return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800">{status}</span>;
+        }
+    };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold">
-                <ArrowLeft size={18} />
-                กลับไปหน้าประวัติ
-            </button>
-            <div className="bg-white p-8 rounded-2xl shadow-lg">
-                <div className="flex flex-wrap justify-between items-start mb-6">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-800">รายละเอียดใบสั่งขาย</h1>
-                        <p className="text-lg text-gray-500 mt-1">ข้อมูลสรุปของใบสั่งขาย</p>
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex justify-center items-center" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl m-4" onClick={(e) => e.stopPropagation()}>
+                {loading || !order ? (
+                    <div className="h-96 flex justify-center items-center">
+                        <Loader className="animate-spin text-blue-500" size={40} />
                     </div>
-                    <div className="text-right mt-4 md:mt-0">
-                         <StatusBadge status={order.shipment_status} />
-                    </div>
-                </div>
+                ) : (
+                    <div className="p-8 max-h-[90vh] overflow-y-auto">
+                        {/* Header */}
+                        <div className="flex justify-between items-start border-b pb-4 mb-6">
+                            <div>
+                                <h2 className="text-3xl font-bold text-gray-800 flex items-center">
+                                    <Hash className="mr-2 text-blue-600"/>
+                                    ใบสั่งขาย: {order.sale_order_number}
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}
+                                </p>
+                            </div>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={28} /></button>
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-b py-6 mb-6">
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-500 flex items-center gap-2"><User size={14}/>ลูกค้า</h3>
-                        <p className="text-lg font-medium text-gray-900">{order.customer_name}</p>
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-500 flex items-center gap-2"><Hash size={14}/>เลขที่ใบสั่งขาย</h3>
-                        <p className="text-lg font-mono text-gray-900">{order.sale_order_number}</p>
-                    </div>
-                     <div>
-                        <h3 className="text-sm font-semibold text-gray-500 flex items-center gap-2"><Calendar size={14}/>วันที่สั่ง</h3>
-                        <p className="text-lg font-medium text-gray-900">{new Date(order.s_date).toLocaleDateString('th-TH', { dateStyle: 'long' })}</p>
-                    </div>
-                </div>
+                        {/* Body */}
+                        <div className="space-y-8">
+                            {/* Left Section - Customer & Order Details */}
+                            <div className="space-y-6">
+                                {/* Customer Information */}
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center">
+                                        <User className="mr-2"/>ข้อมูลลูกค้า
+                                    </h3>
+                                    <div className="text-gray-800 pl-8">
+                                        <p>{order.customer_name}</p>
+                                    </div>
+                                </div>
 
-                <div>
-                    <h2 className="text-2xl font-semibold text-gray-700 mb-4 flex items-center gap-2"><Package/>รายการสินค้า</h2>
-                    <div className="overflow-x-auto border rounded-lg">
-                        <table className="min-w-full">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัสสินค้า</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อสินค้า</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวน (กก.)</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ราคา/หน่วย (บาท)</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ราคารวม (บาท)</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {order.items.map(item => (
-                                    <tr key={item.p_id}>
-                                        <td className="px-6 py-4 font-mono">{item.p_id}</td>
-                                        <td className="px-6 py-4 font-medium">{item.product_name}</td>
-                                        <td className="px-6 py-4 text-right">{item.quantity.toLocaleString('th-TH')}</td>
-                                        <td className="px-6 py-4 text-right">{item.price_per_unit.toFixed(2)}</td>
-                                        <td className="px-6 py-4 text-right font-semibold">{(item.quantity * item.price_per_unit).toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                             <tfoot className="bg-gray-100">
-                                <tr>
-                                    <td colSpan="4" className="px-6 py-3 text-right font-bold text-gray-700">ยอดรวมสุทธิ</td>
-                                    <td className="px-6 py-3 text-right font-bold text-xl text-blue-600">{order.s_total_price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                                {/* Order Items Section */}
+                                <div className="bg-white rounded-lg">
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center">
+                                        <ShoppingCart className="mr-2"/>รายการสินค้า
+                                    </h3>
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <table className="min-w-full">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">สินค้า</th>
+                                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">จำนวน</th>
+                                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">ราคา</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {order.items.map(item => (
+                                                    <tr key={item.p_id}>
+                                                        <td className="px-4 py-2 text-sm text-gray-800">{item.p_name}</td>
+                                                        <td className="px-4 py-2 text-sm text-gray-600 text-right">{item.quantity.toLocaleString()}</td>
+                                                        <td className="px-4 py-2 text-sm text-gray-600 text-right">{(item.quantity * item.price_per_unit).toLocaleString('th-TH')}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Status and Total Price Section */}
+                                <div className="bg-gray-50 p-4 rounded-lg border">
+                                    <div className="flex justify-end items-center gap-4">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-sm text-gray-600">สถานะ</span>
+                                            {getStatusChip(order.payment_status)}
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-sm text-gray-600">ยอดรวมทั้งสิ้น</span>
+                                            <span className="text-2xl font-bold text-gray-900">
+                                                {parseFloat(order.s_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <hr className="border-gray-200" />
+
+                            {/* Right Section - Action History */}
+                            <div className="bg-gray-50 p-6 rounded-lg">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+                                    <Calendar className="mr-2"/>ประวัติการดำเนินการ
+                                </h3>
+                                <div className="space-y-2 pl-8 border-l-2">
+                                    <ActionDetail icon={<User size={16} className="mr-3 text-blue-500"/>} 
+                                        label="สร้างรายการโดย" 
+                                        person={order.created_by_name} 
+                                        date={order.created_date} />
+                                    <ActionDetail icon={<Package size={16} className="mr-3 text-purple-500"/>} label="เบิกสินค้าโดย" person={order.shipped_by_name} date={order.shipped_date} />
+                                    <ActionDetail icon={<Truck size={16} className="mr-3 text-orange-500"/>} label="ยืนยันจัดส่งโดย" person={order.delivered_by_name} date={order.delivered_date} />
+                                    <ActionDetail icon={<CheckSquare size={16} className="mr-3 text-green-500"/>} label="ยืนยันรับเงินโดย" person={order.paid_by_name} date={order.paid_date} />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

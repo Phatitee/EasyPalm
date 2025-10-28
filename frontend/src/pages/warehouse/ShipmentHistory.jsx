@@ -1,42 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Loader, ServerCrash, ClipboardList, User, Package, Truck, CheckCheck } from 'lucide-react';
-
-// --- Component สำหรับแสดง Badge สถานะ (เหมือนกับหน้า SalesHistory) ---
-const StatusBadge = ({ status }) => {
-    const statusConfig = {
-        Pending: { icon: Package, text: 'รอเบิก', color: 'yellow' },
-        Shipped: { icon: Truck, text: 'จัดส่งแล้ว', color: 'blue' },
-        Delivered: { icon: CheckCheck, text: 'ส่งมอบสำเร็จ', color: 'green' },
-    };
-    const config = statusConfig[status] || { icon: null, text: status, color: 'gray' };
-    
-    return (
-        <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-${config.color}-100 text-${config.color}-800`}>
-            {config.icon && <config.icon className="mr-1.5" size={14} />}
-            {config.text}
-        </span>
-    );
-};
+import { Search, List, Loader, ServerCrash, Inbox } from 'lucide-react';
+import ShipmentDetails from './ShipmentDetails'; // Reuse the existing detail modal
 
 const ShipmentHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState('');
+    
+    // State for searching
     const [searchTerm, setSearchTerm] = useState('');
-    const navigate = useNavigate();
 
-    const fetchHistory = useCallback(async (name = '') => {
+    // State for modal
+    const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    const fetchShipmentHistory = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const params = new URLSearchParams();
-            if (name) params.append('name', name);
-
-            const response = await fetch(`http://localhost:5000/api/warehouse/shipment-history?${params.toString()}`);
-            if (!response.ok) {
-                throw new Error('ไม่สามารถโหลดข้อมูลประวัติการเบิกได้');
-            }
+            if (searchTerm) params.append('search', searchTerm);
+            
+            const response = await fetch(`http://localhost:5000/warehouse/shipment-history?${params.toString()}`, { cache: 'no-cache' });
+            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการเบิกได้');
+            
             const data = await response.json();
             setOrders(data);
         } catch (err) {
@@ -44,76 +30,85 @@ const ShipmentHistory = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [searchTerm]);
 
     useEffect(() => {
-        fetchHistory();
-    }, [fetchHistory]);
+        const timer = setTimeout(() => {
+            fetchShipmentHistory();
+        }, 500); // Debounce search input
+        return () => clearTimeout(timer);
+    }, [fetchShipmentHistory]);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        fetchHistory(searchTerm);
+    const handleRowClick = (orderId) => {
+        setSelectedOrderId(orderId);
+        setIsDetailModalOpen(true);
+    };
+
+    const getStatusChip = (status) => {
+        const colors = {
+            Shipped: "bg-yellow-100 text-yellow-800",
+            Delivered: "bg-blue-100 text-blue-800",
+        };
+        const text = {
+            Shipped: 'อยู่ระหว่างจัดส่ง',
+            Delivered: 'จัดส่งสำเร็จ',
+        };
+        return <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colors[status]}`}>{text[status] || status}</span>;
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-gray-800">ประวัติการเบิกสินค้า</h1>
-                <p className="text-lg text-gray-500 mt-2">ตรวจสอบรายการใบสั่งขายที่เบิกออกจากคลังแล้ว</p>
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <List className="mr-3 text-purple-600"/>
+                ประวัติการเบิกสินค้า
+            </h1>
+
+            {/* Search Controls */}
+            <div className="mb-6 p-4 bg-white rounded-2xl shadow-lg flex items-center">
+                <div className="relative w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="ค้นหาตามเลขที่ SO หรือชื่อลูกค้า..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl shadow-lg mb-8">
-                <form onSubmit={handleSearch} className="flex items-center gap-4">
-                    <div className="relative flex-grow">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input 
-                            type="text" 
-                            value={searchTerm} 
-                            onChange={(e) => setSearchTerm(e.target.value)} 
-                            placeholder="ค้นหาด้วยชื่อลูกค้า..." 
-                            className="w-full p-2 pl-10 border rounded-lg" 
-                        />
-                    </div>
-                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
-                        <Search size={18} />
-                        <span>ค้นหา</span>
-                    </button>
-                </form>
-            </div>
-
+            {/* Content Area */}
             {loading ? (
-                <div className="flex justify-center items-center p-16"><Loader className="animate-spin text-blue-500" size={48} /></div>
+                 <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>
             ) : error ? (
-                <div className="text-center p-10 text-red-500 bg-red-50 rounded-lg"><ServerCrash className="mx-auto mb-2" />{error}</div>
+                <div className="flex flex-col justify-center items-center h-64 text-red-600 bg-red-50 p-10 rounded-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
             ) : orders.length === 0 ? (
-                <div className="text-center text-gray-500 bg-gray-50 p-10 rounded-lg">
-                    <ClipboardList size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-xl font-semibold">ไม่พบข้อมูลประวัติการเบิก</h3>
+                <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
+                    <Inbox size={64} className="mx-auto text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-semibold text-gray-700">ไม่พบข้อมูล</h2>
+                    <p className="mt-2 text-gray-500">ไม่พบประวัติการเบิกสินค้าที่ตรงกับเงื่อนไข</p>
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-gray-200">
+                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เลขที่ SO</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อลูกค้า</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่สั่ง</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลูกค้า</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่เบิก</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">ผู้รับผิดชอบ</th>
                                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {orders.map((order) => (
-                                    <tr 
-                                        key={order.sale_order_number}
-                                        onDoubleClick={() => navigate(`/sales/history/${order.sale_order_number}`)}
-                                        className="hover:bg-blue-50/50 cursor-pointer"
-                                        title="ดับเบิ้ลคลิกเพื่อดูรายละเอียด"
-                                    >
-                                        <td className="px-6 py-4 font-mono">{order.sale_order_number}</td>
-                                        <td className="px-6 py-4 font-medium text-gray-800">{order.customer_name}</td>
-                                        <td className="px-6 py-4 text-gray-500">{new Date(order.s_date).toLocaleDateString('th-TH')}</td>
-                                        <td className="px-6 py-4 text-center"><StatusBadge status={order.shipment_status} /></td>
+                                {orders.map(order => (
+                                    <tr key={order.sale_order_number} onClick={() => handleRowClick(order.sale_order_number)} className="hover:bg-gray-100 cursor-pointer">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{order.sale_order_number}</td>
+                                        <td className="px-6 py-4 text-gray-600">{order.customer_name}</td>
+                                        <td className="px-6 py-4 text-gray-600">{new Date(order.shipped_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 text-center text-gray-600">{order.shipped_by_name || 'N/A'}</td>
+                                        <td className="px-6 py-4 text-center">{getStatusChip(order.shipment_status)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -121,6 +116,8 @@ const ShipmentHistory = () => {
                     </div>
                 </div>
             )}
+            
+            {isDetailModalOpen && <ShipmentDetails orderId={selectedOrderId} onClose={() => setIsDetailModalOpen(false)} />}
         </div>
     );
 };

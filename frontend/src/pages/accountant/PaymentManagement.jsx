@@ -1,179 +1,151 @@
-// frontend/src/pages/employee/PaymentManagement.jsx
-import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-
-// --- (สร้างใหม่) Component สำหรับ Modal เลือกคลังสินค้า ---
-const WarehouseSelectionModal = ({ order, warehouses, onClose, onConfirm }) => {
-    const [selectedWarehouse, setSelectedWarehouse] = useState(warehouses[0]?.warehouse_id || '');
-
-    if (!order) return null;
-
-    const handleConfirm = () => {
-        if (!selectedWarehouse) {
-            alert('กรุณาเลือกคลังสินค้า');
-            return;
-        }
-        onConfirm(order.purchase_order_number, selectedWarehouse);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-                <h2 className="text-xl font-bold mb-4">ยืนยันการรับสินค้าเข้าคลัง</h2>
-                <p className="mb-2"><strong>เลขที่ใบสั่งซื้อ:</strong> {order.purchase_order_number}</p>
-                <p className="mb-4"><strong>จาก:</strong> {order.farmer_name}</p>
-                
-                <div className="mb-6">
-                    <label htmlFor="warehouse-select" className="block text-sm font-medium text-gray-700 mb-2">
-                        เลือกคลังสินค้าที่ต้องการรับเข้า:
-                    </label>
-                    <select
-                        id="warehouse-select"
-                        value={selectedWarehouse}
-                        onChange={(e) => setSelectedWarehouse(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        {warehouses.length > 0 ? (
-                            warehouses.map(w => (
-                                <option key={w.warehouse_id} value={w.warehouse_id}>
-                                    {w.warehouse_name} ({w.warehouse_id})
-                                </option>
-                            ))
-                        ) : (
-                            <option value="" disabled>ไม่พบคลังสินค้า</option>
-                        )}
-                    </select>
-                </div>
-
-                <div className="flex justify-end gap-4">
-                    <button onClick={onClose} className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">
-                        ยกเลิก
-                    </button>
-                    <button onClick={handleConfirm} className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">
-                        ยืนยันและจ่ายเงิน
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { FileText, CheckCircle, Loader, ServerCrash, Inbox } from 'lucide-react';
+import PurchaseOrderDetail from './PurchaseOrderDetail';
 
 const PaymentManagement = () => {
-    const [unpaidOrders, setUnpaidOrders] = useState([]);
+    const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    
-    // --- (เพิ่ม) State สำหรับ Modal และ Warehouses ---
-    const [warehouses, setWarehouses] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [error, setError] = useState(null);
+    const [payingOrderId, setPayingOrderId] = useState(null);
+    const { user } = useAuth();
 
+    const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-    useEffect(() => {
-        fetchUnpaidOrders();
-        fetchWarehouses(); // ดึงข้อมูลคลังสินค้าเมื่อ component โหลด
-    }, []);
-
-    const fetchUnpaidOrders = async () => {
+    const fetchUnpaidOrders = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
-            const response = await fetch('http://localhost:5000/purchaseorders?status=unpaid');
+            // ★★★ FIX: เพิ่ม cache: 'no-cache' เพื่อบังคับให้ดึงข้อมูลใหม่เสมอ ★★★
+            const response = await fetch('http://localhost:5000/purchaseorders?status=unpaid', {
+                cache: 'no-cache' 
+            });
+            // ★★★ END FIX ★★★
+
+            if (!response.ok) {
+                throw new Error('ไม่สามารถดึงข้อมูลรายการที่ยังไม่จ่ายได้');
+            }
             const data = await response.json();
-            setUnpaidOrders(data);
-        } catch (error) {
-            console.error('Error fetching unpaid orders:', error);
+            setOrders(data);
+        } catch (err) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
-    
-    // --- (เพิ่ม) ฟังก์ชันดึงข้อมูลคลังสินค้า ---
-    const fetchWarehouses = async () => {
-        try {
-            const response = await fetch('http://localhost:5000/warehouses');
-            const data = await response.json();
-            setWarehouses(data);
-        } catch (error) {
-            console.error('Error fetching warehouses:', error);
+    }, []);
+
+    useEffect(() => {
+        fetchUnpaidOrders();
+    }, [fetchUnpaidOrders]);
+
+    const handleMarkAsPaid = async (e, orderNumber) => {
+        e.stopPropagation(); 
+        if (!window.confirm(`คุณต้องการยืนยันการจ่ายเงินสำหรับ PO ${orderNumber} ใช่หรือไม่?`)) {
+            return;
         }
-    };
-
-    // --- (แก้ไข) ฟังก์ชันนี้จะเปิด Modal แทนการยิง API ตรงๆ ---
-    const handleOpenPayModal = (order) => {
-        setSelectedOrder(order);
-        setIsModalOpen(true);
-    };
-
-    // --- (แก้ไข) ฟังก์ชันยิง API จะถูกเรียกจาก Modal ---
-    const handleConfirmPayment = async (orderNumber, warehouseId) => {
+        setPayingOrderId(orderNumber);
         try {
             const response = await fetch(`http://localhost:5000/purchaseorders/${orderNumber}/pay`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ warehouse_id: warehouseId })
+                body: JSON.stringify({ employee_id: user.e_id }),
             });
-
+            const result = await response.json();
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'เกิดข้อผิดพลาด');
+                throw new Error(result.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
             }
+            alert(`PO ${orderNumber} ถูกทำเครื่องหมายว่าจ่ายแล้ว!`);
             
-            alert('บันทึกการจ่ายเงินและรับเข้าสต็อกสำเร็จ!');
-            setIsModalOpen(false);
-            setSelectedOrder(null);
-            fetchUnpaidOrders(); // รีเฟรชรายการ
-
-        } catch (error) {
-            alert(`เกิดข้อผิดพลาด: ${error.message}`);
+            // เมื่อสำเร็จ คำสั่งนี้จะไปดึงข้อมูลใหม่ (แบบไม่ติด Cache) มาแสดง
+            fetchUnpaidOrders(); 
+        } catch (err) {
+            alert(`เกิดข้อผิดพลาด: ${err.message}`);
+        } finally {
+            setPayingOrderId(null);
         }
     };
 
+    const handleRowDoubleClick = (orderId) => {
+        setSelectedOrderId(orderId);
+        setIsDetailModalOpen(true);
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen"><Loader className="animate-spin text-blue-500" size={48} /> <span className="ml-4 text-lg">กำลังโหลดข้อมูล...</span></div>;
+    }
+
+    if (error) {
+        return <div className="flex flex-col justify-center items-center h-screen text-red-600 bg-red-50 p-10 rounded-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>;
+    }
+
     return (
-        <div className="p-6">
-            <h1 className="text-3xl font-bold mb-6">จัดการการจ่ายเงิน</h1>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <table className="min-w-full">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="px-6 py-3 text-left">เลขที่ใบสั่งซื้อ</th>
-                            <th className="px-6 py-3 text-left">วันที่</th>
-                            <th className="px-6 py-3 text-left">ชื่อเกษตรกร</th>
-                            <th className="px-6 py-3 text-right">ยอดรวม (บาท)</th>
-                            <th className="px-6 py-3 text-center">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {loading ? (
-                            <tr><td colSpan="5" className="text-center p-4">กำลังโหลด...</td></tr>
-                        ) : unpaidOrders.length === 0 ? (
-                            <tr><td colSpan="5" className="text-center p-4 text-gray-500">ไม่มีรายการที่ต้องจ่ายเงิน</td></tr>
-                        ) : (
-                            unpaidOrders.map(order => (
-                                <tr key={order.purchase_order_number}>
-                                    <td className="px-6 py-4 font-mono">{order.purchase_order_number}</td>
-                                    <td className="px-6 py-4">{format(new Date(order.b_date), 'dd/MM/yyyy')}</td>
-                                    <td className="px-6 py-4">{order.farmer_name}</td>
-                                    <td className="px-6 py-4 text-right">{order.b_total_price.toFixed(2)}</td>
-                                    <td className="px-6 py-4 text-center">
-                                        <button 
-                                            onClick={() => handleOpenPayModal(order)}
-                                            className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600"
-                                        >
-                                            จ่ายเงิน
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+                    <FileText className="inline-block mr-3 text-purple-600" />
+                    จัดการการจ่ายเงิน (Purchase Orders)
+                </h1>
             </div>
-            {isModalOpen && (
-                <WarehouseSelectionModal
-                    order={selectedOrder}
-                    warehouses={warehouses}
-                    onClose={() => setIsModalOpen(false)}
-                    onConfirm={handleConfirmPayment}
+
+            {orders.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
+                    <Inbox size={64} className="mx-auto text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-semibold text-gray-700">ไม่มีรายการที่ต้องดำเนินการ</h2>
+                    <p className="mt-2 text-gray-500">ไม่มีรายการสั่งซื้อที่รอการจ่ายเงินในขณะนี้</p>
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เลขที่ PO</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อเกษตรกร</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่สั่งซื้อ</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ยอดรวม</th>
+                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {orders.map((order) => (
+                                    <tr 
+                                        key={order.purchase_order_number}
+                                        onDoubleClick={() => handleRowDoubleClick(order.purchase_order_number)}
+                                        className="hover:bg-gray-100 cursor-pointer"
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.purchase_order_number}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.farmer_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.b_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold text-right">
+                                            {parseFloat(order.b_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                            <button
+                                                onClick={(e) => handleMarkAsPaid(e, order.purchase_order_number)}
+                                                disabled={payingOrderId === order.purchase_order_number}
+                                                className="flex items-center justify-center w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out disabled:bg-gray-400"
+                                            >
+                                                {payingOrderId === order.purchase_order_number ? (
+                                                    <Loader className="animate-spin mr-2" size={16} />
+                                                ) : (
+                                                    <CheckCircle className="mr-2" size={16} />
+                                                )}
+                                                {payingOrderId === order.purchase_order_number ? 'กำลังบันทึก...' : 'ทำเครื่องหมายว่าจ่ายแล้ว'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+            
+            {isDetailModalOpen && (
+                <PurchaseOrderDetail 
+                    orderId={selectedOrderId} 
+                    onClose={() => setIsDetailModalOpen(false)} 
                 />
             )}
         </div>

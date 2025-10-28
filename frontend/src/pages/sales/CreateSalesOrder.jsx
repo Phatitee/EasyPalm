@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CreateSalesOrder = () => {
     // Data states
     const [customers, setCustomers] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [stockLevels, setStockLevels] = useState([]);
+    const { user } = useAuth();
 
     // Form states
     const [selectedWarehouse, setSelectedWarehouse] = useState('');
@@ -27,17 +29,28 @@ const CreateSalesOrder = () => {
             setLoading(true);
             setError('');
             try {
+                // ★★★ FIX: Removed /api/ prefix from all endpoints ★★★
                 const [custRes, whRes, stockRes] = await Promise.all([
                     fetch('http://localhost:5000/food-industries'),
                     fetch('http://localhost:5000/warehouses'),
                     fetch('http://localhost:5000/stock')
                 ]);
 
-                if (!custRes.ok || !whRes.ok || !stockRes.ok) throw new Error('ไม่สามารถโหลดข้อมูลเริ่มต้นได้');
+                if (!custRes.ok || !whRes.ok || !stockRes.ok) {
+                    const custErr = !custRes.ok ? `Customer: ${custRes.statusText}` : '';
+                    const whErr = !whRes.ok ? `Warehouse: ${whRes.statusText}` : '';
+                    const stockErr = !stockRes.ok ? `Stock: ${stockRes.statusText}` : '';
+                    throw new Error(`ไม่สามารถโหลดข้อมูลเริ่มต้นได้: ${custErr} ${whErr} ${stockErr}`.trim());
+                }
 
+                const whData = await whRes.json();
                 setCustomers(await custRes.json());
-                setWarehouses(await whRes.json());
+                setWarehouses(whData);
                 setStockLevels(await stockRes.json());
+
+                if (whData.length > 0) {
+                    setSelectedWarehouse(whData[0].warehouse_id);
+                }
 
             } catch (err) { setError(err.message); }
             finally { setLoading(false); }
@@ -54,14 +67,13 @@ const CreateSalesOrder = () => {
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [customerSearchRef]);
+    }, []);
 
 
     const availableProducts = selectedWarehouse
         ? stockLevels.filter(stock => stock.warehouse_id === selectedWarehouse && stock.quantity > 0)
         : [];
     
-    // --- ฟังก์ชันจัดการรายการสินค้า (แก้ไขแล้ว) ---
     const handleAddItem = (product) => {
         if (!product || !product.product_id) {
             alert("เกิดข้อผิดพลาด: ข้อมูลสินค้าจาก API ไม่ถูกต้อง");
@@ -75,7 +87,6 @@ const CreateSalesOrder = () => {
         const newItem = {
             p_id: product.product_id,
             p_name: product.product_name,
-            // ★★★ FIX: เปลี่ยน State เป็น String เพื่อรองรับช่องว่าง ★★★
             quantity: '1',
             price_per_unit: '0',
             max_quantity: product.quantity,
@@ -85,9 +96,7 @@ const CreateSalesOrder = () => {
         setOrderItems(prevItems => [...prevItems, newItem]);
     };
 
-    // ★★★ FIX: แก้ไข handleItemChange ให้รองรับ String ★★★
     const handleItemChange = (productId, field, value) => {
-        // อนุญาตให้กรอกเฉพาะตัวเลขและจุดทศนิยม
         if (value && !/^\d*\.?\d*$/.test(value)) {
             return;
         }
@@ -95,7 +104,6 @@ const CreateSalesOrder = () => {
         setOrderItems(prevItems => prevItems.map(item => {
             if (item.p_id === productId) {
                 let updatedValue = value;
-                // ตรวจสอบจำนวนไม่ให้เกินสต็อก
                 if (field === 'quantity') {
                     const numValue = parseFloat(value);
                     if (!isNaN(numValue) && numValue > item.max_quantity) {
@@ -108,11 +116,9 @@ const CreateSalesOrder = () => {
         }));
     };
 
-    // ★★★ NEW: เพิ่ม handleItemBlur เพื่อตั้งค่า 0 เมื่อช่องว่าง ★★★
     const handleItemBlur = (productId, field, value) => {
         setOrderItems(prevItems => prevItems.map(item => {
             if (item.p_id === productId) {
-                // ถ้าช่องว่าง หรือมีแค่จุด ให้ตั้งค่าเป็น '0'
                 if (value.trim() === '' || value.trim() === '.') {
                     return { ...item, [field]: '0' };
                 }
@@ -126,7 +132,6 @@ const CreateSalesOrder = () => {
         setOrderItems(prevItems => prevItems.filter(item => item.p_id !== productId));
     };
     
-    // ★★★ FIX: แก้ไขการคำนวณให้แปลง String เป็น Float ★★★
     const calculateTotals = () => {
         const totalRevenue = orderItems.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0)), 0);
         const totalCost = orderItems.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * item.average_cost), 0);
@@ -143,7 +148,6 @@ const CreateSalesOrder = () => {
     const handleSubmitOrder = async () => {
         if (!selectedWarehouse || !selectedCustomer || orderItems.length === 0) return alert('กรุณากรอกข้อมูลให้ครบ');
         
-        // ★★★ FIX: ตรวจสอบค่าก่อนส่งข้อมูล ★★★
         if (orderItems.some(item => parseFloat(item.quantity || 0) <= 0 || parseFloat(item.price_per_unit || 0) <= 0)) {
             return alert('กรุณากรอกจำนวนและราคาของสินค้าทุกรายการให้ถูกต้อง (ต้องมากกว่า 0)');
         }
@@ -152,15 +156,16 @@ const CreateSalesOrder = () => {
         const orderData = {
             f_id: selectedCustomer,
             warehouse_id: selectedWarehouse,
-            // ★★★ FIX: แปลงค่าเป็นตัวเลขก่อนส่งไป Backend ★★★
+            employee_id: user.e_id,
             items: orderItems.map(({ p_id, quantity, price_per_unit }) => ({ 
                 p_id, 
                 quantity: parseFloat(quantity), 
-                price_per_unit: parseFloat(price_per_unit) 
+                price_per_unit: parseFloat(price_per_unit),
             })),
         };
         
         try {
+            // ★★★ FIX: Removed /api/ prefix ★★★
             const response = await fetch('http://localhost:5000/salesorders', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData),
             });
@@ -168,9 +173,16 @@ const CreateSalesOrder = () => {
             if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดที่ไม่รู้จัก');
             
             alert(`สร้างใบสั่งขาย ${result.sale_order_number} สำเร็จ!`);
-            setSelectedWarehouse(''); setSelectedCustomer(''); setOrderItems([]); setCustomerSearch('');
+            
+            // ★★★ FIX: Removed /api/ prefix ★★★
             const stockRes = await fetch('http://localhost:5000/stock');
             setStockLevels(await stockRes.json());
+
+            // Reset form
+            setSelectedCustomer(''); 
+            setOrderItems([]); 
+            setCustomerSearch('');
+
         } catch (error) {
             alert(`เกิดข้อผิดพลาด: ${error.message}`);
         } finally {
@@ -181,28 +193,28 @@ const CreateSalesOrder = () => {
     const filteredCustomers = customers.filter(c => c.F_name.toLowerCase().includes(customerSearch.toLowerCase()));
     const { totalRevenue, totalProfit } = calculateTotals();
 
-    if (loading) return <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>;
-    if (error) return <div className="text-center p-10 text-red-500 bg-red-50 rounded-lg"><ServerCrash className="mx-auto mb-2" />{error}</div>;
+    if (loading) return <div className="flex justify-center items-center h-screen"><Loader className="animate-spin text-blue-500" size={48} /> <span className="ml-4 text-lg">กำลังโหลดข้อมูล...</span></div>;
+    if (error) return <div className="flex flex-col justify-center items-center h-screen text-red-600 bg-red-50 rounded-lg p-10"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>;
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
             <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold text-gray-800">สร้างใบสั่งขาย (Sales Order)</h1>
                 <p className="text-lg text-gray-500 mt-2">กระบวนการสร้างใบสั่งขายสำหรับลูกค้า</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    {/* ข้อมูลหลัก: คลังและลูกค้า */}
+                    {/* Main Info: Warehouse and Customer */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg mb-6">
                         <h2 className="text-xl font-semibold text-gray-700 mb-4">ข้อมูลหลัก</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div>
-                                <label className="flex items-center text-sm font-medium text-gray-600 mb-1"><Archive size={16} className="mr-2"/>เลือกคลังสินค้าต้นทาง</label>
-                                <select value={selectedWarehouse} onChange={(e) => { setSelectedWarehouse(e.target.value); setOrderItems([]); }} className="w-full px-4 py-2 border rounded-lg bg-gray-50">
-                                    <option value="">-- กรุณาเลือกคลังสินค้า --</option>
-                                    {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
-                                </select>
-                            </div>
+                                <div>
+                                    <label className="flex items-center text-sm font-medium text-gray-600 mb-1"><Archive size={16} className="mr-2"/>เลือกคลังสินค้าต้นทาง</label>
+                                    <select value={selectedWarehouse} onChange={(e) => { setSelectedWarehouse(e.target.value); setOrderItems([]); }} className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">-- กรุณาเลือกคลังสินค้า --</option>
+                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                                    </select>
+                                </div>
                             <div ref={customerSearchRef}>
                                 <label className="flex items-center text-sm font-medium text-gray-600 mb-1"><User size={16} className="mr-2"/>ค้นหาลูกค้า</label>
                                 <div className="relative">
@@ -215,7 +227,7 @@ const CreateSalesOrder = () => {
                                             setIsCustomerListOpen(true);
                                         }} 
                                         disabled={!selectedWarehouse} 
-                                        className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                                        className="w-full pl-10 pr-4 py-2 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
                                     />
                                     {isCustomerListOpen && selectedWarehouse && (
                                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -231,7 +243,7 @@ const CreateSalesOrder = () => {
                         </div>
                     </div>
 
-                    {/* รายการสินค้าที่ขายได้ */}
+                    {/* Available Products List */}
                     <div className={`bg-white p-6 rounded-2xl shadow-lg transition-opacity duration-500 ${!selectedWarehouse ? 'opacity-50 cursor-not-allowed' : ''}`}>
                          <h2 className="text-xl font-semibold text-gray-700 mb-4">รายการสินค้าที่ขายได้</h2>
                         <div className="max-h-64 overflow-y-auto pr-2">
@@ -245,8 +257,8 @@ const CreateSalesOrder = () => {
                                                 <p className="font-semibold text-gray-800">{p.product_name}</p>
                                                 <p className="text-sm text-gray-500">คงเหลือ: <span className="font-mono text-blue-600">{p.quantity.toLocaleString()} kg</span></p>
                                             </div>
-                                            <button onClick={() => handleAddItem(p)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1">
-                                                <PlusCircle size={14} /> เพิ่ม
+                                            <button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.product_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100">
+                                                <PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.product_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}
                                             </button>
                                         </li>
                                     ))}
@@ -256,7 +268,7 @@ const CreateSalesOrder = () => {
                     </div>
                 </div>
                 
-                {/* สรุปรายการขาย */}
+                {/* Order Summary */}
                 <div className="lg:col-span-1">
                     <div className="bg-white p-6 rounded-2xl shadow-lg sticky top-8">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3"><ShoppingCart/>สรุปรายการขาย</h2>
@@ -270,7 +282,6 @@ const CreateSalesOrder = () => {
                                     <div className="flex justify-between items-start"><p className="font-semibold">{item.p_name}</p><button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button></div>
                                     <p className="text-xs text-gray-500 mb-2">สูงสุด: {item.max_quantity.toLocaleString()} kg | ต้นทุน: {item.average_cost.toFixed(2)} บ.</p>
                                     <div className="flex gap-2">
-                                        {/* ★★★ FIX: เพิ่ม onBlur และเปลี่ยน type="text" ★★★ */}
                                         <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity}
                                             onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)}
                                             onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)}
@@ -291,7 +302,7 @@ const CreateSalesOrder = () => {
                             <div className="mt-6 pt-4 border-t-2 border-dashed">
                                 <div className="flex justify-between items-center text-lg mb-2"><span className="font-semibold text-gray-700">ยอดรวม</span><span>{totalRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
                                  <div className={`flex justify-between items-center text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}><span className="flex items-center gap-2"><TrendingUp/>กำไรโดยประมาณ</span><span>{totalProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
-                                <button onClick={handleSubmitOrder} disabled={isSubmitting} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
+                                <button onClick={handleSubmitOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
                                     {isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}
                                     {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งขาย'}
                                 </button>

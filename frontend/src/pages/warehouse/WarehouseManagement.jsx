@@ -1,156 +1,155 @@
-// frontend/src/pages/warehouse/WarehouseManagement.jsx
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Loader, ServerCrash } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Archive, PlusCircle, Edit, Trash2, Loader, ServerCrash, Inbox } from 'lucide-react';
+import WarehouseForm from '../../components/forms/WarehouseForm'; // Import the new form component
 
 const WarehouseManagement = () => {
     const [warehouses, setWarehouses] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [formData, setFormData] = useState({ warehouse_id: '', warehouse_name: '', location: '', capacity: 100000 });
-    const [isEditing, setIsEditing] = useState(false);
+    
+    // State for modal management
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingWarehouse, setEditingWarehouse] = useState(null);
 
-    useEffect(() => {
-        fetchWarehouses();
-    }, []);
-
-    const fetchWarehouses = async () => {
-        setIsLoading(true);
+    const fetchWarehouses = useCallback(async () => {
+        setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/warehouses');
+            const response = await fetch('http://localhost:5000/warehouses', { cache: 'no-cache' });
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลคลังสินค้าได้');
             const data = await response.json();
             setWarehouses(data);
-        } catch (error) {
-            console.error('Error fetching warehouses:', error);
-            setError(error.message);
+        } catch (err) {
+            setError(err.message);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
+    }, []);
+
+    useEffect(() => {
+        fetchWarehouses();
+    }, [fetchWarehouses]);
+
+    const handleOpenModal = (warehouse = null) => {
+        setEditingWarehouse(warehouse);
+        setIsModalOpen(true);
     };
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    const handleCloseModal = () => {
+        setEditingWarehouse(null);
+        setIsModalOpen(false);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const url = isEditing
-            ? `http://localhost:5000/warehouses/${formData.warehouse_id}`
+    const handleSaveWarehouse = async (warehouseData) => {
+        const isEditMode = Boolean(warehouseData && warehouseData.warehouse_id && editingWarehouse);
+        const url = isEditMode 
+            ? `http://localhost:5000/warehouses/${warehouseData.warehouse_id}` 
             : 'http://localhost:5000/warehouses';
-        const method = isEditing ? 'PUT' : 'POST';
+        const method = isEditMode ? 'PUT' : 'POST';
 
         try {
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    capacity: parseFloat(formData.capacity) // Ensure capacity is a number
-                }),
+                body: JSON.stringify(warehouseData),
             });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message);
-            alert(`ดำเนินการสำเร็จ!`);
-            resetForm();
-            fetchWarehouses();
-        } catch (error) {
-            alert(`เกิดข้อผิดพลาด: ${error.message}`);
+            if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
+            
+            alert(`บันทึกข้อมูลคลังสินค้า '${result.warehouse_name}' สำเร็จ!`);
+            handleCloseModal();
+            fetchWarehouses(); // Refresh list
+        } catch (err) {
+            alert(`เกิดข้อผิดพลาด: ${err.message}`);
         }
     };
 
-    const handleEdit = (warehouse) => {
-        setIsEditing(true);
-        setFormData(warehouse);
-    };
+    const handleDeleteWarehouse = async (warehouse) => {
+        if (!window.confirm(`คุณต้องการลบคลังสินค้า '${warehouse.warehouse_name}' (${warehouse.warehouse_id}) ใช่หรือไม่?`)) {
+            return;
+        }
 
-    const handleDelete = async (warehouseId, warehouseName) => {
-        if (!window.confirm(`คุณต้องการลบคลังสินค้า "${warehouseName}" (${warehouseId}) จริงๆ หรือ?`)) return;
         try {
-            const response = await fetch(`http://localhost:5000/warehouses/${warehouseId}`, { method: 'DELETE' });
+            const response = await fetch(`http://localhost:5000/warehouses/${warehouse.warehouse_id}`, {
+                method: 'DELETE',
+            });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message);
+            if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดในการลบ');
+            
             alert(result.message);
-            fetchWarehouses();
-        } catch (error) {
-            alert(`เกิดข้อผิดพลาด: ${error.message}`);
+            fetchWarehouses(); // Refresh list
+        } catch (err) {
+            alert(`เกิดข้อผิดพลาด: ${err.message}`);
         }
-    };
-    
-    const resetForm = () => {
-        setIsEditing(false);
-        setFormData({ warehouse_id: '', warehouse_name: '', location: '', capacity: 100000 });
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-gray-800">จัดการคลังสินค้า</h1>
-                <p className="text-lg text-gray-500 mt-2">เพิ่ม แก้ไข หรือลบคลังสินค้าในระบบ</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">{isEditing ? `แก้ไขคลังสินค้า: ${formData.warehouse_id}` : 'เพิ่มคลังสินค้าใหม่'}</h2>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="lg:col-span-1">
-                        <label className="block text-sm font-medium text-gray-600 mb-1">รหัสคลังสินค้า</label>
-                        <input name="warehouse_id" value={formData.warehouse_id} onChange={handleInputChange} placeholder="เช่น W003" required disabled={isEditing} className="w-full px-4 py-2 border rounded-lg bg-gray-50 disabled:bg-gray-200" />
-                    </div>
-                     <div className="lg:col-span-1">
-                        <label className="block text-sm font-medium text-gray-600 mb-1">ชื่อคลังสินค้า</label>
-                        <input name="warehouse_name" value={formData.warehouse_name} onChange={handleInputChange} placeholder="เช่น คลังสินค้า B" required className="w-full px-4 py-2 border rounded-lg" />
-                    </div>
-                     <div className="lg:col-span-2">
-                        <label className="block text-sm font-medium text-gray-600 mb-1">ที่ตั้ง</label>
-                        <input name="location" value={formData.location} onChange={handleInputChange} placeholder="เช่น อ.เมือง จ.กระบี่" className="w-full px-4 py-2 border rounded-lg" />
-                    </div>
-                    <div className="lg:col-span-4 flex justify-end gap-3 mt-4">
-                         <button type="button" onClick={resetForm} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">ยกเลิก</button>
-                         <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
-                            {isEditing ? <Edit size={16} /> : <Plus size={16} />}
-                            {isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'เพิ่มคลังสินค้า'}
-                        </button>
-                    </div>
-                </form>
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+                    <Archive className="mr-3 text-blue-600"/>
+                    จัดการคลังสินค้า
+                </h1>
+                <button
+                    onClick={() => handleOpenModal()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2"
+                >
+                    <PlusCircle size={20} />
+                    เพิ่มคลังสินค้า
+                </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัส</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อคลังสินค้า</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ที่ตั้ง</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {isLoading ? (
-                                <tr><td colSpan="4" className="text-center p-10"><Loader className="animate-spin text-blue-500 mx-auto" /></td></tr>
-                            ) : error ? (
-                                <tr><td colSpan="4" className="text-center p-10 text-red-500"><ServerCrash className="mx-auto mb-2" />{error}</td></tr>
-                            ) : warehouses.map(w => (
-                                <tr key={w.warehouse_id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap font-mono">{w.warehouse_id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium">{w.warehouse_name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{w.location}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center justify-center gap-4">
-                                            <button onClick={() => handleEdit(w)} className="text-yellow-600 hover:text-yellow-800 transition-transform transform hover:scale-110" title="แก้ไข"><Edit size={18} /></button>
-                                            <button onClick={() => handleDelete(w.warehouse_id, w.warehouse_name)} className="text-red-600 hover:text-red-800 transition-transform transform hover:scale-110" title="ลบ"><Trash2 size={18} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {loading ? (
+                 <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>
+            ) : error ? (
+                <div className="flex flex-col justify-center items-center h-64 text-red-600 bg-red-50 p-10 rounded-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
+            ) : warehouses.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
+                    <Inbox size={64} className="mx-auto text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-semibold text-gray-700">ไม่พบคลังสินค้า</h2>
+                    <p className="mt-2 text-gray-500">ยังไม่มีข้อมูลคลังสินค้าในระบบ คลิก 'เพิ่มคลังสินค้า' เพื่อเริ่มต้น</p>
                 </div>
-                 {warehouses.length === 0 && !isLoading && !error && (
-                    <p className="text-center py-10 text-gray-500">-- ไม่พบข้อมูลคลังสินค้า --</p>
-                )}
-            </div>
+            ) : (
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                             <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อคลังสินค้า</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ที่ตั้ง</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ความจุ (kg)</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {warehouses.map(w => (
+                                    <tr key={w.warehouse_id}>
+                                        <td className="px-6 py-4 font-mono text-sm text-gray-700">{w.warehouse_id}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-900">{w.warehouse_name}</td>
+                                        <td className="px-6 py-4 text-gray-600">{w.location}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-gray-800">{parseFloat(w.capacity).toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex justify-center items-center gap-4">
+                                                <button onClick={() => handleOpenModal(w)} className="text-blue-600 hover:text-blue-800"><Edit size={18} /></button>
+                                                <button onClick={() => handleDeleteWarehouse(w)} className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+            
+            {isModalOpen && (
+                <WarehouseForm 
+                    initialData={editingWarehouse}
+                    onSave={handleSaveWarehouse}
+                    onClose={handleCloseModal}
+                />
+            )}
         </div>
     );
 };
