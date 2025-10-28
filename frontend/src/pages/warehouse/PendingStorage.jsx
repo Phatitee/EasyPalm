@@ -19,7 +19,7 @@ const PendingStorage = () => {
         setError(null);
         try {
             const [ordersRes, warehousesRes] = await Promise.all([
-                fetch('http://localhost:5000/api/warehouse/pending-receipts'),
+                fetch('http://localhost:5000/warehouse/pending-receipts'),
                 fetch('http://localhost:5000/warehouses')
             ]);
             
@@ -66,7 +66,7 @@ const PendingStorage = () => {
 
         setSubmittingId(orderNumber);
         try {
-            const response = await fetch('http://localhost:5000/api/warehouse/receive-items', {
+            const response = await fetch('http://localhost:5000/warehouse/receive-items', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
