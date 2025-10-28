@@ -17,6 +17,7 @@ class Product(db.Model):
     stock_levels = relationship('StockLevel', back_populates='product')
     purchase_order_items = relationship('PurchaseOrderItem', back_populates='product')
     sales_order_items = relationship('SalesOrderItem', back_populates='product')
+    purchase_order_items = relationship('PurchaseOrderItem', back_populates='product')
 
     def to_dict(self):
         return {

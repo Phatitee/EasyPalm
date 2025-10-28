@@ -489,45 +489,9 @@ def handle_food_industry(f_id):
 #   WAREHOUSE MANAGEMENT
 # ==============================================================================
 
-@bp.route('/warehouses', methods=['GET', 'POST'])
-def handle_warehouses():
-    """ (สร้างใหม่) Handles fetching all warehouses and creating a new one. """
-    
-    # --- Create New Warehouse ---
-    if request.method == 'POST':
-        data = request.get_json()
-        if not data or not data.get('warehouse_id') or not data.get('warehouse_name'):
-            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ warehouse_id และ warehouse_name)'}), 400
-        
-        # Check if ID already exists
-        if models.Warehouse.query.get(data['warehouse_id']):
-            return jsonify({'message': 'รหัสคลังสินค้านี้มีอยู่แล้ว'}), 409
-
-        try:
-            new_warehouse = models.Warehouse(
-                warehouse_id=data['warehouse_id'],
-                warehouse_name=data['warehouse_name'],
-                location=data.get('location')
-            )
-            db.session.add(new_warehouse)
-            db.session.commit()
-            return jsonify(new_warehouse.to_dict()), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'message': str(e)}), 500
-
-    # --- Get All Warehouses ---
-    else: # GET
-        try:
-            warehouses = models.Warehouse.query.all()
-            return jsonify([w.to_dict() for w in warehouses])
-        except Exception as e:
-            return jsonify({'message': str(e)}), 500
-
-
 @bp.route('/warehouses/<string:warehouse_id>', methods=['PUT', 'DELETE'])
 def handle_warehouse(warehouse_id):
-    """ (สร้างใหม่) Handles updating or deleting a single warehouse. """
+    """ Handles updating or deleting a single warehouse. """
     warehouse = models.Warehouse.query.get_or_404(warehouse_id)
 
     # --- Update Warehouse ---
@@ -536,6 +500,11 @@ def handle_warehouse(warehouse_id):
         try:
             warehouse.warehouse_name = data.get('warehouse_name', warehouse.warehouse_name)
             warehouse.location = data.get('location', warehouse.location)
+            
+            # ★★★ FIX: เพิ่มบรรทัดนี้เพื่ออัปเดตความจุ ★★★
+            if 'capacity' in data:
+                warehouse.capacity = float(data['capacity'])
+
             db.session.commit()
             return jsonify(warehouse.to_dict())
         except Exception as e:
@@ -559,24 +528,24 @@ def handle_warehouse(warehouse_id):
 # ==============================================================================
 #   PURCHASE & STOCK MANAGEMENT
 # ==============================================================================
+@bp.route('/purchaseorders/<string:order_number>', methods=['GET'])
+def get_purchase_order(order_number):
+    """ API ใหม่: ดึงข้อมูลใบสั่งซื้อใบเดียวตามเลขที่ """
+    try:
+        order = models.PurchaseOrder.query.get_or_404(order_number)
+        return jsonify(order.to_dict())
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 @bp.route('/purchaseorders', methods=['GET', 'POST'])
 def handle_purchase_orders():
-    """Handles creating (POST) and retrieving (GET) purchase orders with filtering."""
-    
-    # --- Create New Purchase Order ---
     if request.method == 'POST':
         data = request.get_json()
-        if not data or not data.get('f_id') or not isinstance(data.get('items'), list) or not data.get('items'):
-            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id และ items ที่เป็น array)'}), 400
+        if not all(k in data for k in ['f_id', 'items', 'employee_id']) or not data['items']:
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, employee_id และ items)'}), 400
         try:
-            # Generate new PO number
             last_order = models.PurchaseOrder.query.order_by(models.PurchaseOrder.purchase_order_number.desc()).first()
-            new_po_number = 'PO001'
-            if last_order and last_order.purchase_order_number.startswith('PO'):
-                last_num = int(last_order.purchase_order_number[2:])
-                new_po_number = f'PO{last_num + 1:03d}'
-            
+            new_po_number = f'PO{(int(last_order.purchase_order_number[2:]) + 1):03d}' if last_order else 'PO001'
             total_price = sum(item['quantity'] * item['price_per_unit'] for item in data['items'])
             
             new_order = models.PurchaseOrder(
@@ -584,44 +553,57 @@ def handle_purchase_orders():
                 f_id=data['f_id'],
                 b_total_price=total_price,
                 b_date=datetime.utcnow(),
-                payment_status='Unpaid'
+                created_by_id=data['employee_id'],
+                created_date=datetime.utcnow()
             )
             db.session.add(new_order)
             
             for item_data in data['items']:
-                order_item = models.PurchaseOrderItem(
+                db.session.add(models.PurchaseOrderItem(
                     purchase_order_number=new_po_number,
                     p_id=item_data['p_id'],
                     quantity=item_data['quantity'],
                     price_per_unit=item_data['price_per_unit']
-                )
-                db.session.add(order_item)
+                ))
             
             db.session.commit()
             return jsonify(new_order.to_dict()), 201
         except Exception as e:
             db.session.rollback()
             return jsonify({'message': str(e)}), 500
-    
-    # --- Get All Purchase Orders with Filters ---
-    else:
+    else: # GET
         try:
             query = models.PurchaseOrder.query
+            warehouse_id = request.args.get('warehouse_id')
+            if warehouse_id:
+                # Join ผ่าน PurchaseOrderItem และ StockTransactionIn เพื่อกรองตามคลัง
+                query = query.join(models.PurchaseOrderItem).join(models.StockTransactionIn).filter(
+                    models.StockTransactionIn.warehouse_id == warehouse_id
+                )
             
-            if status := request.args.get('status'):
-                if status == 'unpaid':
+            status_filter = request.args.get('status')
+            if status_filter:
+                # ทำให้การตรวจสอบไม่ขึ้นกับตัวพิมพ์เล็ก-ใหญ่
+                status_lower = status_filter.lower()
+                
+                if status_lower == 'unpaid':
+                    # สำหรับหน้า Payment Management ให้กรองเฉพาะที่ยังไม่จ่าย
                     query = query.filter(models.PurchaseOrder.payment_status.in_(['Unpaid', None]))
-            
-            if search_name := request.args.get('name'):
-                query = query.join(models.Farmer).filter(models.Farmer.f_name.ilike(f'%{search_name}%'))
-            
-            if start_date_str := request.args.get('start_date'):
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-                query = query.filter(models.PurchaseOrder.b_date >= start_date)
-            
-            if end_date_str := request.args.get('end_date'):
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-                query = query.filter(models.PurchaseOrder.b_date <= end_date)
+                else:
+                    # สำหรับหน้า History ทำให้รองรับสถานะอื่นๆ
+                    status_capitalized = status_filter.capitalize()
+                    if status_capitalized in ['Paid']:
+                        query = query.filter(models.PurchaseOrder.payment_status == status_capitalized)
+                    elif status_capitalized in ['Completed', 'Pending', 'Not Received']:
+                        query = query.filter(models.PurchaseOrder.stock_status == status_capitalized)
+
+            if search_term := request.args.get('search'):
+                query = query.join(models.Farmer).filter(
+                    or_(
+                        models.PurchaseOrder.purchase_order_number.ilike(f'%{search_term}%'),
+                        models.Farmer.f_name.ilike(f'%{search_term}%')
+                    )
+                )
             
             orders = query.order_by(models.PurchaseOrder.b_date.desc()).all()
             return jsonify([order.to_dict() for order in orders])
@@ -630,33 +612,56 @@ def handle_purchase_orders():
 
 @bp.route('/purchaseorders/<string:order_number>/pay', methods=['PUT'])
 def mark_order_as_paid(order_number):
-    """
-    (แก้ไขใหม่) อัปเดตสถานะการจ่ายเงิน และเปลี่ยนสถานะสต็อกเป็น 'Pending'
-    *** ไม่มีการอัปเดตสต็อกที่นี่อีกต่อไป ***
-    """
+    data = request.get_json()
+    if not data or not data.get('employee_id'):
+        return jsonify({'message': 'กรุณาระบุ ID ของพนักงานที่ทำรายการ'}), 400
     try:
         order = models.PurchaseOrder.query.get_or_404(order_number)
         if order.payment_status == 'Paid':
             return jsonify({'message': 'ใบเสร็จนี้ถูกจ่ายเงินไปแล้ว'}), 409
         
         order.payment_status = 'Paid'
-        order.stock_status = 'Pending' # <-- เปลี่ยนสถานะเพื่อให้พนักงานคลังเห็น
+        order.stock_status = 'Pending'
+        order.paid_by_id = data['employee_id']
+        order.paid_date = datetime.utcnow()
         db.session.commit()
-        
         return jsonify(order.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': str(e)}), 500
 
 @bp.route('/stock', methods=['GET'])
+@bp.route('/stock', methods=['GET'])
 def get_stock_levels():
-    """Retrieves all current stock levels and includes average cost."""
+    """Retrieves all current stock levels and includes average cost, with filtering."""
     try:
-        # ดึงข้อมูลสต็อกเฉพาะรายการที่ยังเหลืออยู่
-        stock_levels = models.StockLevel.query.filter(models.StockLevel.quantity > 0).all()
+        # Start with a base query that joins with Product and Warehouse
+        query = db.session.query(
+            models.StockLevel,
+            models.Product.p_name,
+            models.Warehouse.warehouse_name
+        ).join(
+            models.Product, models.StockLevel.p_id == models.Product.p_id
+        ).join(
+            models.Warehouse, models.StockLevel.warehouse_id == models.Warehouse.warehouse_id
+        ).filter(models.StockLevel.quantity > 0)
+
+
+        # Filter by warehouse_id if provided
+        warehouse_id = request.args.get('warehouse_id')
+        if warehouse_id:
+            query = query.filter(models.StockLevel.warehouse_id == warehouse_id)
+
+        # Search by product name if provided
+        search_term = request.args.get('search')
+        if search_term:
+            query = query.filter(models.Product.p_name.ilike(f'%{search_term}%'))
+
+        stock_levels_data = query.order_by(models.Warehouse.warehouse_name, models.Product.p_name).all()
+        
         results = []
-        for sl in stock_levels:
-            # ค้นหาล็อตสินค้าขาเข้าทั้งหมดของสินค้านี้ที่ยังเหลืออยู่
+        for sl, p_name, w_name in stock_levels_data:
+            # The average cost calculation logic remains the same
             fifo_lots = models.StockTransactionIn.query.filter(
                 models.StockTransactionIn.p_id == sl.p_id,
                 models.StockTransactionIn.warehouse_id == sl.warehouse_id,
@@ -665,12 +670,12 @@ def get_stock_levels():
 
             total_cost = sum(lot.remaining_quantity * lot.unit_cost for lot in fifo_lots)
             total_quantity = sum(lot.remaining_quantity for lot in fifo_lots)
-            
-            # คำนวณต้นทุนเฉลี่ยแบบถ่วงน้ำหนัก (ป้องกันการหารด้วยศูนย์)
             average_cost = (total_cost / total_quantity) if total_quantity > 0 else 0
 
-            # เพิ่มข้อมูลต้นทุนเฉลี่ยเข้าไปในผลลัพธ์
-            stock_data = sl.to_dict()
+            # Build the result dictionary
+            stock_data = sl.to_dict() # to_dict from model is simple, so we augment it
+            stock_data['product_name'] = p_name
+            stock_data['warehouse_name'] = w_name
             stock_data['average_cost'] = round(average_cost, 2)
             results.append(stock_data)
 
@@ -697,28 +702,23 @@ def get_pending_receipts():
 
 @bp.route('/api/warehouse/receive-items', methods=['POST'])
 def receive_items_into_stock():
-    """ 
-    (API ใหม่) ยืนยันการรับสินค้าเข้าคลัง และอัปเดตสต็อก
-    *** Logic การอัปเดตสต็อกทั้งหมดจะอยู่ที่นี่ ***
-    """
+    """ ยืนยันการรับสินค้าเข้าคลัง และอัปเดตสต็อก """
     data = request.get_json()
-    if not data or not data.get('purchase_order_number') or not data.get('warehouse_id'):
-        return jsonify({'message': 'ต้องการ purchase_order_number และ warehouse_id'}), 400
+    if not all(k in data for k in ['purchase_order_number', 'warehouse_id', 'employee_id']):
+        return jsonify({'message': 'ต้องการ purchase_order_number, warehouse_id และ employee_id'}), 400
 
     order_number = data['purchase_order_number']
     warehouse_id = data['warehouse_id']
+    employee_id = data['employee_id']
 
     try:
         order = models.PurchaseOrder.query.get_or_404(order_number)
         if order.stock_status == 'Completed':
             return jsonify({'message': 'ใบสั่งซื้อนี้ถูกจัดเก็บเข้าคลังไปแล้ว'}), 409
 
-        if not models.Warehouse.query.get(warehouse_id):
-            return jsonify({'message': f'ไม่พบคลังสินค้า {warehouse_id}'}), 404
-
-        # --- Logic การอัปเดตสต็อก (ย้ายมาจากฟังก์ชัน pay) ---
+        # --- Logic การอัปเดตสต็อก ---
         for item in order.items:
-            stock_in = models.StockTransactionIn(
+            db.session.add(models.StockTransactionIn(
                 in_transaction_date=datetime.utcnow(),
                 p_id=item.p_id,
                 in_quantity=item.quantity,
@@ -726,17 +726,17 @@ def receive_items_into_stock():
                 unit_cost=item.price_per_unit,
                 warehouse_id=warehouse_id,
                 po_item_id=item.po_item_id
-            )
-            db.session.add(stock_in)
-            
+            ))
             stock_level = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
             if stock_level:
                 stock_level.quantity += item.quantity
             else:
-                new_stock = models.StockLevel(p_id=item.p_id, warehouse_id=warehouse_id, quantity=item.quantity)
-                db.session.add(new_stock)
+                db.session.add(models.StockLevel(p_id=item.p_id, warehouse_id=warehouse_id, quantity=item.quantity))
         
+        # --- อัปเดตสถานะ PO ---
         order.stock_status = 'Completed'
+        order.received_by_id = employee_id
+        order.received_date = datetime.utcnow()
         db.session.commit()
         return jsonify({'message': f'รับสินค้าจาก PO {order_number} เข้าคลัง {warehouse_id} สำเร็จ'})
     except Exception as e:
@@ -786,12 +786,18 @@ def get_pending_shipments():
 @bp.route('/api/warehouse/ship-order/<string:order_number>', methods=['POST'])
 def ship_sales_order(order_number):
     """ (API ใหม่) ยืนยันการเบิก/จัดส่งสินค้า """
+    data = request.get_json()
+    if not data or not data.get('employee_id'):
+        return jsonify({'message': 'กรุณาระบุ ID ของพนักงานที่ทำรายการ'}), 400
+    employee_id = data.get('employee_id')
     try:
         order = models.SalesOrder.query.get_or_404(order_number)
         if order.shipment_status == 'Shipped':
             return jsonify({'message': 'ใบสั่งขายนี้ถูกจัดส่งไปแล้ว'}), 409
 
         order.shipment_status = 'Shipped'
+        order.shipped_by_id = employee_id
+        order.shipped_date = datetime.utcnow()
         db.session.commit()
         return jsonify({'message': f'ยืนยันการจัดส่ง SO {order_number} สำเร็จ'})
     except Exception as e:
@@ -827,26 +833,27 @@ def get_warehouse_summary():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     
-@bp.route('/api/warehouse/shipment-history', methods=['GET'])
+@bp.route('/warehouse/shipment-history', methods=['GET'])
 def get_shipment_history():
-    """ (API ใหม่) ดึงประวัติการเบิกสินค้าทั้งหมด (Shipped, Delivered) """
+    """ API ใหม่: ดึงประวัติการเบิกสินค้าทั้งหมด (Shipped, Delivered) """
     try:
         query = models.SalesOrder.query.filter(
             models.SalesOrder.shipment_status.in_(['Shipped', 'Delivered'])
         )
 
-        # Filter by customer name if provided
-        if search_name := request.args.get('name'):
-            # Join with FoodIndustry model to filter by F_name
+        # Filter by customer name or SO number if provided
+        if search_term := request.args.get('search'):
             query = query.join(models.FoodIndustry).filter(
-                models.FoodIndustry.F_name.ilike(f'%{search_name}%')
+                or_(
+                    models.SalesOrder.sale_order_number.ilike(f'%{search_term}%'),
+                    models.FoodIndustry.F_name.ilike(f'%{search_term}%')
+                )
             )
 
-        orders = query.order_by(models.SalesOrder.s_date.desc()).all()
+        orders = query.order_by(models.SalesOrder.shipped_date.desc()).all()
         return jsonify([order.to_dict() for order in orders])
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-
 
 # ==============================================================================
 #   SALES MANAGEMENT
@@ -854,25 +861,24 @@ def get_shipment_history():
 
 @bp.route('/salesorders', methods=['GET', 'POST'])
 def handle_sales_orders():
-    """Handles creating (POST) and retrieving (GET) sales orders with filtering."""
-    
     if request.method == 'POST':
         data = request.get_json()
-        required_fields = ['f_id', 'items', 'warehouse_id']
+        required_fields = ['f_id', 'items', 'warehouse_id', 'employee_id']
         if not all(field in data for field in required_fields) or not isinstance(data['items'], list) or not data['items']:
-            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, warehouse_id, และ items ที่เป็น array)'}), 400
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, warehouse_id, employee_id และ items)'}), 400
         
         warehouse_id = data['warehouse_id']
+        employee_id = data['employee_id']
         
         try:
-            # --- Step 1: ตรวจสอบสต็อก (เหมือนเดิม) ---
+            # Step 1: Check stock
             for item_data in data['items']:
                 stock_level = models.StockLevel.query.filter_by(p_id=item_data['p_id'], warehouse_id=warehouse_id).first()
                 if not stock_level or stock_level.quantity < float(item_data['quantity']):
                     product = models.Product.query.get(item_data['p_id'])
                     return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอขาย!'}), 400
 
-            # --- Step 2: สร้าง Sales Order ---
+            # Step 2: Create Sales Order
             last_order = models.SalesOrder.query.order_by(models.SalesOrder.sale_order_number.desc()).first()
             new_so_number = 'SO001'
             if last_order and last_order.sale_order_number.startswith('SO'):
@@ -881,20 +887,17 @@ def handle_sales_orders():
             
             total_price = sum(float(item['quantity']) * float(item['price_per_unit']) for item in data['items'])
 
-            # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-            # ★★★ FIX: เปลี่ยน f_id เป็น F_id ให้ตรงกับ Model ★★★
-            # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
             new_order = models.SalesOrder(
                 sale_order_number=new_so_number,
-                F_id=data['f_id'], # <--- แก้ไขตรงนี้
+                F_id=data['f_id'],
                 s_total_price=total_price,
-                s_date=datetime.utcnow()
-                # shipment_status จะใช้ค่า default 'Pending' จาก Model
+                s_date=datetime.utcnow(),
+                created_by_id=employee_id,
+                created_date=datetime.utcnow()
             )
             db.session.add(new_order)
             
-            # ... (โค้ดส่วนที่เหลือของการสร้าง SO Items และคำนวณ COGS เหมือนเดิม) ...
-            
+            # Step 3: Create Order Items and Adjust Stock
             new_order_items = []
             for item_data in data['items']:
                 order_item = models.SalesOrderItem(
@@ -910,7 +913,6 @@ def handle_sales_orders():
 
             for item in new_order_items:
                 quantity_to_sell = item.quantity
-                cogs_for_item = 0.0
                 stock_in_lots = models.StockTransactionIn.query.filter(
                     models.StockTransactionIn.p_id == item.p_id,
                     models.StockTransactionIn.warehouse_id == warehouse_id,
@@ -920,17 +922,11 @@ def handle_sales_orders():
                 for lot in stock_in_lots:
                     if quantity_to_sell <= 0: break
                     quantity_from_this_lot = min(lot.remaining_quantity, quantity_to_sell)
-                    cogs_for_item += quantity_from_this_lot * lot.unit_cost
                     lot.remaining_quantity -= quantity_from_this_lot
                     quantity_to_sell -= quantity_from_this_lot
 
                 if quantity_to_sell > 0: raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
                 
-                db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
-                db.session.add(models.StockTransactionOut(
-                    out_transaction_date=datetime.utcnow(), p_id=item.p_id, out_quantity=item.quantity,
-                    warehouse_id=warehouse_id, so_item_id=item.so_item_id
-                ))
                 stock_level_to_update = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
                 stock_level_to_update.quantity -= item.quantity
             
@@ -939,15 +935,26 @@ def handle_sales_orders():
 
         except Exception as e:
             db.session.rollback()
-            # ส่ง error message ที่แท้จริงกลับไปเพื่อ debug ได้ง่ายขึ้น
             return jsonify({'message': f"เกิดข้อผิดพลาด: {str(e)}"}), 500
     
     else: # GET request
         try:
             query = models.SalesOrder.query
+
+            # Filter by payment status
             status_filter = request.args.get('status')
             if status_filter:
-                query = query.filter(models.SalesOrder.shipment_status == status_filter)
+                query = query.filter(models.SalesOrder.payment_status == status_filter)
+
+            # Search by customer name or SO number
+            search_term = request.args.get('search')
+            if search_term:
+                query = query.join(models.FoodIndustry).filter(
+                    or_(
+                        models.SalesOrder.sale_order_number.ilike(f'%{search_term}%'),
+                        models.FoodIndustry.F_name.ilike(f'%{search_term}%')
+                    )
+                )
             
             orders = query.order_by(models.SalesOrder.s_date.desc()).all()
             return jsonify([order.to_dict() for order in orders])
@@ -956,6 +963,10 @@ def handle_sales_orders():
         
 @bp.route('/salesorders/<string:order_number>/confirm-delivery', methods=['PUT'])
 def confirm_delivery(order_number):
+    data = request.get_json()
+    if not data or not data.get('employee_id'):
+        return jsonify({'message': 'กรุณาระบุ ID ของพนักงานที่ทำรายการ'}), 400
+    employee_id = data.get('employee_id')
     try:
         order = models.SalesOrder.query.get_or_404(order_number)
         if order.shipment_status != 'Shipped':
@@ -964,6 +975,8 @@ def confirm_delivery(order_number):
         # เมื่อยืนยันแล้ว สถานะจะเปลี่ยนเป็น Delivered
         order.shipment_status = 'Delivered'
         order.delivery_status = 'Delivered' # อัปเดตสถานะการส่งมอบด้วย
+        order.delivered_by_id = employee_id
+        order.delivered_date = datetime.utcnow()
         db.session.commit()
         return jsonify({'message': f'ยืนยันการจัดส่ง SO {order_number} สำเร็จ'})
     except Exception as e:
@@ -978,6 +991,47 @@ def get_sales_order(order_number):
         return jsonify(order.to_dict())
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+    
+@bp.route('/salesorders/pending-payment', methods=['GET'])
+def get_pending_payment_orders():
+    """ API ใหม่: ดึงรายการ SO ที่ส่งแล้ว แต่รอรับชำระเงิน """
+    try:
+        pending_payment_orders = models.SalesOrder.query.filter_by(
+            delivery_status='Delivered',
+            payment_status='Unpaid'
+        ).order_by(models.SalesOrder.s_date.asc()).all()
+        return jsonify([order.to_dict() for order in pending_payment_orders])
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@bp.route('/salesorders/<string:order_number>/confirm-payment', methods=['PUT'])
+def confirm_payment(order_number):
+    """ API ใหม่: ยืนยันการรับชำระเงิน """
+    data = request.get_json()
+    if not data or not data.get('employee_id'):
+        return jsonify({'message': 'กรุณาระบุ ID ของพนักงานที่ทำรายการ'}), 400
+    
+    employee_id = data.get('employee_id')
+    
+    try:
+        order = models.SalesOrder.query.get_or_404(order_number)
+        if order.payment_status == 'Paid':
+            return jsonify({'message': 'ใบสั่งขายนี้ได้รับเงินแล้ว'}), 409
+        if order.delivery_status != 'Delivered':
+            return jsonify({'message': 'ไม่สามารถยืนยันการชำระเงินได้เนื่องจากสินค้ายังไม่ถูกจัดส่ง'}), 400
+
+        order.payment_status = 'Paid'
+        order.paid_by_id = employee_id
+        order.paid_date = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({'message': f'ยืนยันการรับเงิน SO {order_number} สำเร็จ'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500
+    
+
 # ==============================================================================
 #   ADMIN DASHBOARD
 # ==============================================================================

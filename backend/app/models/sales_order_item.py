@@ -20,9 +20,11 @@ class SalesOrderItem(db.Model):
 
     def to_dict(self):
         return {
-            # ★★★ เพิ่ม p_id เข้าไปในนี้ ★★★
+            'so_item_id': self.so_item_id,
+            'sale_order_number': self.sale_order_number,
             'p_id': self.p_id,
-            'product_name': self.product.p_name if self.product else 'N/A',
+            # ★★★ FIX: Added product.p_name to the dictionary ★★★
+            'p_name': self.product.p_name if self.product else 'N/A',
             'quantity': self.quantity,
             'price_per_unit': self.price_per_unit
         }

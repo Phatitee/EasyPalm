@@ -26,6 +26,7 @@ def create_app():
         # --- Import and Register Blueprints (Routes) ---
         from . import routes
         app.register_blueprint(routes.bp)
+      
 
         # --- Create Database Tables from Models ---
         db.create_all()
