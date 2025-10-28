@@ -4,7 +4,7 @@ import {
     RectangleStackIcon, ClipboardDocumentListIcon, DocumentCheckIcon, TruckIcon, ArchiveBoxIcon,
     ArrowUpOnSquareIcon, BriefcaseIcon, CheckBadgeIcon,
     DocumentTextIcon, BanknotesIcon,
-    ChartPieIcon, PresentationChartLineIcon
+    ChartPieIcon, PresentationChartLineIcon,BuildingStorefrontIcon,ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 
 export const MENU_CONFIG = {
@@ -39,14 +39,15 @@ export const MENU_CONFIG = {
         {
             title: 'การเบิกสินค้า',
             items: [
-                { icon: DocumentCheckIcon, text: 'คำขอเบิกสินค้า', path: '/warehouse/pending-requests' },
                 { icon: TruckIcon, text: 'สินค้าที่รอเบิกจริง', path: '/warehouse/pending-shipments' },
+                { icon: ClipboardDocumentCheckIcon, text: 'ประวัติการเบิก', path: '/warehouse/shipment-history' },
             ]
         },
         {
             title: 'ภาพรวม',
             items: [
                 { icon: ArchiveBoxIcon, text: 'สต็อกคงคลัง', path: '/warehouse/stock' },
+                { icon: BuildingStorefrontIcon, text: 'จัดการคลังสินค้า', path: '/warehouse/management'},
             ]
         }
     ],

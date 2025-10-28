@@ -12,7 +12,8 @@ const AppLayout = () => {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/');
+        window.location.reload();
     };
 
     return (

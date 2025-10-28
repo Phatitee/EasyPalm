@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Package, Truck, CheckCheck, Loader, ServerCrash, ClipboardList, User, Calendar } from 'lucide-react';
+import { Search, Loader, ServerCrash, ClipboardList, User, Package, Truck, CheckCheck } from 'lucide-react';
 
-// --- Component สำหรับแสดง Badge สถานะ ---
+// --- Component สำหรับแสดง Badge สถานะ (เหมือนกับหน้า SalesHistory) ---
 const StatusBadge = ({ status }) => {
     const statusConfig = {
         Pending: { icon: Package, text: 'รอเบิก', color: 'yellow' },
@@ -19,27 +19,24 @@ const StatusBadge = ({ status }) => {
     );
 };
 
-
-const SalesHistory = () => {
+const ShipmentHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filters, setFilters] = useState({ name: '', start_date: '', end_date: '' });
-    // --- เอา state ของ expandedRow ออกไป ---
+    const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
-    const fetchOrders = useCallback(async (currentFilters) => {
+    const fetchHistory = useCallback(async (name = '') => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
-            if (currentFilters.name) params.append('name', currentFilters.name);
-            if (currentFilters.start_date) params.append('start_date', currentFilters.start_date);
-            if (currentFilters.end_date) params.append('end_date', currentFilters.end_date);
+            if (name) params.append('name', name);
 
-            const response = await fetch(`http://localhost:5000/salesorders?${params.toString()}`);
-            if (!response.ok) throw new Error('ไม่สามารถโหลดข้อมูลประวัติการขายได้');
-            
+            const response = await fetch(`http://localhost:5000/api/warehouse/shipment-history?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error('ไม่สามารถโหลดข้อมูลประวัติการเบิกได้');
+            }
             const data = await response.json();
             setOrders(data);
         } catch (err) {
@@ -50,68 +47,34 @@ const SalesHistory = () => {
     }, []);
 
     useEffect(() => {
-        fetchOrders(filters);
-    }, [fetchOrders]);
-
-    const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
-    };
+        fetchHistory();
+    }, [fetchHistory]);
 
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchOrders(filters);
-    };
-
-    // --- เหลือแค่ฟังก์ชันสำหรับ Double Click ---
-    const handleViewDetails = (orderNumber) => {
-        navigate(`/sales/history/${orderNumber}`);
+        fetchHistory(searchTerm);
     };
 
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-gray-800">ประวัติการขาย</h1>
-                <p className="text-lg text-gray-500 mt-2">ดับเบิ้ลคลิกที่รายการเพื่อดูรายละเอียดฉบับเต็ม</p>
+                <h1 className="text-4xl font-bold text-gray-800">ประวัติการเบิกสินค้า</h1>
+                <p className="text-lg text-gray-500 mt-2">ตรวจสอบรายการใบสั่งขายที่เบิกออกจากคลังแล้ว</p>
             </div>
 
             <div className="bg-white p-4 rounded-2xl shadow-lg mb-8">
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center gap-4">
-                    <div className="relative flex-grow w-full md:w-auto">
+                <form onSubmit={handleSearch} className="flex items-center gap-4">
+                    <div className="relative flex-grow">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <input 
                             type="text" 
-                            name="name" 
-                            value={filters.name} 
-                            onChange={handleFilterChange} 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
                             placeholder="ค้นหาด้วยชื่อลูกค้า..." 
                             className="w-full p-2 pl-10 border rounded-lg" 
                         />
                     </div>
-                    <div className="relative w-full md:w-auto">
-                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input 
-                            type="date" 
-                            name="start_date" 
-                            value={filters.start_date} 
-                            onChange={handleFilterChange} 
-                            className="w-full p-2 pl-10 border rounded-lg text-gray-500" 
-                        />
-                    </div>
-                    <div className="relative w-full md:w-auto">
-                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input 
-                            type="date" 
-                            name="end_date" 
-                            value={filters.end_date} 
-                            onChange={handleFilterChange} 
-                            className="w-full p-2 pl-10 border rounded-lg text-gray-500" 
-                        />
-                    </div>
-                    <button 
-                        type="submit" 
-                        className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-                    >
+                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
                         <Search size={18} />
                         <span>ค้นหา</span>
                     </button>
@@ -125,7 +88,7 @@ const SalesHistory = () => {
             ) : orders.length === 0 ? (
                 <div className="text-center text-gray-500 bg-gray-50 p-10 rounded-lg">
                     <ClipboardList size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-xl font-semibold">ไม่พบข้อมูลประวัติการขาย</h3>
+                    <h3 className="text-xl font-semibold">ไม่พบข้อมูลประวัติการเบิก</h3>
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -133,27 +96,23 @@ const SalesHistory = () => {
                         <table className="min-w-full">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    {/* ★★★ FIX: เอาคอลัมน์สำหรับไอคอน expand ออก ★★★ */}
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เลขที่ SO</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อลูกค้า</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่สั่ง</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ยอดรวม</th>
                                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {orders.map((order) => (
-                                    // ★★★ FIX: เอา React.Fragment และส่วนแสดงรายละเอียดออก ★★★
                                     <tr 
                                         key={order.sale_order_number}
-                                        onDoubleClick={() => handleViewDetails(order.sale_order_number)}
+                                        onDoubleClick={() => navigate(`/sales/history/${order.sale_order_number}`)}
                                         className="hover:bg-blue-50/50 cursor-pointer"
                                         title="ดับเบิ้ลคลิกเพื่อดูรายละเอียด"
                                     >
                                         <td className="px-6 py-4 font-mono">{order.sale_order_number}</td>
                                         <td className="px-6 py-4 font-medium text-gray-800">{order.customer_name}</td>
                                         <td className="px-6 py-4 text-gray-500">{new Date(order.s_date).toLocaleDateString('th-TH')}</td>
-                                        <td className="px-6 py-4 text-right font-semibold">{order.s_total_price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
                                         <td className="px-6 py-4 text-center"><StatusBadge status={order.shipment_status} /></td>
                                     </tr>
                                 ))}
@@ -166,4 +125,4 @@ const SalesHistory = () => {
     );
 };
 
-export default SalesHistory;
+export default ShipmentHistory;
