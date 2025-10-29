@@ -19,7 +19,7 @@ const ConfirmDelivery = () => {
         setError('');
         try {
             // Fetch orders that are shipped but not yet delivered
-            const response = await fetch('http://localhost:5000/salesorders/pending-delivery', { cache: 'no-cache' });
+            const response = await fetch('http://127.0.0.1:5000/salesorders/pending-delivery', { cache: 'no-cache' });
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -44,7 +44,7 @@ const ConfirmDelivery = () => {
 
         setSubmittingId(orderNumber);
         try {
-            const response = await fetch(`http://localhost:5000/salesorders/${orderNumber}/confirm-delivery`, {
+            const response = await fetch(`http://127.0.0.1:5000/salesorders/${orderNumber}/confirm-delivery`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }), // Add employee ID

@@ -33,7 +33,7 @@ const PurchaseHistoryDetail = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`http://localhost:5000/purchaseorders/${orderId}`);
+                const response = await fetch(`http://127.0.0.1:5000/purchaseorders/${orderId}`);
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
                 const data = await response.json();
                 setOrder(data);

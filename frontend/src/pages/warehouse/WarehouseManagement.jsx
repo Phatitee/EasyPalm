@@ -15,7 +15,7 @@ const WarehouseManagement = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/warehouses', { cache: 'no-cache' });
+            const response = await fetch('http://127.0.0.1:5000/warehouses', { cache: 'no-cache' });
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลคลังสินค้าได้');
             const data = await response.json();
             setWarehouses(data);
@@ -43,8 +43,8 @@ const WarehouseManagement = () => {
     const handleSaveWarehouse = async (warehouseData) => {
         const isEditMode = Boolean(warehouseData && warehouseData.warehouse_id && editingWarehouse);
         const url = isEditMode 
-            ? `http://localhost:5000/warehouses/${warehouseData.warehouse_id}` 
-            : 'http://localhost:5000/warehouses';
+            ? `http://127.0.0.1:5000/warehouses/${warehouseData.warehouse_id}` 
+            : 'http://127.0.0.1:5000/warehouses';
         const method = isEditMode ? 'PUT' : 'POST';
 
         try {
@@ -70,7 +70,7 @@ const WarehouseManagement = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:5000/warehouses/${warehouse.warehouse_id}`, {
+            const response = await fetch(`http://127.0.0.1:5000/warehouses/${warehouse.warehouse_id}`, {
                 method: 'DELETE',
             });
             const result = await response.json();

@@ -20,7 +20,7 @@ const ShipmentHistory = () => {
             const params = new URLSearchParams();
             if (searchTerm) params.append('search', searchTerm);
             
-            const response = await fetch(`http://localhost:5000/warehouse/shipment-history?${params.toString()}`, { cache: 'no-cache' });
+            const response = await fetch(`http://127.0.0.1:5000/warehouse/shipment-history?${params.toString()}`, { cache: 'no-cache' });
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการเบิกได้');
             
             const data = await response.json();

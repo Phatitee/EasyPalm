@@ -29,7 +29,7 @@ const AppLayout = () => {
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
                             className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                         >
-                            <Menu size={24} />
+                            <Menu size={24} className="text-gray-800 dark:text-gray-100" /> 
                         </button>
 
                         {/* ข้อความต้อนรับ */}

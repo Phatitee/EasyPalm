@@ -26,7 +26,7 @@ const SalesHistory = () => {
             if (searchTerm) params.append('search', searchTerm);
             if (statusFilter) params.append('status', statusFilter);
             
-            const response = await fetch(`http://localhost:5000/salesorders?${params.toString()}`);
+            const response = await fetch(`http://127.0.0.1:5000/salesorders?${params.toString()}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการขายได้');
             
             const data = await response.json();

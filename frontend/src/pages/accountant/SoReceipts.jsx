@@ -17,7 +17,7 @@ const SoReceipts = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/salesorders/pending-payment');
+            const response = await fetch('http://127.0.0.1:5000/salesorders/pending-payment');
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -36,7 +36,7 @@ const SoReceipts = () => {
 
     const handleRowDoubleClick = async (orderNumber) => {
         try {
-            const response = await fetch(`http://localhost:5000/salesorders/${orderNumber}`);
+            const response = await fetch(`http://127.0.0.1:5000/salesorders/${orderNumber}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
             
             const data = await response.json();
@@ -58,7 +58,7 @@ const SoReceipts = () => {
 
         setSubmittingId(orderNumber);
         try {
-            const response = await fetch(`http://localhost:5000/salesorders/${orderNumber}/confirm-payment`, {
+            const response = await fetch(`http://127.0.0.1:5000/salesorders/${orderNumber}/confirm-payment`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),

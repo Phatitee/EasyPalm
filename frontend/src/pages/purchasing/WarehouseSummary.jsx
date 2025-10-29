@@ -46,7 +46,7 @@ const WarehouseSummary = () => {
             setLoading(true);
             try {
                 // Endpoint นี้ถูกสร้างขึ้นใหม่ใน routes.py เพื่อสรุปข้อมูล
-                const response = await fetch('http://localhost:5000/purchasing/warehouse-summary');
+                const response = await fetch('http://127.0.0.1:5000/purchasing/warehouse-summary');
                 if (!response.ok) {
                     throw new Error('ไม่สามารถโหลดข้อมูลสรุปคลังสินค้าได้');
                 }

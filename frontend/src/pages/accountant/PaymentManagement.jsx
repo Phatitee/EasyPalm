@@ -18,7 +18,7 @@ const PaymentManagement = () => {
         setError(null);
         try {
             // ★★★ FIX: เพิ่ม cache: 'no-cache' เพื่อบังคับให้ดึงข้อมูลใหม่เสมอ ★★★
-            const response = await fetch('http://localhost:5000/purchaseorders?status=unpaid', {
+            const response = await fetch('http://127.0.0.1:5000/purchaseorders?status=unpaid', {
                 cache: 'no-cache' 
             });
             // ★★★ END FIX ★★★
@@ -46,7 +46,7 @@ const PaymentManagement = () => {
         }
         setPayingOrderId(orderNumber);
         try {
-            const response = await fetch(`http://localhost:5000/purchaseorders/${orderNumber}/pay`, {
+            const response = await fetch(`http://127.0.0.1:5000/purchaseorders/${orderNumber}/pay`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),

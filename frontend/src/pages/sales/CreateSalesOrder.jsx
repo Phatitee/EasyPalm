@@ -31,9 +31,9 @@ const CreateSalesOrder = () => {
             try {
                 // ★★★ FIX: Removed /api/ prefix from all endpoints ★★★
                 const [custRes, whRes, stockRes] = await Promise.all([
-                    fetch('http://localhost:5000/food-industries'),
-                    fetch('http://localhost:5000/warehouses'),
-                    fetch('http://localhost:5000/stock')
+                    fetch('http://127.0.0.1:5000/food-industries'),
+                    fetch('http://127.0.0.1:5000/warehouses'),
+                    fetch('http://127.0.0.1:5000/stock')
                 ]);
 
                 if (!custRes.ok || !whRes.ok || !stockRes.ok) {
@@ -166,7 +166,7 @@ const CreateSalesOrder = () => {
         
         try {
             // ★★★ FIX: Removed /api/ prefix ★★★
-            const response = await fetch('http://localhost:5000/salesorders', {
+            const response = await fetch('http://127.0.0.1:5000/salesorders', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData),
             });
             const result = await response.json();
@@ -175,7 +175,7 @@ const CreateSalesOrder = () => {
             alert(`สร้างใบสั่งขาย ${result.sale_order_number} สำเร็จ!`);
             
             // ★★★ FIX: Removed /api/ prefix ★★★
-            const stockRes = await fetch('http://localhost:5000/stock');
+            const stockRes = await fetch('http://127.0.0.1:5000/stock');
             setStockLevels(await stockRes.json());
 
             // Reset form

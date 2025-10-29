@@ -5,13 +5,13 @@ import { DollarSign, TrendingUp, ShoppingCart, Archive, Loader, ServerCrash, Lis
 const StatCard = ({ title, value, icon, color }) => {
     const Icon = icon;
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg flex items-center gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-lg flex items-center gap-6 dark:bg-gray-800">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center ${color}`}>
                 <Icon className="text-white" size={32} />
             </div>
             <div>
-                <p className="text-sm text-gray-500">{title}</p>
-                <p className="text-2xl font-bold text-gray-800">
+                <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                     {typeof value === 'number' ? value.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : value}
                 </p>
             </div>
@@ -29,7 +29,7 @@ const ExecutiveDashboard = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch('http://localhost:5000/executive/dashboard-summary', { cache: 'no-cache' });
+                const response = await fetch('http://127.0.0.1:5000/executive/dashboard-summary', { cache: 'no-cache' });
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสรุปได้');
                 const data = await response.json();
                 setSummary(data);
@@ -52,7 +52,7 @@ const ExecutiveDashboard = () => {
 
     return (
         <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Executive Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6 dark:text-gray-100">Executive Dashboard</h1>
             
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -63,8 +63,8 @@ const ExecutiveDashboard = () => {
             </div>
 
             {/* Main Chart */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
-                <h2 className="text-xl font-semibold text-gray-700 mb-4">ภาพรวมยอดขายและยอดซื้อ (30 วันล่าสุด)</h2>
+            <div className="bg-white p-6 rounded-2xl shadow-lg mb-8 dark:bg-gray-800">
+                <h2 className="text-xl font-semibold text-gray-700 mb-4 dark:text-gray-200">ภาพรวมยอดขายและยอดซื้อ (30 วันล่าสุด)</h2>
                 <div style={{ width: '100%', height: 400 }}>
                     <ResponsiveContainer>
                         <AreaChart data={formattedChartData} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
@@ -82,28 +82,28 @@ const ExecutiveDashboard = () => {
             
             {/* Recent Activities */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-2xl shadow-lg">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center"><List className="mr-2"/>รายการขายล่าสุด</h2>
-                    <ul className="divide-y divide-gray-200">
+                <div className="bg-white p-6 rounded-2xl shadow-lg dark:bg-gray-800">
+                    <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center dark:text-gray-200"><List className="mr-2"/>รายการขายล่าสุด</h2>
+                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                         {summary.recent_sales.map(order => (
                             <li key={order.sale_order_number} className="py-3 flex justify-between items-center">
                                 <div>
-                                    <p className="font-semibold">{order.sale_order_number} - <span className="font-normal text-gray-600">{order.customer_name}</span></p>
-                                    <p className="text-sm text-gray-500">{new Date(order.s_date).toLocaleDateString('th-TH')}</p>
+                                    <p className="font-semibold dark:text-gray-100">{order.sale_order_number} - <span className="font-normal text-gray-600 dark:text-gray-400">{order.customer_name}</span></p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-500">{new Date(order.s_date).toLocaleDateString('th-TH')}</p>
                                 </div>
                                 <p className="font-semibold text-green-600">{parseFloat(order.s_total_price).toLocaleString('th-TH')} บ.</p>
                             </li>
                         ))}
                     </ul>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center"><List className="mr-2"/>รายการซื้อล่าสุด</h2>
-                    <ul className="divide-y divide-gray-200">
+                <div className="bg-white p-6 rounded-2xl shadow-lg dark:bg-gray-800">
+                    <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center dark:text-gray-200"><List className="mr-2"/>รายการซื้อล่าสุด</h2>
+                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                         {summary.recent_purchases.map(order => (
                             <li key={order.purchase_order_number} className="py-3 flex justify-between items-center">
                                 <div>
-                                    <p className="font-semibold">{order.purchase_order_number} - <span className="font-normal text-gray-600">{order.farmer_name}</span></p>
-                                    <p className="text-sm text-gray-500">{new Date(order.b_date).toLocaleDateString('th-TH')}</p>
+                                    <p className="font-semibold dark:text-gray-100">{order.purchase_order_number} - <span className="font-normal text-gray-600 dark:text-gray-400">{order.farmer_name}</span></p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-500">{new Date(order.b_date).toLocaleDateString('th-TH')}</p>
                                 </div>
                                 <p className="font-semibold text-purple-600">{parseFloat(order.b_total_price).toLocaleString('th-TH')} บ.</p>
                             </li>
