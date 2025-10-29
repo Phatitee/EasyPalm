@@ -3,11 +3,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-
 import './App.css';
 import axios from 'axios';
 
+//Theme context
+import { ThemeProvider } from './contexts/ThemeContext';
+
 // Context & Protected Route Wrapper
 import { useAuth } from './contexts/AuthContext';
 
 // Layout
 import AppLayout from './components/layouts/AppLayout';
+
 
 // Pages
 import EasyPlamLogin from './pages/main/EasyPlamLogin';
@@ -89,77 +93,84 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        {/* === Public Routes === */}
-        <Route path="/" element={<MainPage products={products} error={error} />} />
-        <Route path="/login" element={<EasyPlamLogin />} />
+<ThemeProvider>  
+      <Router>
+        <Routes>
+          {/* === Public Routes === */}
+          <Route path="/" element={<MainPage products={products} error={error} />} />
+          <Route path="/login" element={<EasyPlamLogin />} />
 
-        {/* === Protected Routes (All roles now use the single AppLayout) === */}
-        <Route element={
-            <ProtectedRoute allowedRoles={['admin', 'purchasing', 'sales', 'warehouse', 'accountant', 'executive']}>
-              <AppLayout><Outlet /></AppLayout>
-            </ProtectedRoute>
-          }>
-          
-          {/* --- Admin Routes --- */}
-          <Route path="/admin/employees" element={<EmployeeMangement />} />
-          <Route path="/admin/employees/:e_id" element={<EmployeeDetail />} /> {/* <-- เพิ่ม Route นี้ */}
-          
-          {/* --- Purchasing Routes --- */}
-          <Route path="/purchasing/create-po" element={<PurchaseProduct />} />
-          <Route path="/purchasing/history" element={<PurchaseHistory />} />
-          <Route path="/purchasing/prices" element={<ProductPriceList />} />
-          <Route path="/purchasing/farmers" element={<FarmerManagement />} />
-          <Route path="/purchasing/stock-summary" element={<WarehouseSummary />} />
-          <Route path="/purchasing/history/:orderNumber" element={<PurchaseOrderDetail />} />
-          
-          
-          {/* --- Sales Routes --- */}
-          <Route path="/sales/create-so" element={<CreateSalesOrder />} />
-          <Route path="/sales/history" element={<SalesHistory />} />
-          <Route path="/sales/confirm-delivery" element={<ConfirmDelivery />} />
-          <Route path="/sales/customers" element={<CustomerManagement />} />
-          <Route path="/sales/stock" element={<StockLevel />} />
-          <Route path="/sales/history/:orderNumber" element={<SalesHistoryDetail />} />
-          
+          {/* === Protected Routes === */}
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'purchasing', 'sales', 'warehouse', 'accountant', 'executive']}>
+                <AppLayout><Outlet /></AppLayout>
+              </ProtectedRoute>
+            }
+          >
+            {/* --- Admin Routes --- */}
+            <Route path="/admin/employees" element={<EmployeeMangement />} />
+            <Route path="/admin/employees/:e_id" element={<EmployeeDetail />} />
 
-          {/* --- Warehouse Routes --- */}
-          <Route path="/warehouse/pending-storage" element={<PendingStorage />} />
-          <Route path="/warehouse/storage-history" element={<StorageHistory />} />
-          <Route path="/warehouse/shipment-history" element={<ShipmentHistory />} />
-          <Route path="/warehouse/pending-shipments" element={<PendingShipments />} />
-          <Route path="/warehouse/stock" element={<StockLevel />} />
-          <Route path="/warehouse/management" element={<WarehouseManagement />} />
-          <Route path="/warehouse/shipment-details/:orderNumber" element={<ShipmentDetails />} />
+            {/* --- Purchasing Routes --- */}
+            <Route path="/purchasing/create-po" element={<PurchaseProduct />} />
+            <Route path="/purchasing/history" element={<PurchaseHistory />} />
+            <Route path="/purchasing/prices" element={<ProductPriceList />} />
+            <Route path="/purchasing/farmers" element={<FarmerManagement />} />
+            <Route path="/purchasing/stock-summary" element={<WarehouseSummary />} />
+            <Route path="/purchasing/history/:orderNumber" element={<PurchaseOrderDetail />} />
 
-          {/* --- Accountant Routes --- */}
-          {/* ★★★ แก้ไขบรรทัดนี้: ใช้ Component ที่ถูกต้อง ★★★ */}
-          <Route path="/accountant/po-payments" element={<PaymentManagement />} /> 
-          <Route path="/accountant/so-receipts" element={<SoReceipts />} />
-          <Route path="/accountant/purchase-history" element={<PurchaseHistory />} />
-          <Route path="/accountant/sales-history" element={<SalesHistory />} />
-          <Route path="/accountant/so-receipts/:orderNumber" element={<ReceiptDetail />} />
-            
-          {/* --- Executive Routes --- */}
-          <Route path="/executive/dashboard" element={<ExecutiveDashboard />} />
-          <Route path="/executive/profit-loss" element={<ProfitLossReport />} />
-        </Route>
-        
-        {/* --- Fallback Route --- */}
-        <Route path="*" element={<Navigate to={
-            !user ? "/login" :
-            user.e_role === 'admin' ? '/admin/employees' :
-            user.e_role === 'purchasing' ? '/purchasing/create-po' :
-            user.e_role === 'sales' ? '/sales/create-so' :
-            user.e_role === 'warehouse' ? '/warehouse/pending-storage' :
-            user.e_role === 'accountant' ? '/accountant/po-payments' :
-            user.e_role === 'executive' ? '/executive/dashboard' :
-            '/login'
-          } replace />} 
-        />
-      </Routes>
-    </Router>
+            {/* --- Sales Routes --- */}
+            <Route path="/sales/create-so" element={<CreateSalesOrder />} />
+            <Route path="/sales/history" element={<SalesHistory />} />
+            <Route path="/sales/confirm-delivery" element={<ConfirmDelivery />} />
+            <Route path="/sales/customers" element={<CustomerManagement />} />
+            <Route path="/sales/stock" element={<StockLevel />} />
+            <Route path="/sales/history/:orderNumber" element={<SalesHistoryDetail />} />
+
+            {/* --- Warehouse Routes --- */}
+            <Route path="/warehouse/pending-storage" element={<PendingStorage />} />
+            <Route path="/warehouse/storage-history" element={<StorageHistory />} />
+            <Route path="/warehouse/shipment-history" element={<ShipmentHistory />} />
+            <Route path="/warehouse/pending-shipments" element={<PendingShipments />} />
+            <Route path="/warehouse/stock" element={<StockLevel />} />
+            <Route path="/warehouse/management" element={<WarehouseManagement />} />
+            <Route path="/warehouse/shipment-details/:orderNumber" element={<ShipmentDetails />} />
+
+            {/* --- Accountant Routes --- */}
+            <Route path="/accountant/po-payments" element={<PaymentManagement />} /> 
+            <Route path="/accountant/so-receipts" element={<SoReceipts />} />
+            <Route path="/accountant/purchase-history" element={<PurchaseHistory />} />
+            <Route path="/accountant/sales-history" element={<SalesHistory />} />
+            <Route path="/accountant/so-receipts/:orderNumber" element={<ReceiptDetail />} />
+
+            {/* --- Executive Routes --- */}
+            <Route path="/executive/dashboard" element={<ExecutiveDashboard />} />
+            <Route path="/executive/profit-loss" element={<ProfitLossReport />} />
+          </Route>
+
+          {/* --- Fallback Route --- */}
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={
+                  !user ? "/login" :
+                  user.e_role === 'admin' ? '/admin/employees' :
+                  user.e_role === 'purchasing' ? '/purchasing/create-po' :
+                  user.e_role === 'sales' ? '/sales/create-so' :
+                  user.e_role === 'warehouse' ? '/warehouse/pending-storage' :
+                  user.e_role === 'accountant' ? '/accountant/po-payments' :
+                  user.e_role === 'executive' ? '/executive/dashboard' :
+                  '/login'
+                }
+                replace
+              />
+            }
+          />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
