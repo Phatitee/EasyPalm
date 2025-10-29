@@ -238,20 +238,25 @@ const FarmerManagement = () => {
     );
 
 
-    if (loading && farmers.length === 0) return <p>กำลังโหลด...</p>;
+    if (loading && farmers.length === 0) return (
+        <div className="container mx-auto px-4 py-6 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 flex justify-center items-center">
+            <p className="text-xl">กำลังโหลด...</p>
+        </div>
+    );
 
 
     return (
-        <div className="container mx-auto px-4 py-6">
+        // ★★★ FIX 1: Main Page Background ★★★
+        <div className="container mx-auto px-4 py-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
 
-            {/* Result Modal */}
+            {/* Result Modal - Assumed to be globally styled or default styled */}
             <ResultModal
                 show={modalInfo.show}
                 type={modalInfo.type}
                 message={modalInfo.message}
                 onClose={handleCloseResultModal}
-            // สามารถเพิ่ม props สีได้ถ้าต้องการ เช่น successColor="green"
             />
+            {/* Confirm Modal - Assumed to be globally styled or default styled */}
             <ConfirmModal
                 show={confirmInfo.show}
                 message={confirmInfo.message}
@@ -264,9 +269,12 @@ const FarmerManagement = () => {
 
             {/* Edit Modal */}
             {editModalOpen && editingFarmer && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg">
-                        <h3 className="text-2xl font-bold mb-6 text-gray-900">แก้ไขข้อมูลเกษตรกร (ID: {editingFarmer.f_id})</h3>
+                // ★★★ FIX 2: Modal Overlay Background ★★★
+                <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
+                    {/* ★★★ FIX 3: Modal Container Background ★★★ */}
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-lg">
+                        {/* ★★★ FIX 4: Modal Title Text Color ★★★ */}
+                        <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">แก้ไขข้อมูลเกษตรกร (ID: {editingFarmer.f_id})</h3>
                         {/* --- (★ ใช้ FarmerForm) --- */}
                         <FarmerForm
                             formData={editingFarmer} // ส่ง state ของ farmer ที่กำลังแก้
@@ -282,9 +290,11 @@ const FarmerManagement = () => {
 
             {/* Add Modal */}
             {addModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg">
-                        <h3 className="text-2xl font-bold mb-6 text-gray-900">
+                // ★★★ FIX 5: Modal Overlay Background (same as edit) ★★★
+                <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
+                    {/* ★★★ FIX 6: Modal Container Background (same as edit) ★★★ */}
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-lg">
+                        <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
                             ลงทะเบียนเกษตรกรใหม่
                         </h3>
                         {/* --- (★ ใช้ FarmerForm) --- */}
@@ -302,30 +312,32 @@ const FarmerManagement = () => {
 
             {/* Header */}
             <div className="text-center mb-6">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-800">จัดการข้อมูลเกษตรกร</h1>
-                <p className="text-sm text-gray-500 mt-1">เพิ่ม ลบ และแก้ไขข้อมูลเกษตรกรในระบบ</p>
+                {/* ★★★ FIX 7: Header Text Colors ★★★ */}
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100">จัดการข้อมูลเกษตรกร</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">เพิ่ม ลบ และแก้ไขข้อมูลเกษตรกรในระบบ</p>
                 {/* Display fetch error here */}
-                {error && !loading && <p className="text-red-500 mt-2">{error}</p>}
+                {error && !loading && <p className="text-red-500 dark:text-red-400 mt-2">{error}</p>}
             </div>
 
             {/* Main Content Card */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            {/* ★★★ FIX 8: Card Container Background and Shadow ★★★ */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-colors duration-300">
                 {/* Search and Add Button */}
                 <div className="p-4 md:p-6 flex justify-between items-end">
                     {/* Search Input */}
                     <div className="w-full md:w-1/3">
-                        <label htmlFor="farmer-search" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="farmer-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             ค้นหาเกษตรกร
                         </label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-gray-400" />
+                                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                             </div>
                             <input
                                 type="text"
                                 id="farmer-search"
                                 placeholder="ค้นหาด้วยชื่อ หรือ เบอร์โทรศัพท์..."
-                                className="block w-full p-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                                className="block w-full p-3 pl-10 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
@@ -335,7 +347,7 @@ const FarmerManagement = () => {
                     <button
                         type="button"
                         onClick={handleOpenAddModal}
-                        className="flex items-center justify-center gap-2 bg-green-100 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-200 transition-colors"
+                        className="flex items-center justify-center gap-2 bg-green-100 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-200 transition-colors dark:bg-green-800 dark:text-green-200 dark:hover:bg-green-700"
                     >
                         <PlusCircle size={20} />
                         เพิ่มเกษตรกร
@@ -344,43 +356,46 @@ const FarmerManagement = () => {
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead className="bg-gray-50">
-                            {/* ... Table Headers ... */}
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        {/* ★★★ FIX 13: Table Header Background and Text Colors ★★★ */}
+                        <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัส</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เลขบัตรประชาชน</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เบอร์โทรศัพท์</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ที่อยู่</th>
-                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">รหัส</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ชื่อ-นามสกุล</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">เลขบัตรประชาชน</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">เบอร์โทรศัพท์</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ที่อยู่</th>
+                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {/* Conditional rendering based on loading and data */}
+                        {/* ★★★ FIX 9: Table Body Background and Divider ★★★ */}
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {loading && farmers.length === 0 ? (
-                                <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">กำลังโหลด...</td></tr>
+                                <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">กำลังโหลด...</td></tr>
                             ) : filteredFarmers.length > 0 ? (
                                 filteredFarmers.map((farmer) => (
-                                    <tr key={farmer.f_id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{farmer.f_id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{farmer.f_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{farmer.f_citizen_id_card}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{farmer.f_tel}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate" title={farmer.f_address}>{farmer.f_address}</td> {/* Added truncate */}
+                                    <tr key={farmer.f_id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                                        {/* Row Data Text Colors */}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{farmer.f_id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{farmer.f_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{farmer.f_citizen_id_card}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{farmer.f_tel}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate" title={farmer.f_address}>{farmer.f_address}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex items-center justify-center gap-4">
+                                                {/* Edit Button Color */}
                                                 <button
                                                     onClick={() => handleEditClick(farmer)}
-                                                    className="text-yellow-600 hover:text-yellow-900 transition"
-                                                    title="แก้ไข" // Added title for accessibility
+                                                    className="text-yellow-600 hover:text-yellow-900 transition dark:text-yellow-400 dark:hover:text-yellow-200"
+                                                    title="แก้ไข"
                                                 >
                                                     <Pencil size={18} />
                                                 </button>
+                                                {/* Delete Button Color */}
                                                 <button
                                                     onClick={() => handleDelete(farmer.f_id, farmer.f_name)}
-                                                    className="text-red-600 hover:text-red-900 transition"
-                                                    title="ลบ" // Added title for accessibility
+                                                    className="text-red-600 hover:text-red-900 transition dark:text-red-400 dark:hover:text-red-200"
+                                                    title="ลบ"
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -390,7 +405,8 @@ const FarmerManagement = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
+                                    {/* ★★★ FIX 17: No Data Row Text Color ★★★ */}
+                                    <td colSpan="6" className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                         -- ไม่พบข้อมูล --
                                     </td>
                                 </tr>

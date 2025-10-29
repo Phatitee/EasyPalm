@@ -4,17 +4,21 @@ import { BarChart, DollarSign, TrendingUp, TrendingDown, ArrowRight, Loader, Ser
 const ReportCard = ({ title, value, icon, color }) => {
     const Icon = icon;
     const isProfit = title === 'กำไรขั้นต้น';
+    // กำหนดสีตามผลกำไร/ขาดทุน
     const profitColor = value >= 0 ? 'text-green-600' : 'text-red-600';
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
+        // ★★★ FIX 1: กำหนดสีพื้นหลัง Card ใน Dark Mode ★★★
+        <div className="bg-white p-6 rounded-2xl shadow-lg dark:bg-gray-800 transition-colors duration-300">
             <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${color}`}>
                     <Icon className="text-white" size={24} />
                 </div>
                 <div>
-                    <p className="text-sm text-gray-500">{title}</p>
-                    <p className={`text-2xl font-bold ${isProfit ? profitColor : 'text-gray-800'}`}>
+                    {/* ★★★ FIX 2: กำหนดสี Text ทั่วไปใน Dark Mode ★★★ */}
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p> 
+                    {/* ★★★ FIX 3: กำหนดสี Text ตัวหนาหลักใน Dark Mode (ใช้ text-gray-100 ยกเว้นกรณีเป็นกำไร/ขาดทุน) ★★★ */}
+                    <p className={`text-2xl font-bold ${isProfit ? profitColor : 'text-gray-800 dark:text-gray-100'}`}>
                         {value.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                     </p>
                 </div>
@@ -55,29 +59,37 @@ const ProfitLossReport = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
-                <BarChart className="mr-3 text-blue-600"/>
+        // ★★★ FIX 4: พื้นหลังหน้าหลักและสี Text Default ★★★
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center dark:text-gray-100">
+                {/* ★★★ FIX 5: ปรับสี Icon ใน Dark Mode ★★★ */}
+                <BarChart className="mr-3 text-blue-600 dark:text-blue-400"/>
                 รายงานกำไร-ขาดทุน
             </h1>
 
             {/* Date Picker Section */}
-            <div className="mb-8 p-6 bg-white rounded-2xl shadow-lg">
-                <h2 className="text-xl font-semibold text-gray-700 mb-4">เลือกช่วงวันที่</h2>
+            {/* ★★★ FIX 6: พื้นหลังและเงาของ Date Picker Panel ★★★ */}
+            <div className="mb-8 p-6 bg-white rounded-2xl shadow-lg dark:bg-gray-800 transition-colors duration-300">
+                <h2 className="text-xl font-semibold text-gray-700 mb-4 dark:text-gray-200">เลือกช่วงวันที่</h2>
                 {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
                 <div className="flex flex-col md:flex-row items-center gap-4">
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        // ★★★ FIX 7: ปรับ Input Fields ให้รองรับ Dark Mode ★★★
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 
+                                   dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                     />
-                    <ArrowRight className="text-gray-400 hidden md:block" />
+                    {/* ★★★ FIX 8: ปรับสี Arrow Icon ★★★ */}
+                    <ArrowRight className="text-gray-400 hidden md:block dark:text-gray-500" />
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        // ★★★ FIX 7: ปรับ Input Fields ให้รองรับ Dark Mode ★★★
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500
+                                   dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                     />
                     <button
                         onClick={handleGenerateReport}
@@ -96,7 +108,8 @@ const ProfitLossReport = () => {
             
             {reportData && (
                 <div className="animate-fade-in-down">
-                     <p className="text-center text-gray-600 mb-4">
+                     {/* ★★★ FIX 9: ปรับสี Text ของ Date Range ★★★ */}
+                     <p className="text-center text-gray-600 mb-4 dark:text-gray-300">
                         ผลประกอบการระหว่างวันที่ {new Date(reportData.start_date).toLocaleDateString('th-TH')} ถึง {new Date(reportData.end_date).toLocaleDateString('th-TH')}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -108,8 +121,9 @@ const ProfitLossReport = () => {
             )}
 
             {!loading && !reportData && (
-                 <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
-                    <p className="text-gray-500">กรุณาเลือกช่วงวันที่ที่ต้องการเพื่อดูรายงาน</p>
+                 // ★★★ FIX 10: พื้นหลังและสี Text ของ Empty State ★★★
+                 <div className="text-center py-20 bg-white rounded-2xl shadow-lg dark:bg-gray-800 transition-colors duration-300">
+                    <p className="text-gray-500 dark:text-gray-400">กรุณาเลือกช่วงวันที่ที่ต้องการเพื่อดูรายงาน</p>
                 </div>
             )}
         </div>

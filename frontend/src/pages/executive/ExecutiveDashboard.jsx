@@ -51,7 +51,8 @@ const ExecutiveDashboard = () => {
     }));
 
     return (
-        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+        // ★★★ FIX: เพิ่ม dark:bg-gray-900 เพื่อให้พื้นหลังของหน้านี้เป็นสีเข้ม (Dark Mode) ★★★
+        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen dark:bg-gray-900">
             <h1 className="text-3xl font-bold text-gray-800 mb-6 dark:text-gray-100">Executive Dashboard</h1>
             
             {/* KPI Cards */}

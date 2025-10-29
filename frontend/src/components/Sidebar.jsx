@@ -7,7 +7,6 @@ import { TreePalm } from 'lucide-react';
 
 const Sidebar = ({ isOpen }) => {
     const { user } = useAuth();
-    // ใช้ Optional Chaining (?) เพื่อป้องกัน Error ถ้า user ยังโหลดไม่เสร็จ
     const menuSections = MENU_CONFIG[user?.e_role] || [];
 
     const navLinkClass = ({ isActive }) =>
@@ -15,14 +14,14 @@ const Sidebar = ({ isOpen }) => {
             !isOpen ? 'justify-center' : ''
         } ${
             isActive
-                ? 'bg-orange-500 text-white shadow-md' // Active State (สีส้ม)
-                // ★★★ FIX: ปรับสี Text และ Icon ใน Dark Mode ★★★
+                ? 'bg-orange-500 text-white shadow-md' 
+                // ★★★ FIX 1: ปรับสี Text และ Icon ใน Dark Mode เมื่อไม่ได้ Active ★★★
                 : 'text-gray-800 hover:bg-orange-50 hover:text-orange-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-orange-400' 
         }`;
 
     return (
         <aside
-            // ★★★ FIX: Dark Mode BG for aside ★★★
+            // ★★★ FIX 2: Dark Mode BG for aside ★★★
             className={`bg-white flex flex-col transition-all duration-300 ${
                 isOpen ? 'w-60' : 'w-20'
             } z-20 shadow-lg dark:bg-gray-800`}
@@ -38,7 +37,8 @@ const Sidebar = ({ isOpen }) => {
                         className="text-green-600 flex-shrink-0 transition-all duration-300"
                         size={isOpen ? 28 : 32}
                     />
-                    <span className="font-semibold text-2xl whitespace-nowrap text-gray-800 dark:text-white"> {/* ★★★ FIX: Dark Mode Text ★★★ */}
+                    {/* ★★★ FIX 3: Dark Mode Text for Logo ★★★ */}
+                    <span className="font-semibold text-2xl whitespace-nowrap text-gray-800 dark:text-white"> 
                         EasyPalm
                     </span>
                 </div>
@@ -55,7 +55,7 @@ const Sidebar = ({ isOpen }) => {
                 {menuSections.map((section) => (
                     <div key={section.title}>
                         <p
-                            // ★★★ FIX: ปรับสี Text ของ Section Title ใน Dark Mode ★★★
+                            // ★★★ FIX 4: ปรับสี Text ของ Section Title ใน Dark Mode ★★★
                             className={`px-3 text-xs text-gray-500 whitespace-nowrap dark:text-gray-400 ${
                                 !isOpen ? 'hidden' : ''
                             }`}
@@ -69,7 +69,6 @@ const Sidebar = ({ isOpen }) => {
                                     to={item.path}
                                     className={navLinkClass}
                                 >
-                                    {/* ★★★ FIX: Icon color is inherited from NavLink class (current text color) ★★★ */}
                                     <item.icon
                                         className={`${
                                             isOpen

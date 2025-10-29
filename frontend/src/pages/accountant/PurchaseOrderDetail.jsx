@@ -1,4 +1,4 @@
-// frontend/src/pages/purchasing/PurchaseHistoryDetail.jsx
+// frontend/src/pages/accountant/PurchaseOrderDetail.jsx
 
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign } from 'lucide-react';
@@ -13,18 +13,21 @@ const ActionDetail = ({ icon, label, person, date }) => {
           })
         : '';
     return (
-        <div className="flex justify-between items-center text-sm py-1">
+        // ★★★ Dark Mode FIX: Container Text Color ★★★
+        <div className="flex justify-between items-center text-sm py-1 text-gray-700 dark:text-gray-300">
             <div className="flex items-center">
                 {icon}
                 <span className="font-semibold w-32 flex-shrink-0">{label}:</span>
-                <span className="text-gray-800 whitespace-nowrap">{person}</span>
+                {/* ★★★ Dark Mode FIX: Person Name Color ★★★ */}
+                <span className="text-gray-800 dark:text-gray-100 whitespace-nowrap">{person}</span>
             </div>
-            {date && <span className="text-gray-500 text-xs text-right whitespace-nowrap ml-4">({formattedDate})</span>}
+            {/* ★★★ Dark Mode FIX: Date Text Color ★★★ */}
+            {date && <span className="text-gray-500 dark:text-gray-400 text-xs text-right whitespace-nowrap ml-4">({formattedDate})</span>}
         </div>
     );
 };
 
-const PurchaseHistoryDetail = ({ orderId, onClose }) => {
+const PurchaseOrderDetail = ({ orderId, onClose }) => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -69,66 +72,82 @@ const PurchaseHistoryDetail = ({ orderId, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex justify-center items-center" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl m-4" onClick={(e) => e.stopPropagation()}>
+        // ★★★ Dark Mode FIX: Modal Overlay Background ★★★
+        <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 z-40 flex justify-center items-center" onClick={onClose}>
+            {/* ★★★ Dark Mode FIX: Modal Container Background ★★★ */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl m-4" onClick={(e) => e.stopPropagation()}>
                 {loading || !order ? (
-                    <div className="h-96 flex justify-center items-center"><Loader className="animate-spin text-blue-500" size={40} /></div>
+                    // ★★★ Dark Mode FIX: Loading State ★★★
+                    <div className="h-96 flex justify-center items-center text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={40} /></div>
                 ) : (
                     <div className="p-8 max-h-[90vh] overflow-y-auto">
                         {/* Header */}
-                        <div className="flex justify-between items-start border-b pb-4 mb-6">
+                        <div className="flex justify-between items-start border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-                                    <Hash className="mr-2 text-purple-600"/>ใบสั่งซื้อ: {order.purchase_order_number}
+                                {/* ★★★ Dark Mode FIX: Title Text Color and Icon ★★★ */}
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                                    <Hash className="mr-2 text-purple-600 dark:text-purple-400"/>ใบสั่งซื้อ: {order.purchase_order_number}
                                 </h2>
-                                <p className="text-sm text-gray-500 mt-1">วันที่: {new Date(order.b_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                                {/* ★★★ Dark Mode FIX: Subtitle Text Color ★★★ */}
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">วันที่: {new Date(order.b_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
                             </div>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={28} /></button>
+                            {/* ★★★ Dark Mode FIX: Close Button Color ★★★ */}
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><X size={28} /></button>
                         </div>
 
                         <div className="space-y-8">
                             {/* Basic Info Section */}
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center">
+                                {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
                                     <User className="mr-2"/>ข้อมูลเกษตรกร
                                 </h3>
-                                <p className="text-gray-800 pl-8">{order.farmer_name}</p>
+                                {/* ★★★ Dark Mode FIX: Info Text Color ★★★ */}
+                                <p className="text-gray-800 dark:text-gray-100 pl-8">{order.farmer_name}</p>
                             </div>
 
                             {/* Order Items & Total Section */}
-                            <div className="bg-white rounded-lg border p-4">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                            {/* ★★★ Dark Mode FIX: Card Background and Border ★★★ */}
+                            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                                {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
                                     <ShoppingCart className="mr-2"/>รายการสินค้า
                                 </h3>
-                                <div className="border rounded-lg overflow-hidden">
-                                    <table className="min-w-full">
-                                        <thead className="bg-gray-50">
+                                {/* ★★★ Dark Mode FIX: Table Border and Divider ★★★ */}
+                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
+                                        <thead className="bg-gray-50 dark:bg-gray-700">
                                             <tr>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">สินค้า</th>
-                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">จำนวน</th>
-                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">ราคา</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">สินค้า</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">จำนวน</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ราคา</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
+                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                             {order.items.map(item => (
                                                 <tr key={item.p_id}>
-                                                    <td className="px-4 py-2 text-sm">{item.p_name}</td>
-                                                    <td className="px-4 py-2 text-sm text-right">{item.quantity.toLocaleString()}</td>
-                                                    <td className="px-4 py-2 text-sm text-right font-semibold">{(item.quantity * item.price_per_unit).toLocaleString('th-TH')}</td>
+                                                    {/* ★★★ Dark Mode FIX: Item Text Colors ★★★ */}
+                                                    <td className="px-4 py-2 text-sm text-gray-800 dark:text-gray-100">{item.p_name}</td>
+                                                    <td className="px-4 py-2 text-sm text-right text-gray-600 dark:text-gray-300">{item.quantity.toLocaleString()}</td>
+                                                    <td className="px-4 py-2 text-sm text-right font-semibold text-gray-800 dark:text-gray-100">{(item.quantity * item.price_per_unit).toLocaleString('th-TH')}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                                 {/* Status and Total */}
-                                <div className="mt-4 flex justify-between items-center gap-4">
+                                {/* ★★★ Dark Mode FIX: Card Background ★★★ */}
+                                <div className="mt-4 flex justify-between items-center gap-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                                     <div className="flex items-center gap-2">
                                         {getStatusChip(order.payment_status, 'payment')}
                                         {getStatusChip(order.stock_status, 'stock')}
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <span className="text-sm text-gray-600">ยอดรวมทั้งสิ้น</span>
-                                        <span className="text-2xl font-bold text-gray-900">
+                                        {/* ★★★ Dark Mode FIX: Total Price Text Color ★★★ */}
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">ยอดรวมทั้งสิ้น</span>
+                                        <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                             {parseFloat(order.b_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                                         </span>
                                     </div>
@@ -136,14 +155,18 @@ const PurchaseHistoryDetail = ({ orderId, onClose }) => {
                             </div>
 
                             {/* Divider */}
-                            <hr className="border-gray-200" />
+                            {/* ★★★ Dark Mode FIX: Divider Color ★★★ */}
+                            <hr className="border-gray-200 dark:border-gray-700" />
 
                             {/* Action History Section */}
-                            <div className="bg-gray-50 p-6 rounded-lg">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+                            {/* ★★★ Dark Mode FIX: Card Background ★★★ */}
+                            <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+                                {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center">
                                     <Calendar className="mr-2"/>ประวัติการดำเนินการ
                                 </h3>
-                                <div className="space-y-2 pl-8 border-l-2">
+                                {/* ★★★ Dark Mode FIX: Timeline Border Color ★★★ */}
+                                <div className="space-y-2 pl-8 border-l-2 border-gray-200 dark:border-gray-600">
                                     <ActionDetail icon={<User size={16} className="mr-3 text-blue-500"/>} 
                                         label="สร้างรายการโดย" 
                                         person={order.created_by_name} 
@@ -166,4 +189,4 @@ const PurchaseHistoryDetail = ({ orderId, onClose }) => {
     );
 };
 
-export default PurchaseHistoryDetail;
+export default PurchaseOrderDetail;

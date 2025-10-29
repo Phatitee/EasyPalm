@@ -1,15 +1,60 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Archive, PlusCircle, Edit, Trash2, Loader, ServerCrash, Inbox } from 'lucide-react';
-import WarehouseForm from '../../components/forms/WarehouseForm'; // Import the new form component
+import { Archive, PlusCircle, Edit, Trash2, Loader, ServerCrash, Inbox, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
+import WarehouseForm from '../../components/forms/WarehouseForm';
+
+// Helper Modal (ConfirmDialog) - สำหรับยืนยัน
+const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm transform transition-all animate-fade-in-up">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h3>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{message}</p>
+                </div>
+                <div className="mt-6 flex justify-center gap-3">
+                    <button onClick={onClose} type="button" className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">ยกเลิก</button>
+                    <button onClick={onConfirm} type="button" className="w-full px-4 py-2 bg-red-600 text-white rounded-md font-semibold hover:bg-red-700">ยืนยัน</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
+const ResultDialog = ({ isOpen, onClose, type, message }) => {
+    if (!isOpen) return null;
+    const isSuccess = type === 'success';
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up">
+                 <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
+                    {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
+                </div>
+                <div className="mt-3 text-center">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{isSuccess ? 'สำเร็จ' : 'เกิดข้อผิดพลาด'}</h3>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{message}</p>
+                </div>
+                <div className="mt-6">
+                    <button onClick={onClose} type="button" className={`w-full px-4 py-2 text-white rounded-lg font-semibold ${isSuccess ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'}`}>ตกลง</button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 const WarehouseManagement = () => {
     const [warehouses, setWarehouses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // State for modal management
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingWarehouse, setEditingWarehouse] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, warehouse: null, title: '', message: '', onConfirm: () => {} });
+    const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'success', message: '' });
 
     const fetchWarehouses = useCallback(async () => {
         setLoading(true);
@@ -56,18 +101,27 @@ const WarehouseManagement = () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
             
-            alert(`บันทึกข้อมูลคลังสินค้า '${result.warehouse_name}' สำเร็จ!`);
+            setResultDialog({ isOpen: true, type: 'success', message: `บันทึกข้อมูลคลังสินค้า '${result.warehouse_name}' สำเร็จ!` });
             handleCloseModal();
-            fetchWarehouses(); // Refresh list
+            fetchWarehouses();
         } catch (err) {
-            alert(`เกิดข้อผิดพลาด: ${err.message}`);
+            setResultDialog({ isOpen: true, type: 'error', message: `เกิดข้อผิดพลาด: ${err.message}` });
         }
     };
 
-    const handleDeleteWarehouse = async (warehouse) => {
-        if (!window.confirm(`คุณต้องการลบคลังสินค้า '${warehouse.warehouse_name}' (${warehouse.warehouse_id}) ใช่หรือไม่?`)) {
-            return;
-        }
+    const handleDeleteClick = (warehouse) => {
+        setConfirmDialog({
+            isOpen: true,
+            warehouse: warehouse,
+            title: 'ยืนยันการลบคลังสินค้า',
+            message: `คุณต้องการลบคลังสินค้า '${warehouse.warehouse_name}' (${warehouse.warehouse_id}) ใช่หรือไม่?`,
+            onConfirm: handleExecuteDelete
+        });
+    };
+
+    const handleExecuteDelete = async () => {
+        const warehouse = confirmDialog.warehouse;
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
             const response = await fetch(`http://127.0.0.1:5000/warehouses/${warehouse.warehouse_id}`, {
@@ -76,18 +130,22 @@ const WarehouseManagement = () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดในการลบ');
             
-            alert(result.message);
-            fetchWarehouses(); // Refresh list
+            setResultDialog({ isOpen: true, type: 'success', message: result.message });
+            fetchWarehouses();
         } catch (err) {
-            alert(`เกิดข้อผิดพลาด: ${err.message}`);
+            setResultDialog({ isOpen: true, type: 'error', message: `เกิดข้อผิดพลาด: ${err.message}` });
         }
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+        // ★★★ Dark Mode FIX: Main Container Background ★★★
+        <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+            <ConfirmDialog {...confirmDialog} onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} />
+            <ResultDialog {...resultDialog} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} />
+
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-                    <Archive className="mr-3 text-blue-600"/>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                    <Archive className="mr-3 text-blue-600 dark:text-blue-400"/>
                     จัดการคลังสินค้า
                 </h1>
                 <button
@@ -100,39 +158,46 @@ const WarehouseManagement = () => {
             </div>
 
             {loading ? (
-                 <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>
+                 // ★★★ Dark Mode FIX: Loading State ★★★
+                 <div className="flex justify-center items-center h-64 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /></div>
             ) : error ? (
-                <div className="flex flex-col justify-center items-center h-64 text-red-600 bg-red-50 p-10 rounded-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
+                // ★★★ Dark Mode FIX: Error State ★★★
+                <div className="flex flex-col justify-center items-center h-64 text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-800 p-10 rounded-lg shadow-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
             ) : warehouses.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
-                    <Inbox size={64} className="mx-auto text-gray-400" />
-                    <h2 className="mt-4 text-2xl font-semibold text-gray-700">ไม่พบคลังสินค้า</h2>
-                    <p className="mt-2 text-gray-500">ยังไม่มีข้อมูลคลังสินค้าในระบบ คลิก 'เพิ่มคลังสินค้า' เพื่อเริ่มต้น</p>
+                // ★★★ Dark Mode FIX: Empty State Background and Text ★★★
+                <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl shadow-lg transition-colors duration-300">
+                    <Inbox size={64} className="mx-auto text-gray-400 dark:text-gray-500" />
+                    <h2 className="mt-4 text-2xl font-semibold text-gray-700 dark:text-gray-200">ไม่พบคลังสินค้า</h2>
+                    <p className="mt-2 text-gray-500 dark:text-gray-400">ยังไม่มีข้อมูลคลังสินค้าในระบบ คลิก 'เพิ่มคลังสินค้า' เพื่อเริ่มต้น</p>
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                // ★★★ Dark Mode FIX: Table Container Background and Shadow ★★★
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                             <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                             {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
+                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อคลังสินค้า</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ที่ตั้ง</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ความจุ (kg)</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">รหัส</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ชื่อคลังสินค้า</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ที่ตั้ง</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ความจุ (kg)</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">จัดการ</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {warehouses.map(w => (
-                                    <tr key={w.warehouse_id}>
-                                        <td className="px-6 py-4 font-mono text-sm text-gray-700">{w.warehouse_id}</td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">{w.warehouse_name}</td>
-                                        <td className="px-6 py-4 text-gray-600">{w.location}</td>
-                                        <td className="px-6 py-4 text-right font-semibold text-gray-800">{parseFloat(w.capacity).toLocaleString()}</td>
+                                    <tr key={w.warehouse_id} className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150">
+                                        {/* ★★★ Dark Mode FIX: Text Colors ★★★ */}
+                                        <td className="px-6 py-4 font-mono text-sm text-gray-700 dark:text-gray-300">{w.warehouse_id}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{w.warehouse_name}</td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{w.location}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(w.capacity).toLocaleString()}</td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex justify-center items-center gap-4">
-                                                <button onClick={() => handleOpenModal(w)} className="text-blue-600 hover:text-blue-800"><Edit size={18} /></button>
-                                                <button onClick={() => handleDeleteWarehouse(w)} className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
+                                                <button onClick={() => handleOpenModal(w)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"><Edit size={18} /></button>
+                                                <button onClick={() => handleDeleteClick(w)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"><Trash2 size={18} /></button>
                                             </div>
                                         </td>
                                     </tr>

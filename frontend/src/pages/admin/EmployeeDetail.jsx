@@ -30,7 +30,6 @@ const EmployeeDetail = () => {
     const formatDateTime = (dateString) => {
         if (!dateString) return '-';
         try {
-            // ★★★ FIX: Use toLocaleString to handle both date and time ★★★
             return new Date(dateString).toLocaleString('th-TH', {
                 year: 'numeric',
                 month: 'long',
@@ -63,16 +62,18 @@ const EmployeeDetail = () => {
         return <div className={iconClass}>🚻</div>;
     };
 
-    if (loading) return <div className="text-center p-10">กำลังโหลด...</div>;
-    if (error) return <div className="text-center p-10 text-red-500 bg-red-50 rounded-lg">{error}</div>;
-    if (!employee) return <div className="text-center p-10 text-gray-500">ไม่พบข้อมูลพนักงาน</div>;
+    if (loading) return <div className="text-center p-10 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">กำลังโหลด...</div>;
+    if (error) return <div className="text-center p-10 text-red-500 dark:text-red-400 bg-red-50 dark:bg-gray-800 rounded-lg min-h-screen">{error}</div>;
+    if (!employee) return <div className="text-center p-10 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 min-h-screen">ไม่พบข้อมูลพนักงาน</div>;
 
 return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+        // ★★★ Dark Mode FIX: Main Page Background ★★★
+        <div className="container mx-auto px-4 py-8 max-w-4xl bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-blue-700 mb-6 font-semibold transition-colors dark:text-gray-400 dark:hover:text-blue-500">
                 <ArrowLeft size={18} /> กลับไปหน้าจัดการพนักงาน
             </button>
 
+            {/* ★★★ Dark Mode FIX: Main Card Background and Border ★★★ */}
             <div className="bg-white p-8 rounded-xl shadow-md border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row justify-between items-start mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <div>
@@ -88,6 +89,7 @@ return (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                     {/* Personal Info Column */}
                     <div>
+                        {/* ★★★ Dark Mode FIX: Section Header Text/Border Color ★★★ */}
                         <h2 className="text-xl font-semibold text-gray-700 mb-5 border-b pb-2 dark:text-gray-200 dark:border-gray-700">ข้อมูลส่วนตัว</h2>
                         <DetailItem icon={User} label="รหัสพนักงาน" value={employee.e_id} />
                         <DetailItem icon={BadgeInfo} label="เลขบัตรประชาชน" value={employee.e_citizen_id_card} />
@@ -104,6 +106,7 @@ return (
 
                     {/* Work Info Column */}
                      <div>
+                        {/* ★★★ Dark Mode FIX: Section Header Text/Border Color ★★★ */}
                         <h2 className="text-xl font-semibold text-gray-700 mb-5 border-b pb-2 dark:text-gray-200 dark:border-gray-700">ข้อมูลการทำงาน</h2>
                         <DetailItem icon={Briefcase} label="ตำแหน่ง" value={employee.position} />
                         <DetailItem icon={Key} label="สิทธิ์ (Role)" value={employee.e_role} />
