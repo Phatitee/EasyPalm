@@ -17,7 +17,7 @@ class SalesOrder(db.Model):
 
     # --- ( เพิ่มใหม่ ) Field สำหรับเก็บข้อมูลการทำรายการ ---
     created_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
-    shipped_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
+    shipped_by_id = db.Column(db.String(50), db.ForeignKey('employee.e_id'))
     delivered_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
     paid_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
 
@@ -49,6 +49,7 @@ class SalesOrder(db.Model):
             'shipment_status': self.shipment_status,
             'delivery_status': self.delivery_status,
             'payment_status': self.payment_status,
+           
 
             # --- ( เพิ่มใหม่ ) ส่งข้อมูลพนักงานและวันที่กลับไปให้ Frontend ---
             'created_by_name': self.created_by.e_name if self.created_by else None,

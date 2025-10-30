@@ -4,6 +4,7 @@ from . import models
 from . import db
 from sqlalchemy import func, asc, or_
 from datetime import datetime, timedelta
+from sqlalchemy.orm import joinedload
 
 bp = Blueprint('main', __name__)
 
@@ -52,6 +53,81 @@ def get_food_industries():
 def get_warehouses():
     warehouses = models.Warehouse.query.all()
     return jsonify([w.to_dict() for w in warehouses])
+
+@bp.route('/warehouse/storage-history', methods=['GET'])
+def get_storage_history():
+    try:
+        search_term = request.args.get('search', '')
+        warehouse_id_filter = request.args.get('warehouse_id', '')
+
+        # --- 1. ดึงข้อมูล Purchase Orders ที่จัดเก็บสำเร็จ (Completed) ---
+        po_query = models.PurchaseOrder.query.filter_by(stock_status='Completed')
+        
+        if search_term:
+            # ค้นหาจากเลขที่ PO หรือชื่อเกษตรกร
+            po_query = po_query.join(models.Farmer).filter(
+                or_(
+                    models.PurchaseOrder.purchase_order_number.ilike(f'%{search_term}%'),
+                    models.Farmer.f_name.ilike(f'%{search_term}%')
+                )
+            )
+
+        # (ส่วนนี้ยังไม่สมบูรณ์เพราะ PO ยังไม่มีข้อมูล warehouse_id โดยตรง)
+        # if warehouse_id_filter:
+        #     # ต้องหาวิธีเชื่อมโยง PO กับ Warehouse ที่รับของ
+        #     pass
+
+        completed_pos = po_query.all()
+        po_list = []
+        for po in completed_pos:
+            po_list.append({
+                'type': 'PO',
+                'order_number': po.purchase_order_number,
+                'source_name': po.farmer.f_name if po.farmer else 'N/A',
+                'completed_date': po.received_date.isoformat() if po.received_date else None,
+                'total_price': po.b_total_price,
+                'responsible_person': po.received_by.e_name if po.received_by else 'N/A'
+            })
+
+        # --- 2. ดึงข้อมูล Sales Orders ที่รับคืนสำเร็จ (จัดเก็บคืนแล้ว) ---
+        so_query = models.SalesOrder.query.filter_by(shipment_status='จัดเก็บคืนแล้ว')
+
+        if search_term:
+            # ค้นหาจากเลขที่ SO หรือชื่อลูกค้า
+            so_query = so_query.join(models.FoodIndustry).filter(
+                or_(
+                    models.SalesOrder.sale_order_number.ilike(f'%{search_term}%'),
+                    models.FoodIndustry.F_name.ilike(f'%{search_term}%')
+                )
+            )
+        
+        # (ส่วนนี้ต้องพัฒนาเพิ่ม) กรองตามคลังที่รับคืน
+        # if warehouse_id_filter:
+        #      # ต้อง join กับ StockTransactionReturn เพื่อหา warehouse_id
+        #      pass
+
+        returned_sos = so_query.all()
+        so_return_list = []
+        for so in returned_sos:
+            so_return_list.append({
+                'type': 'SO_Return',
+                'order_number': so.sale_order_number,
+                'source_name': so.customer.F_name if so.customer else 'N/A',
+                'completed_date': so.delivered_date.isoformat() if so.delivered_date else None,
+                'total_price': so.s_total_price,
+                'responsible_person': so.delivered_by.e_name if so.delivered_by else 'N/A' # delivered_by คือคนที่กดยืนยันรับคืน
+            })
+
+        # --- 3. รวมและเรียงข้อมูล ---
+        combined_list = po_list + so_return_list
+        # เรียงตามวันที่ล่าสุดก่อน
+        combined_list.sort(key=lambda x: x['completed_date'], reverse=True)
+
+        return jsonify(combined_list)
+
+    except Exception as e:
+        print(f"Error in get_storage_history: {e}")
+        return jsonify({'message': str(e)}), 500
 
 #==============================================================================
 # PRODUCT MANAGEMENT
@@ -532,6 +608,57 @@ def get_stock_levels():
 #==============================================================================
 # WAREHOUSE MANAGEMENT (สร้างใหม่สำหรับเจ้าหน้าที่คลังสินค้า)
 #==============================================================================
+@bp.route('/warehouse/confirm-return', methods=['POST'])
+def confirm_return():
+    data = request.get_json()
+    order_number = data.get('sales_order_number')
+    warehouse_id = data.get('warehouse_id')
+    employee_id = data.get('employee_id') # employee_id ยังคงรับมา แต่อาจจะไม่ได้ใช้ใน StockTransactionReturn โดยตรง
+
+    if not all([order_number, warehouse_id, employee_id]):
+        return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
+
+    try:
+        order = models.SalesOrder.query.options(joinedload(models.SalesOrder.items)).get(order_number)
+        
+        if not order:
+            return jsonify({'message': 'ไม่พบใบสั่งขายนี้'}), 404
+        if order.shipment_status != 'รอจัดเก็บคืน':
+            return jsonify({'message': f'สถานะปัจจุบันคือ "{order.shipment_status}" ไม่สามารถรับคืนได้'}), 409
+
+        for item in order.items:
+            stock = models.StockLevel.query.filter_by(
+                p_id=item.p_id,
+                warehouse_id=warehouse_id
+            ).first()
+
+            if not stock:
+                stock = models.StockLevel(p_id=item.p_id, warehouse_id=warehouse_id, quantity=0)
+                db.session.add(stock)
+            
+            stock.quantity += item.quantity
+
+            # (★★★ จุดที่แก้ไข ★★★) เปลี่ยนไปใช้ models.StockTransactionReturn
+            # และปรับแก้ฟิลด์ให้ตรงกับ Model
+            transaction = models.StockTransactionReturn(
+                return_transaction_date=datetime.utcnow(),
+                return_quantity=item.quantity,
+                p_id=item.p_id,
+                warehouse_id=warehouse_id,
+                so_item_id=item.so_item_id # ใช้ so_item_id จาก sales_order_item
+                # สามารถเพิ่ม reason ได้ถ้าต้องการ เช่น reason=f'รับคืนจาก SO {order_number}'
+            )
+            db.session.add(transaction)
+
+        order.shipment_status = 'จัดเก็บคืนแล้ว'
+        
+        db.session.commit()
+        return jsonify({'message': f'รับคืนสินค้าจาก SO {order_number} สำเร็จ'})
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in confirm_return: {e}")
+        return jsonify({'message': str(e)}), 500
 
 @bp.route('/warehouse/pending-receipts', methods=['GET'])
 def get_pending_receipts():
@@ -788,6 +915,73 @@ def handle_sales_orders():
             return jsonify([order.to_dict() for order in orders])
         except Exception as e:
             return jsonify({'message': str(e)}), 500
+        
+        
+@bp.route('/salesorders/<string:order_number>/request-return', methods=['PUT'])
+def request_return(order_number):
+    data = request.get_json()
+    if not data or not data.get('employee_id'):
+        return jsonify({'message': 'กรุณาระบุ ID ของพนักงานที่ทำรายการ'}), 400
+    
+    employee_id = data.get('employee_id')
+    
+    try:
+        order = models.SalesOrder.query.get_or_404(order_number)
+        
+        # ตรวจสอบว่าสถานะปัจจุบันคือ 'Shipped' (เบิกแล้ว) เท่านั้น ถึงจะขอคืนได้
+        if order.shipment_status != 'Shipped':
+            return jsonify({'message': f'ไม่สามารถขอคืนได้ สถานะปัจจุบันคือ "{order.shipment_status}"'}), 409
+
+        # อัปเดตสถานะตาม Flow ที่คุยกัน
+        order.delivery_status = 'ขอคืน'
+        order.shipment_status = 'รอจัดเก็บคืน' # สถานะใหม่สำหรับ Warehouse
+        
+        # บันทึกว่าใครเป็นคนกดยืนยันขอคืน และเวลาใด
+        order.delivered_by_id = employee_id 
+        order.delivered_date = datetime.utcnow()
+
+        db.session.commit()
+        return jsonify({'message': f'ยืนยันการขอคืนสินค้า SO {order_number} สำเร็จ'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': str(e)}), 500
+
+
+@bp.route('/warehouse/pending-storage-items', methods=['GET'])
+def get_pending_storage_items():
+    try:
+        # 1. ดึง PO ที่รอจัดเก็บ
+        # (★★★ จุดที่แก้ไข ★★★) เปลี่ยนจาก status='Pending' เป็น receipt_status='Pending'
+        pending_pos = models.PurchaseOrder.query.filter_by(stock_status='Pending').all()
+        po_list = []
+        for po in pending_pos:
+            po_list.append({
+                'type': 'PO',
+                'order_number': po.purchase_order_number,
+                'source_name': po.farmer.f_name if po.farmer else 'N/A',
+                'order_date': po.created_date.isoformat() if po.created_date else None,
+                'total_price': po.b_total_price
+            })
+
+        # 2. ดึง SO ที่ขอคืนและรอจัดเก็บ
+        returned_sos = models.SalesOrder.query.filter_by(shipment_status='รอจัดเก็บคืน').all()
+        so_return_list = []
+        for so in returned_sos:
+            so_return_list.append({
+                'type': 'SO_Return',
+                'order_number': so.sale_order_number,
+                'source_name': so.customer.F_name if so.customer else 'N/A',
+                'order_date': so.delivered_date.isoformat() if so.delivered_date else None,
+                'total_price': so.s_total_price,
+            })
+        
+        combined_list = po_list + so_return_list
+        return jsonify(combined_list)
+
+    except Exception as e:
+        print(f"Error in get_pending_storage_items: {e}") 
+        return jsonify({'message': str(e)}), 500
         
 @bp.route('/salesorders/pending-delivery', methods=['GET'])
 def get_pending_delivery_orders():

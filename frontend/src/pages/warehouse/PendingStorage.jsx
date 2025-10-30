@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { PackagePlus, CheckCircle, Loader, ServerCrash, Inbox, Archive, AlertTriangle, XCircle } from 'lucide-react';
+// (เพิ่ม) Import ไอคอน RefreshCw
+import { PackagePlus, CheckCircle, Loader, ServerCrash, Inbox, Archive, AlertTriangle, XCircle, Users, Truck, RefreshCw } from 'lucide-react';
 import StorageDetail from './StorageDetail';
+import SalesHistoryDetail from '../sales/SalesHistoryDetail';
 
-// Helper Modal (ConfirmDialog) - สำหรับยืนยัน
-const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
+// (ปรับปรุง) ConfirmDialog ให้รองรับ actionType เพื่อเปลี่ยนสีปุ่มและไอคอน
+const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, actionType }) => {
     if (!isOpen) return null;
+    const confirmButtonColor = actionType === 'SO_Return' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600';
+    const iconContainerColor = actionType === 'SO_Return' ? 'bg-blue-100' : 'bg-orange-100';
+    const iconColor = actionType === 'SO_Return' ? 'text-blue-600' : 'text-orange-600';
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm transform transition-all animate-fade-in-up">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100">
-                    <AlertTriangle className="h-6 w-6 text-orange-600" />
+                <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconContainerColor}`}>
+                    <AlertTriangle className={`h-6 w-6 ${iconColor}`} />
                 </div>
                 <div className="mt-3 text-center">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h3>
@@ -18,14 +24,14 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
                 </div>
                 <div className="mt-6 flex justify-center gap-3">
                     <button onClick={onClose} type="button" className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">ยกเลิก</button>
-                    <button onClick={onConfirm} type="button" className="w-full px-4 py-2 bg-orange-500 text-white rounded-md font-semibold hover:bg-orange-600">ยืนยัน</button>
+                    <button onClick={onConfirm} type="button" className={`w-full px-4 py-2 text-white rounded-md font-semibold ${confirmButtonColor}`}>ยืนยัน</button>
                 </div>
             </div>
         </div>
     );
 };
 
-// Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
+
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
     const isSuccess = type === 'success';
@@ -47,37 +53,35 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     );
 }
 
-
 const PendingStorage = () => {
-    const [orders, setOrders] = useState([]);
+    const [items, setItems] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [submittingId, setSubmittingId] = useState(null);
     const { user } = useAuth();
 
-    const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [selectedItem, setSelectedItem] = useState({ id: null, type: null });
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, orderNumber: null, warehouseId: null, title: '', message: '' });
+    // (ปรับปรุง) State ของ Dialog ให้เก็บข้อมูลที่จำเป็นทั้งหมด
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, item: null, warehouseId: null, title: '', message: '', actionType: '' });
     const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'success', message: '' });
 
     const fetchInitialData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const [ordersRes, warehousesRes] = await Promise.all([
-                fetch('http://127.0.0.1:5000/warehouse/pending-receipts'),
+            const [itemsRes, warehousesRes] = await Promise.all([
+                fetch('http://127.0.0.1:5000/warehouse/pending-storage-items'),
                 fetch('http://127.0.0.1:5000/warehouses')
             ]);
             
-            if (!ordersRes.ok || !warehousesRes.ok) {
-                throw new Error('ไม่สามารถดึงข้อมูลเริ่มต้นได้');
-            }
+            if (!itemsRes.ok || !warehousesRes.ok) throw new Error('ไม่สามารถดึงข้อมูลเริ่มต้นได้');
             
-            const ordersData = await ordersRes.json();
+            const itemsData = await itemsRes.json();
             const warehousesData = await warehousesRes.json();
             
-            setOrders(ordersData);
+            setItems(itemsData);
             setWarehouses(warehousesData);
 
         } catch (err) {
@@ -91,11 +95,12 @@ const PendingStorage = () => {
         fetchInitialData();
     }, [fetchInitialData]);
 
-    const handleOpenConfirmDialog = (e, orderNumber) => {
+    // (ปรับปรุง) ฟังก์ชันเปิด Dialog ให้รองรับทั้ง PO และ SO_Return
+    const handleOpenConfirmDialog = (e, item) => {
         e.stopPropagation();
         
         const form = e.currentTarget.form;
-        const warehouseId = form.elements[`warehouse-select-${orderNumber}`].value;
+        const warehouseId = form.elements[`warehouse-select-${item.order_number}`].value;
         const warehouseName = warehouses.find(w => w.warehouse_id === warehouseId)?.warehouse_name || 'ไม่ระบุคลัง';
 
         if (!warehouseId) {
@@ -103,29 +108,40 @@ const PendingStorage = () => {
             return;
         }
 
+        const isReturn = item.type === 'SO_Return';
+        
         setConfirmDialog({
             isOpen: true,
-            orderNumber: orderNumber,
+            item: item,
             warehouseId: warehouseId,
-            title: 'ยืนยันรับสินค้าเข้าคลัง',
-            message: `คุณต้องการยืนยันการรับสินค้าจาก PO ${orderNumber} เข้าคลัง ${warehouseName} ใช่หรือไม่?`
+            actionType: item.type,
+            title: isReturn ? 'ยืนยันรับคืนสินค้า' : 'ยืนยันรับสินค้าเข้าคลัง',
+            message: isReturn 
+                ? `คุณต้องการยืนยันรับคืนสินค้าจาก SO ${item.order_number} เข้าคลัง ${warehouseName} ใช่หรือไม่?`
+                : `คุณต้องการยืนยันการรับสินค้าจาก PO ${item.order_number} เข้าคลัง ${warehouseName} ใช่หรือไม่?`
         });
     };
 
-    const handleExecuteReceiveItems = async () => {
-        const { orderNumber, warehouseId } = confirmDialog;
-        setSubmittingId(orderNumber);
+    // (ปรับปรุง) ฟังก์ชันยืนยัน ให้รองรับการทำงานทั้งสองประเภท
+    const handleExecuteConfirm = async () => {
+        const { item, warehouseId } = confirmDialog;
+        setSubmittingId(item.order_number);
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
+        const isReturn = item.type === 'SO_Return';
+        const url = isReturn 
+            ? 'http://127.0.0.1:5000/warehouse/confirm-return'
+            : 'http://127.0.0.1:5000/warehouse/receive-items';
+        
+        const body = isReturn
+            ? { sales_order_number: item.order_number, warehouse_id: warehouseId, employee_id: user.e_id }
+            : { purchase_order_number: item.order_number, warehouse_id: warehouseId, employee_id: user.e_id };
+
         try {
-            const response = await fetch('http://127.0.0.1:5000/warehouse/receive-items', {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    purchase_order_number: orderNumber,
-                    warehouse_id: warehouseId,
-                    employee_id: user.e_id,
-                }),
+                body: JSON.stringify(body),
             });
             const result = await response.json();
             if (!response.ok) {
@@ -141,105 +157,78 @@ const PendingStorage = () => {
         }
     };
 
-
-    const handleRowDoubleClick = (orderId) => {
-        setSelectedOrderId(orderId);
+    const handleRowDoubleClick = (item) => {
+        setSelectedItem({ id: item.order_number, type: item.type });
         setIsDetailModalOpen(true);
     };
+    
+    const renderDetailModal = () => {
+        if (!isDetailModalOpen) return null;
+        if (selectedItem.type === 'PO') return <StorageDetail orderId={selectedItem.id} onClose={() => setIsDetailModalOpen(false)} />;
+        if (selectedItem.type === 'SO_Return') return <SalesHistoryDetail orderId={selectedItem.id} onClose={() => setIsDetailModalOpen(false)} />;
+        return null;
+    };
 
-    if (loading) {
-        // ★★★ Dark Mode FIX: Loading State ★★★
-        return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /> <span className="ml-4 text-lg">กำลังโหลดข้อมูล...</span></div>;
-    }
-
-    if (error) {
-        // ★★★ Dark Mode FIX: Error State ★★★
-        return <div className="flex flex-col justify-center items-center h-screen text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-800 p-10 rounded-lg shadow-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>;
-    }
+    if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /> <span className="ml-4 text-lg">กำลังโหลดข้อมูล...</span></div>;
+    if (error) return <div className="flex flex-col justify-center items-center h-screen text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-800 p-10 rounded-lg shadow-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>;
 
     return (
-        // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <ConfirmDialog 
                 isOpen={confirmDialog.isOpen} 
                 onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} 
-                onConfirm={handleExecuteReceiveItems}
+                onConfirm={handleExecuteConfirm}
                 title={confirmDialog.title}
                 message={confirmDialog.message}
+                actionType={confirmDialog.actionType}
             />
-            <ResultDialog 
-                isOpen={resultDialog.isOpen} 
-                onClose={() => setResultDialog({ ...resultDialog, isOpen: false })}
-                type={resultDialog.type}
-                message={resultDialog.message}
-            />
+            <ResultDialog isOpen={resultDialog.isOpen} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} type={resultDialog.type} message={resultDialog.message} />
 
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                    <PackagePlus className="inline-block mr-3 text-orange-600 dark:text-orange-400" />
-                    ยืนยันรับสินค้าเข้าคลัง
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center"><PackagePlus className="inline-block mr-3 text-orange-600 dark:text-orange-400" />รายการรอจัดเก็บเข้าคลัง</h1>
             </div>
 
-            {orders.length === 0 ? (
-                // ★★★ Dark Mode FIX: Empty State Background and Text ★★★
+            {items.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl shadow-lg transition-colors duration-300">
                     <Inbox size={64} className="mx-auto text-gray-400 dark:text-gray-500" />
                     <h2 className="mt-4 text-2xl font-semibold text-gray-700 dark:text-gray-200">ไม่มีรายการที่ต้องดำเนินการ</h2>
-                    <p className="mt-2 text-gray-500 dark:text-gray-400">ไม่มีรายการสั่งซื้อที่รอการรับเข้าคลังในขณะนี้</p>
+                    <p className="mt-2 text-gray-500 dark:text-gray-400">ไม่มีรายการที่รอจัดเก็บเข้าคลังในขณะนี้</p>
                 </div>
             ) : (
-                // ★★★ Dark Mode FIX: Table Container Background and Shadow ★★★
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                             {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">เลขที่ PO</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">เกษตรกร</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">วันที่สั่งซื้อ</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ประเภท</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">เลขที่เอกสาร</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ที่มา</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">วันที่</th>
                                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">จัดการ</th>
                                 </tr>
                             </thead>
-                            {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {orders.map((order) => (
-                                    <tr 
-                                        key={order.purchase_order_number}
-                                        onDoubleClick={() => handleRowDoubleClick(order.purchase_order_number)}
-                                        className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150"
-                                    >
-                                        {/* ★★★ Dark Mode FIX: Text Colors ★★★ */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{order.purchase_order_number}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{order.farmer_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.b_date).toLocaleDateString('th-TH')}</td>
+                                {items.map((item) => (
+                                    <tr key={`${item.type}-${item.order_number}`} onDoubleClick={() => handleRowDoubleClick(item)} className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            {item.type === 'PO' ? (<span className="flex items-center text-blue-600 dark:text-blue-400 font-semibold"><Users className="mr-2" size={16}/> รับเข้าใหม่</span>) : (<span className="flex items-center text-red-600 dark:text-red-400 font-semibold"><Truck className="mr-2" size={16}/> รับคืน</span>)}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{item.order_number}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.source_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(item.order_date).toLocaleDateString('th-TH')}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            {/* (★★★ จุดที่แก้ไข ★★★) แสดงฟอร์มสำหรับทั้ง PO และ SO Return */}
                                             <form className="flex items-center justify-center gap-2">
                                                 <div className="relative w-48">
-                                                     <Archive className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
-                                                    <select 
-                                                        id={`warehouse-select-${order.purchase_order_number}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        // ★★★ Dark Mode FIX: Select Input Styling ★★★
-                                                        className="w-full pl-9 pr-4 py-2 border rounded-lg appearance-none bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                                                    >
+                                                    <Archive className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
+                                                    <select id={`warehouse-select-${item.order_number}`} onClick={(e) => e.stopPropagation()} className="w-full pl-9 pr-4 py-2 border rounded-lg appearance-none bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
                                                         <option value="">-- เลือกคลัง --</option>
                                                         {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
                                                     </select>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => handleOpenConfirmDialog(e, order.purchase_order_number)}
-                                                    disabled={submittingId === order.purchase_order_number}
-                                                    className="flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition disabled:bg-gray-400"
-                                                >
-                                                    {submittingId === order.purchase_order_number ? (
-                                                        <Loader className="animate-spin mr-2" size={16} />
-                                                    ) : (
-                                                        <CheckCircle className="mr-2" size={16} />
-                                                    )}
-                                                    {submittingId === order.purchase_order_number ? 'กำลังบันทึก...' : 'ยืนยัน'}
+                                                <button type="button" onClick={(e) => handleOpenConfirmDialog(e, item)} disabled={submittingId === item.order_number} className={`flex items-center justify-center font-bold py-2 px-4 rounded-lg transition text-white disabled:bg-gray-400 ${item.type === 'SO_Return' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}>
+                                                    {submittingId === item.order_number ? ( <Loader className="animate-spin mr-2" size={16} /> ) : ( item.type === 'SO_Return' ? <RefreshCw className="mr-2" size={16}/> : <CheckCircle className="mr-2" size={16} /> )}
+                                                    {submittingId === item.order_number ? 'กำลังบันทึก...' : (item.type === 'SO_Return' ? 'ยืนยันรับคืน' : 'ยืนยัน')}
                                                 </button>
                                             </form>
                                         </td>
@@ -250,13 +239,7 @@ const PendingStorage = () => {
                     </div>
                 </div>
             )}
-            
-            {isDetailModalOpen && (
-                <StorageDetail
-                    orderId={selectedOrderId} 
-                    onClose={() => setIsDetailModalOpen(false)} 
-                />
-            )}
+            {renderDetailModal()}
         </div>
     );
 };
