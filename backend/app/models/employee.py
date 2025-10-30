@@ -22,7 +22,6 @@ class Employee(db.Model):
     e_email = db.Column(db.String(50), nullable=True)
     e_address = db.Column(db.String(100), nullable=True)
     e_date_of_issue = db.Column(db.DateTime)
-    e_expired_date = db.Column(db.DateTime)
     position = db.Column(db.String(100), nullable=False)
 
     e_role = db.Column(db.Enum(EmployeeRole, values_callable=lambda obj: [e.value for e in obj], native_enum=False), nullable=False)

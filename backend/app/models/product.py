@@ -8,7 +8,7 @@ class Product(db.Model):
     p_name = db.Column(db.String(100), nullable=False)
     
     # --- (จุดแก้ไข) เพิ่มคอลัมน์ p_unit ที่ขาดไป ---
-    p_unit = db.Column(db.Float)
+  
     
     price_per_unit = db.Column(db.Float)
     effective_date = db.Column(db.DateTime)
@@ -23,7 +23,6 @@ class Product(db.Model):
         return {
             'p_id': self.p_id,
             'p_name': self.p_name,
-            'p_unit': self.p_unit,
             'price_per_unit': self.price_per_unit,
             'effective_date': self.effective_date.isoformat() if self.effective_date else None,
         }

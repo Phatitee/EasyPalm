@@ -167,7 +167,7 @@ def handle_product(p_id):
         data = request.get_json()
         product.p_name = data.get('p_name', product.p_name)
         product.price_per_unit = data.get('price_per_unit', product.price_per_unit)
-        product.effective_date = data.get('effective_date', product.effective_date)
+        product.effective_date = datetime.utcnow()  # ตั้งเป็นเวลาปัจจุบันแบบ UTC
         db.session.commit()
         return jsonify(product.to_dict())
 
@@ -175,6 +175,7 @@ def handle_product(p_id):
         db.session.delete(product)
         db.session.commit()
         return jsonify({'message': f'Product with id {p_id} has been deleted.'})
+
 
 #==============================================================================
 # EMPLOYEE MANAGEMENT
@@ -213,7 +214,8 @@ def handle_employees():
                 e_tel=data.get('e_tel'),
                 e_gender=data.get('e_gender', 'Male'),
                 e_citizen_address=data.get('e_citizen_address', ''),
-                e_address=data.get('e_address', '')
+                e_address=data.get('e_address', ''),
+                e_date_of_issue = datetime.utcnow()
             )
             db.session.add(new_employee)
             db.session.commit()
@@ -250,6 +252,7 @@ def handle_employee_by_id(e_id):
             employee.e_gender = data.get('e_gender', employee.e_gender)
             employee.e_address = data.get('e_address', employee.e_address)
             employee.e_citizen_address = data.get('e_citizen_address', employee.e_citizen_address)
+            employee.e_modified_date = datetime.utcnow()
             if data.get('password'):
                 employee.password = data.get('password')
             db.session.commit()
