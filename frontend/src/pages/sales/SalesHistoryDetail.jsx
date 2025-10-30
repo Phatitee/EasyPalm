@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-// (เพิ่ม) Import ไอคอน RefreshCw สำหรับสถานะขอคืน
-import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare, Loader, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare, Loader, RefreshCw, Printer } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 
-// Component ย่อยสำหรับแสดงประวัติ (ไม่มีการเปลี่ยนแปลง)
+// Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
 
@@ -28,9 +28,118 @@ const ActionDetail = ({ icon, label, person, date }) => {
     );
 };
 
+// ★★★★★ Component สำหรับพิมพ์ใบสั่งขาย ★★★★★
+const PrintableSalesOrder = React.forwardRef(({ order }, ref) => {
+    if (!order) return null;
+    const today = new Date();
+    
+    return (
+        <div ref={ref} className="p-8 font-sans">
+            <header className="flex justify-between items-center pb-4 border-b-2 border-black">
+                <h1 className="text-3xl font-bold">EasyPalm Co., Ltd.</h1>
+                <h2 className="text-4xl font-bold text-gray-800">ใบสั่งขาย</h2>
+            </header>
+            
+            <section className="my-6 grid grid-cols-2 gap-4">
+                <div>
+                    <h3 className="text-md font-semibold mb-1">ข้อมูลลูกค้า:</h3>
+                    <p><strong>ชื่อ:</strong> {order?.customer_name ?? 'N/A'}</p>
+                </div>
+                <div className="text-right">
+                    <p><strong>เลขที่ใบสั่งขาย:</strong> {order?.sale_order_number ?? 'N/A'}</p>
+                    <p><strong>วันที่:</strong> {new Date(order?.s_date || order?.created_date).toLocaleDateString('th-TH', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}</p>
+                    <p><strong>สถานะการจัดส่ง:</strong> 
+                        <span className={`ml-2 ${
+                            order?.delivery_status === 'Delivered' ? 'text-green-600' : 
+                            order?.delivery_status === 'ขอคืน' ? 'text-red-600' : 
+                            'text-orange-600'
+                        }`}>
+                            {order?.delivery_status === 'Delivered' ? 'จัดส่งแล้ว' : 
+                             order?.delivery_status === 'ขอคืน' ? 'ขอคืนสินค้า' : 
+                             order?.delivery_status || 'รอดำเนินการ'}
+                        </span>
+                    </p>
+                    <p><strong>สถานะชำระเงิน:</strong> 
+                        <span className={`ml-2 ${order?.payment_status === 'Paid' ? 'text-green-600' : 'text-red-600'}`}>
+                            {order?.payment_status === 'Paid' ? 'ชำระแล้ว' : 'ยังไม่ชำระ'}
+                        </span>
+                    </p>
+                </div>
+            </section>
+            
+            <table className="w-full text-left border-collapse my-8">
+                <thead>
+                    <tr className="bg-gray-100">
+                        <th className="p-2 border">#</th>
+                        <th className="p-2 border">รายการ</th>
+                        <th className="p-2 border text-right">จำนวน (กก.)</th>
+                        <th className="p-2 border text-right">ราคา/หน่วย</th>
+                        <th className="p-2 border text-right">ราคารวม</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {order?.items?.map((item, index) => (
+                        <tr key={item?.p_id || index}>
+                            <td className="p-2 border">{index + 1}</td>
+                            <td className="p-2 border">{item?.p_name ?? 'N/A'}</td>
+                            <td className="p-2 border text-right">{item?.quantity?.toLocaleString() ?? 0}</td>
+                            <td className="p-2 border text-right">{item?.price_per_unit?.toFixed(2) ?? '0.00'}</td>
+                            <td className="p-2 border text-right">
+                                {(item?.quantity * item?.price_per_unit)?.toLocaleString(undefined, { 
+                                    minimumFractionDigits: 2, 
+                                    maximumFractionDigits: 2 
+                                }) ?? '0.00'}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+                <tfoot>
+                    <tr className="font-bold">
+                        <td colSpan="4" className="p-2 border text-right">ยอดรวมทั้งสิ้น</td>
+                        <td className="p-2 border text-right text-lg">
+                            {order?.s_total_price?.toLocaleString(undefined, { 
+                                minimumFractionDigits: 2, 
+                                maximumFractionDigits: 2 
+                            }) ?? '0.00'}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            {/* แสดงหมายเหตุถ้าเป็นการขอคืน */}
+            {order?.delivery_status === 'ขอคืน' && (
+                <div className="my-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-800 font-semibold">⚠️ หมายเหตุ: รายการนี้เป็นการขอคืนสินค้า</p>
+                </div>
+            )}
+            
+            <footer className="mt-12 pt-4 border-t text-xs text-gray-500">
+                <div className="grid grid-cols-2 gap-4 mt-8 text-center">
+                    <div>
+                        <p>_________________________</p>
+                        <p>( {order?.created_by_name || '..............................'} )</p>
+                        <p>ผู้จัดทำ</p>
+                    </div>
+                    <div>
+                        <p>_________________________</p>
+                        <p>( {order?.customer_name} )</p>
+                        <p>ลูกค้า</p>
+                    </div>
+                </div>
+                <p className="text-center mt-8">พิมพ์เมื่อ: {today.toLocaleString('th-TH')}</p>
+            </footer>
+        </div>
+    );
+});
+
 const SalesHistoryDetail = ({ orderId, onClose }) => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const printRef = useRef(null);
 
     useEffect(() => {
         if (!orderId) return;
@@ -50,19 +159,39 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
         fetchOrderDetail();
     }, [orderId]);
 
+    // ★★★★★ ฟังก์ชันสำหรับพิมพ์ ★★★★★
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `ใบสั่งขาย-${order?.sale_order_number || 'unknown'}`,
+        onAfterPrint: () => {
+            console.log('Print completed successfully');
+        },
+        onPrintError: (errorLocation, error) => {
+            console.error('Print error:', errorLocation, error);
+            alert('เกิดข้อผิดพลาดในการพิมพ์ กรุณาลองใหม่อีกครั้ง');
+        }
+    });
+
+    const triggerPrint = () => {
+        if (printRef.current && order) {
+            handlePrint();
+        } else {
+            console.error("Print Error: Missing ref or order data");
+            alert('ไม่สามารถพิมพ์ได้: ไม่พบข้อมูลใบสั่งขาย');
+        }
+    };
+
     const getStatusChip = (status) => {
-        // (ปรับปรุง) เพิ่ม Chip สำหรับสถานะ "ขอคืน"
         switch (status) {
             case 'Paid': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">ชำระเงินแล้ว</span>;
             case 'Unpaid': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">ยังไม่ชำระ</span>;
             case 'ขอคืน': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800">ขอคืน</span>;
+            case 'Delivered': return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">จัดส่งแล้ว</span>;
             default: return <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800">{status}</span>;
         }
     };
 
-    // (★★★ จุดที่แก้ไข ★★★) สร้างฟังก์ชันสำหรับแสดงประวัติการจัดส่ง/ขอคืนโดยเฉพาะ
     const renderDeliveryAction = () => {
-        // ถ้าสถานะเป็น "ขอคืน"
         if (order.delivery_status === 'ขอคืน') {
             return (
                 <ActionDetail 
@@ -73,7 +202,6 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                 />
             );
         }
-        // มิฉะนั้น (สถานะเป็น Delivered หรืออื่น ๆ)
         return (
             <ActionDetail 
                 icon={<Truck size={16} className="mr-3 text-orange-500"/>} 
@@ -93,7 +221,7 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                     </div>
                 ) : (
                     <div className="p-8 max-h-[90vh] overflow-y-auto">
-                        {/* Header */}
+                        {/* Header with Print Button */}
                         <div className="flex justify-between items-start border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
                             <div>
                                 <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
@@ -101,10 +229,29 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                     ใบสั่งขาย: {order.sale_order_number}
                                 </h2>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}
+                                    วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric'
+                                    })}
                                 </p>
                             </div>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><X size={28} /></button>
+                            <div className="flex items-center gap-2">
+                                {/* ★★★★★ ปุ่มพิมพ์ ★★★★★ */}
+                                <button 
+                                    onClick={triggerPrint}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                                >
+                                    <Printer size={18} />
+                                    พิมพ์
+                                </button>
+                                <button 
+                                    onClick={onClose} 
+                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                >
+                                    <X size={28} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Body */}
@@ -139,7 +286,9 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                                     <tr key={item.p_id}>
                                                         <td className="px-4 py-2 text-sm text-gray-800 dark:text-gray-100">{item.p_name}</td>
                                                         <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 text-right">{item.quantity.toLocaleString()}</td>
-                                                        <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 text-right">{(item.quantity * item.price_per_unit).toLocaleString('th-TH')}</td>
+                                                        <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 text-right">
+                                                            {(item.quantity * item.price_per_unit).toLocaleString('th-TH')}
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -150,7 +299,6 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                 {/* Status and Total Price Section */}
                                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
                                     <div className="flex justify-between items-center gap-4">
-                                        {/* (ปรับปรุง) แสดงสถานะการจัดส่ง/ขอคืน */}
                                         <div className="flex flex-col items-start">
                                             <span className="text-sm text-gray-600 dark:text-gray-400">สถานะการจัดส่ง</span>
                                             {getStatusChip(order.delivery_status)}
@@ -163,7 +311,10 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                             <div className="flex flex-col items-end">
                                                 <span className="text-sm text-gray-600 dark:text-gray-400">ยอดรวมทั้งสิ้น</span>
                                                 <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {parseFloat(order.s_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                                                    {parseFloat(order.s_total_price).toLocaleString('th-TH', { 
+                                                        style: 'currency', 
+                                                        currency: 'THB' 
+                                                    })}
                                                 </span>
                                             </div>
                                         </div>
@@ -178,22 +329,42 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                     <Calendar className="mr-2"/>ประวัติการดำเนินการ
                                 </h3>
                                 <div className="space-y-2 pl-8 border-l-2 border-gray-200 dark:border-gray-600">
-                                    <ActionDetail icon={<User size={16} className="mr-3 text-blue-500"/>} 
+                                    <ActionDetail 
+                                        icon={<User size={16} className="mr-3 text-blue-500"/>} 
                                         label="สร้างรายการโดย" 
                                         person={order.created_by_name} 
-                                        date={order.created_date} />
-                                    <ActionDetail icon={<Package size={16} className="mr-3 text-purple-500"/>} label="เบิกสินค้าโดย" person={order.shipped_by_name} date={order.shipped_date} />
-                                    
-                                    {/* (★★★ จุดที่แก้ไข ★★★) เรียกใช้ฟังก์ชันใหม่ที่นี่ */}
+                                        date={order.created_date} 
+                                    />
+                                    <ActionDetail 
+                                        icon={<Package size={16} className="mr-3 text-purple-500"/>} 
+                                        label="เบิกสินค้าโดย" 
+                                        person={order.shipped_by_name} 
+                                        date={order.shipped_date} 
+                                    />
                                     {renderDeliveryAction()}
-
-                                    <ActionDetail icon={<CheckSquare size={16} className="mr-3 text-green-500"/>} label="ยืนยันรับเงินโดย" person={order.paid_by_name} date={order.paid_date} />
+                                    <ActionDetail 
+                                        icon={<CheckSquare size={16} className="mr-3 text-green-500"/>} 
+                                        label="ยืนยันรับเงินโดย" 
+                                        person={order.paid_by_name} 
+                                        date={order.paid_date} 
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* ★★★★★ Component สำหรับพิมพ์ (ซ่อนไว้) ★★★★★ */}
+            {order && (
+                <div style={{ 
+                    position: "absolute", 
+                    left: "-9999px",
+                    top: 0
+                }}>
+                    <PrintableSalesOrder ref={printRef} order={order} />
+                </div>
+            )}
         </div>
     );
 };
