@@ -1,23 +1,17 @@
-// frontend/src/pages/mainpage.jsx
-import React from "react";
+// frontend/src/pages/main/mainpage.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-// 1. Import ไอคอนมาแทนที่ emoji
 import { 
-    TreePalm, PlusCircle, Trash2, UserCheck, CheckCircle, XCircle, 
-    User, Package, Phone, AlertTriangle 
+    TreePalm, User, Package, Phone, AlertTriangle, TrendingUp, Loader
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-// --- สร้าง Component สำหรับการ์ดแสดงราคาแต่ละใบ (แบบโชว์อย่างเดียว) ---
+// --- PriceCard Component (ไม่มีการเปลี่ยนแปลง) ---
 const PriceCard = ({ product }) => {
-    // ... (ส่วนนี้เหมือนเดิม)
     const cardStyles = {
-        "เกรด A": { color: "green", label: "คุณภาพสูงสุด" },
-        "เกรด B": { color: "orange", label: "คุณภาพดี" },
-        "เกรด C": { color: "yellow", label: "คุณภาพมาตรฐาน" },
-        "ปาล์มร่วง": { color: "red", label: "เกรดรอง" },
+        "เมล็ดในปาล์ม": { color: "orange", label: "คุณภาพสูงสุด" },
         "ปาล์มทะลาย": { color: "green", label: "คุณภาพสูงสุด" },
-        "เมล็ดปาล์ม": { color: "orange", label: "คุณภาพดี" },
-        "น้ำมันปาล์มดิบ": { color: "yellow", label: "คุณภาพมาตรฐาน" },
+        "น้ำมันปาล์มดิบ": { color: "yellow", label: "คุณภาพสูงสุด" },
     };
     const style = cardStyles[product.p_name] || { color: "gray", label: "ทั่วไป" };
 
@@ -35,7 +29,6 @@ const PriceCard = ({ product }) => {
                 </p>
                 <p className="text-gray-500">฿ / กก.</p>
             </div>
-            
             <p className="mt-4 text-sm text-gray-600 flex items-center">
                 <Package size={16} className="mr-2 text-gray-500" />
                 ปริมาณรับซื้อ <span className="font-semibold text-gray-800 ml-1">N/A</span>
@@ -44,25 +37,88 @@ const PriceCard = ({ product }) => {
     );
 };
 
+// +++ (เพิ่มใหม่) Component สำหรับกราฟราคา +++
+const PriceChart = ({ data, loading, error }) => {
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <Loader className="animate-spin text-green-500" />
+            </div>
+        );
+    }
 
-// --- Component หลักของ MainPage ---
-const MainPage = ({ products, error, user }) => {
+    if (error) {
+        return <div className="text-red-500 text-center">{error}</div>;
+    }
+    
+const formattedData = data.slice(-12).map(item => ({
+        ...item,
+        date: new Date(item.date).toLocaleDateString('th-TH', {
+            month: 'short', 
+            year: 'numeric' 
+        }),
+    }));
+    
+    return (
+        <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+                <AreaChart data={formattedData} /* ... props อื่นๆ เหมือนเดิม ... */ >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" interval="preserveStartEnd" />
+                    <YAxis domain={['dataMin - 1', 'dataMax + 1']} tickFormatter={(value) => `฿${value.toFixed(1)}`} />
+                    <Tooltip formatter={(value) => [`${value.toFixed(2)} บาท`, "ราคา"]} />
+                    <Legend />
+                    <Area type="monotone" dataKey="price" name="ราคาน้ำมันปาล์มดิบ" stroke="#16a34a" fill="#4ade80" />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
+
+// --- MainPage Component (แก้ไข) ---
+const MainPage = ({ products, error: productsError }) => {
     const navigate = useNavigate();
+    
+    // +++ (เพิ่มใหม่) State สำหรับข้อมูลกราฟ +++
+    const [chartData, setChartData] = useState([]);
+    const [chartLoading, setChartLoading] = useState(true);
+    const [chartError, setChartError] = useState(null);
+
+    // +++ (เพิ่มใหม่) useEffect สำหรับดึงข้อมูลกราฟ +++
+    useEffect(() => {
+        const fetchChartData = async () => {
+            setChartLoading(true);
+            setChartError(null);
+            try {
+                const response = await fetch('http://127.0.0.1:5000/palm-price-history');
+                if (!response.ok) {
+                    throw new Error('ไม่สามารถโหลดข้อมูลกราฟราคาได้');
+                }
+                const data = await response.json();
+                setChartData(data);
+            } catch (err) {
+                setChartError(err.message);
+            } finally {
+                setChartLoading(false);
+            }
+        };
+
+        fetchChartData();
+    }, []);
+
 
     const handlelogin = () => {
         navigate("/login");
     };
 
     return (
-        // --- ★★★ นี่คือจุดที่แก้ไข ★★★ ---
-        // เปลี่ยน from-white เป็น from-green-50
         <div className="min-h-screen bg-gradient-to-b from-green-50 to-orange-50 p-6">
             <header className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-2">
                     <TreePalm size={28} className="text-green-600" />
                     <span className="font-bold text-xl text-gray-800">EasyPalm</span>
                 </div>
-
                 <button className="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1" onClick={handlelogin}>
                     <User size={20} /> พนักงาน
                 </button>
@@ -73,18 +129,42 @@ const MainPage = ({ products, error, user }) => {
                 <p className="text-gray-500 text-sm">อัพเดตราคาและปริมาณรับซื้อล่าสุดสำหรับแต่ละเกรด</p>
             </div>
 
-            {/* ส่วนแสดงผล Price Cards */}
-            {error && <p className="text-red-500 text-center">{error}</p>}
-            {(!products || products.length === 0) && !error && <p className="text-center">กำลังโหลดราคาสินค้า...</p>}
+            {productsError && <p className="text-red-500 text-center">{productsError}</p>}
+            {(!products || products.length === 0) && !productsError && <p className="text-center">กำลังโหลดราคาสินค้า...</p>}
             {products && products.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {products.map(product => (
-                        <PriceCard key={product.p_id} product={product} />
-                    ))}
+                    {products
+                        .slice() // copy array
+                        .sort((a, b) => {
+                            const order = ["น้ำมันปาล์มดิบ", "ปาล์มทะลาย", "เมล็ดในปาล์ม"];
+                            return order.indexOf(a.p_name) - order.indexOf(b.p_name);
+                        })
+                        .map((product, idx) => (
+                            <React.Fragment key={product.p_id}>
+                                <PriceCard product={product} />
+                                {product.p_name === "เมล็ดในปาล์ม" && (
+                                    <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-2xl shadow p-4 flex items-center mt-2">
+                                        <AlertTriangle size={20} className="text-yellow-600 mr-2" />
+                                        <span className="text-gray-700 text-sm">
+                                            หมายเหตุ: ราคาสินค้าอาจมีการปรับเปลี่ยนตามคุณภาพของสินค้า กรุณาตรวจสอบคุณภาพก่อนทำรายการซื้อขาย
+                                        </span>
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        ))}
                 </div>
             )}
 
-            {/* ส่วนสรุปท้ายหน้า (ยังเป็นข้อมูล Static) */}
+            {/* +++ (เพิ่มใหม่) ส่วนแสดงผลกราฟ +++ */}
+            <div className="bg-white rounded-2xl shadow p-6 mb-8">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <TrendingUp size={20} className="text-green-600" />
+                    แนวโน้มราคาน้ำมันปาล์มดิบ (ย้อนหลัง 1 ปี)
+                </h3>
+                <PriceChart data={chartData} loading={chartLoading} error={chartError} />
+            </div>
+
+            {/* ส่วนสรุปท้ายหน้า */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white rounded-2xl shadow p-6">
                     <h3 className="font-bold text-gray-800 mb-4">สรุปยอดวันนี้</h3>
@@ -96,7 +176,6 @@ const MainPage = ({ products, error, user }) => {
                         <span>ยอดจ่ายโดยประมาณ</span>
                         <span className="font-semibold">N/A</span>
                     </div>
-
                     <button className="w-full bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">
                         <Phone size={18} />
                         ติดต่อสอบถาม

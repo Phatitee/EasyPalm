@@ -5,6 +5,9 @@ from . import db
 from sqlalchemy import func, asc, or_
 from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
+import random
+import requests
+import os
 
 bp = Blueprint('main', __name__)
 
@@ -1212,3 +1215,79 @@ def get_executive_dashboard_summary():
     except Exception as e:
         print(f"!!! Critical Error in Executive Dashboard: {e}")
         return jsonify({'message': str(e)}), 500
+
+@bp.route('/palm-price-history', methods=['GET'])
+def get_palm_price_history():
+    """
+    Endpoint สำหรับดึงข้อมูลราคาน้ำมันปาล์มในตลาดโลกย้อนหลัง (ข้อมูลจริง)
+    ใช้ FRED API และ ExchangeRate-API
+    """
+    try:
+        # --- 1. ดึงข้อมูลราคาน้ำมันปาล์มจาก FRED ---
+        # *** หมายเหตุ: ใส่ Key โดยตรงเพื่อการทดสอบเท่านั้น ***
+        fred_api_key = "2fc981a925ee14522a58e5bd8bab8ded"
+        fred_url = f"https://api.stlouisfed.org/fred/series/observations?series_id=PPOILUSDM&api_key={fred_api_key}&file_type=json&limit=60&sort_order=desc"
+        
+        fred_response = requests.get(fred_url)
+        fred_response.raise_for_status()
+        fred_data = fred_response.json()
+
+        # --- 2. ดึงอัตราแลกเปลี่ยน USD to THB ---
+        # *** หมายเหตุ: ใส่ Key โดยตรงเพื่อการทดสอบเท่านั้น ***
+        exchange_rate_api_key = "79936a03491e31ccdefe6fe6"
+        usd_to_thb_rate = 36.5  # ค่าเริ่มต้นเผื่อ API ล่ม
+        
+        try:
+            exchange_url = f"https://v6.exchangerate-api.com/v6/{exchange_rate_api_key}/latest/USD"
+            exchange_response = requests.get(exchange_url)
+            exchange_response.raise_for_status()
+            usd_to_thb_rate = exchange_response.json()['conversion_rates']['THB']
+        except Exception as ex_err:
+            print(f"Warning: Could not fetch exchange rate. Using default {usd_to_thb_rate}. Error: {ex_err}")
+
+
+        # --- 3. ประมวลผลและจัดรูปแบบข้อมูล ---
+        history_data = []
+        for obs in fred_data.get('observations', []):
+            # FRED อาจส่งค่า '.' มาสำหรับวันที่ไม่มีข้อมูล เราต้องกรองออก
+            if obs['value'] == '.':
+                continue
+            
+            price_usd_per_mt = float(obs['value'])
+            
+            # แปลงหน่วยจาก USD/Metric Ton -> THB/kg
+            price_thb_per_kg = (price_usd_per_mt * usd_to_thb_rate) / 1000
+            
+            history_data.append({
+                'date': obs['date'],
+                'price': round(price_thb_per_kg, 2)
+            })
+
+        # เรียงข้อมูลจากเก่าสุดไปใหม่สุด
+        history_data.reverse()
+
+        return jsonify(history_data)
+
+    except requests.exceptions.RequestException as req_err:
+        print(f"API Request Error: {req_err}")
+        return jsonify({'message': 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก API ภายนอก'}), 503
+    except Exception as e:
+        print(f"Error in get_palm_price_history: {e}")
+        # กรณีเกิด Error ใดๆ ให้ส่งข้อมูลจำลองกลับไปแทน
+        return jsonify(get_mock_palm_price_data()), 500
+
+def get_mock_palm_price_data():
+    """
+    ฟังก์ชันสำรองสำหรับสร้างข้อมูลจำลองในกรณีที่ API จริงมีปัญหา
+    """
+    today = datetime.utcnow()
+    history_data = []
+    base_price = 35.0
+    for i in range(30):
+        date = today - timedelta(days=29 - i)
+        price = base_price + random.uniform(-1.5, 1.5) + (i * 0.1)
+        history_data.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'price': round(price, 2)
+        })
+    return history_data
