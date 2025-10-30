@@ -221,7 +221,11 @@ const FarmerManagement = () => {
             fetchFarmers();
         } catch (error) {
             console.error("Error adding farmer:", error.response);
-            // Don't close modal on backend error
+
+            // ★★★ แก้ไข: ปิด Modal "เพิ่มเกษตรกร" ก่อน ★★★
+            handleCloseAddModal();
+
+            // ★★★ แล้วจึงแสดง Modal "ข้อผิดพลาด" ★★★
             setModalInfo({
                 show: true,
                 type: 'error',
