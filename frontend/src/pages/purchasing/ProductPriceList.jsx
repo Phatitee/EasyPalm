@@ -60,9 +60,9 @@ const ProductPriceList = () => {
     const handleCancelClick = () => setEditingId(null);
 
     const handleSaveClick = async (productId) => {
-        if (newPrice === "" || parseFloat(newPrice) < 0) {
-            // ★★★ FIX: Replace alert() with Modal ★★★
-            setResultDialog({ isOpen: true, type: 'error', message: "กรุณากรอกราคาที่ถูกต้อง" });
+        // ★★★ แก้ไข: เปลี่ยนจาก < 0 เป็น <= 0 และปรับปรุงข้อความ
+        if (newPrice === "" || parseFloat(newPrice) <= 0) { 
+            setResultDialog({ isOpen: true, type: 'error', message: "กรุณากรอกราคาที่ถูกต้อง (ราคาต้องมากกว่า 0)" });
             return;
         }
         try {
@@ -142,6 +142,7 @@ const ProductPriceList = () => {
                                                 <input
                                                     type="number"
                                                     step="0.01"
+                                                    min="0.01" // ★★★ เพิ่ม: ป้องกันการใส่ค่า 0 หรือติดลบ
                                                     value={newPrice}
                                                     onChange={(e) => setNewPrice(e.target.value)}
                                                     className="block w-28 ml-auto p-2 text-right text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-green-500 focus:border-green-500

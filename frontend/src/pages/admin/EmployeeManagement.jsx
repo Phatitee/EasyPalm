@@ -305,6 +305,54 @@ const EmployeeManagement = () => {
     
     // ★★★ UPDATED: Uses ResultDialog instead of alert ★★★
     const handleFormSubmit = async (data) => {
+        
+        // --- ★★★ START: เพิ่มส่วนการตรวจสอบข้อมูล (Validation) ★★★ ---
+        try {
+            // 1. ชื่อ-นามสกุล: ต้องไม่มีตัวเลข
+            if (/\d/.test(data.e_name)) {
+                throw new Error("ชื่อ-นามสกุล ต้องไม่มีตัวเลข");
+            }
+            // 2. ตำแหน่ง: ต้องไม่มีตัวเลข
+            if (/\d/.test(data.position)) {
+                throw new Error("ตำแหน่ง ต้องไม่มีตัวเลข");
+            }
+
+            // 3. เลขบัตรประชาชน: ต้องเป็นตัวเลข 13 หลัก (ตรวจสอบเฉพาะตอน "สร้างใหม่" เพราะตอนแก้ไขจะ disable ช่องนี้)
+            if (!editingEmployee && !/^[0-9]{13}$/.test(data.e_citizen_id_card)) {
+                throw new Error("เลขบัตรประชาชน ต้องเป็นตัวเลข 13 หลักพอดี");
+            }
+
+            // 4. เบอร์โทร: ต้องเป็นตัวเลข 10 หลัก ขึ้นต้นด้วย 0 (อนุญาตให้เว้นว่างได้)
+            if (data.e_tel && !/^0[0-9]{9}$/.test(data.e_tel)) {
+                throw new Error("เบอร์โทร (หากป้อน) ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0");
+            }
+
+            // 5. Username: ต้องเป็นภาษาอังกฤษ/ตัวเลข (ตรวจสอบเฉพาะตอน "สร้างใหม่")
+            if (!editingEmployee && !/^[a-zA-Z0-9_]+$/.test(data.username)) {
+                throw new Error("Username ต้องเป็นภาษาอังกฤษ, ตัวเลข หรือเครื่องหมาย _ เท่านั้น");
+            }
+
+            // 6. รหัสผ่าน: ต้องมี 8 ตัวอักษรพอดี
+            if (editingEmployee) {
+                // โหมดแก้ไข: ถ้าป้อนรหัสใหม่ (ไม่เว้นว่าง) ต้องมี 8 ตัว
+                if (data.password && data.password.length !== 8) {
+                    throw new Error("รหัสผ่านใหม่ (หากป้อน) ต้องมี 8 ตัวอักษรพอดี");
+                }
+            } else {
+                // โหมดสร้างใหม่: รหัสผ่านจำเป็นต้องมี 8 ตัว
+                if (!data.password || data.password.length !== 8) {
+                    throw new Error("รหัสผ่าน ต้องมี 8 ตัวอักษรพอดี");
+                }
+            }
+
+        } catch (validationError) {
+            // หากมีข้อผิดพลาด, ให้แสดงใน ResultDialog และหยุดการทำงาน
+            setResultDialog({ isOpen: true, type: 'error', message: validationError.message });
+            return; 
+        }
+        // --- ★★★ END: สิ้นสุดส่วนการตรวจสอบข้อมูล ★★★ ---
+
+
         const method = editingEmployee ? 'put' : 'post';
         const url = editingEmployee ? `http://127.0.0.1:5000/employees/${editingEmployee.e_id}` : 'http://127.0.0.1:5000/employees';
         try {

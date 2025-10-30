@@ -40,6 +40,14 @@ const ProfitLossReport = () => {
             setError('กรุณาเลือกทั้งวันที่เริ่มต้นและวันที่สิ้นสุด');
             return;
         }
+
+        // ★★★ เพิ่ม: ตรวจสอบว่าวันที่เริ่มต้นไม่ได้อยู่หลังวันที่สิ้นสุด
+        if (new Date(startDate) > new Date(endDate)) {
+            setError('วันที่เริ่มต้นต้องมาก่อนหรือเป็นวันเดียวกับวันที่สิ้นสุด');
+            return;
+        }
+        // ★★★ สิ้นสุดการเพิ่ม
+
         setLoading(true);
         setError('');
         setReportData(null);
@@ -77,6 +85,7 @@ const ProfitLossReport = () => {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
+                        max={endDate || ''} // ★★★ เพิ่ม: วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด
                         // ★★★ FIX 7: ปรับ Input Fields ให้รองรับ Dark Mode ★★★
                         className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 
                                    dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
@@ -87,6 +96,7 @@ const ProfitLossReport = () => {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || ''} // ★★★ เพิ่ม: วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น
                         // ★★★ FIX 7: ปรับ Input Fields ให้รองรับ Dark Mode ★★★
                         className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500
                                    dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
