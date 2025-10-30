@@ -5,11 +5,15 @@ from . import db
 from sqlalchemy import func, asc, or_
 from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
+from flask_cors import CORS
+
+
+bp = Blueprint('main', __name__)
+
+CORS(bp, resources={r"/*": {"origins": "http://localhost:3000"}})
 import random
 import requests
 import os
-
-bp = Blueprint('main', __name__)
 
 #==============================================================================
 # COMMON & UTILITY (API ที่ใช้ร่วมกัน)
@@ -474,6 +478,32 @@ def get_purchase_order(order_number):
         order = models.PurchaseOrder.query.get_or_404(order_number)
         return jsonify(order.to_dict())
     except Exception as e:
+        return jsonify({'message': str(e)}), 500@bp.route('/purchaseorders/<string:order_number>', methods=['GET'])
+def get_purchase_order(order_number):
+    """
+    ดึงข้อมูลใบสั่งซื้อใบเดียวโดยอ้างอิงจากฟังก์ชัน handle_purchase_orders
+    และใช้ method .to_dict() ที่มีอยู่แล้วใน Model
+    """
+    try:
+        # ใช้ .options(joinedload(...)) เพื่อลดจำนวน query ที่ยิงไปที่ Database
+        # ทำให้ดึงข้อมูล farmer และ items มาพร้อมกันในครั้งเดียว
+        order = models.PurchaseOrder.query.options(
+            joinedload(models.PurchaseOrder.farmer),
+            joinedload(models.PurchaseOrder.created_by),
+            joinedload(models.PurchaseOrder.items).joinedload(models.PurchaseOrderItem.product)
+        ).filter_by(purchase_order_number=order_number).first()
+
+        # หากไม่พบข้อมูล ให้ส่ง 404 Not Found กลับไป
+        if not order:
+            return jsonify({'message': 'ไม่พบใบสั่งซื้อที่คุณค้นหา'}), 404
+        
+        # ใช้ .to_dict() ที่มีอยู่แล้วใน Model เพื่อแปลงข้อมูลเป็น JSON
+        # ซึ่งเป็นวิธีที่ถูกต้องและสอดคล้องกับโค้ดเดิมของคุณ
+        return jsonify(order.to_dict()), 200
+
+    except Exception as e:
+        # หากเกิดข้อผิดพลาดใดๆ ให้ส่ง 500 Internal Server Error กลับไป
+        db.session.rollback()
         return jsonify({'message': str(e)}), 500
 
 @bp.route('/purchaseorders', methods=['GET', 'POST'])
