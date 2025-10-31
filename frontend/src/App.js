@@ -134,6 +134,7 @@ function App() {
             <Route path="/warehouse/shipment-history" element={<ShipmentHistory />} />
             <Route path="/warehouse/pending-shipments" element={<PendingShipments />} />
             <Route path="/warehouse/stock" element={<StockLevel />} />
+            <Route path="/warehouse/stock-summary" element={<WarehouseSummary />} />
             <Route path="/warehouse/management" element={<WarehouseManagement />} />
             <Route path="/warehouse/shipment-details/:orderNumber" element={<ShipmentDetails />} />
 

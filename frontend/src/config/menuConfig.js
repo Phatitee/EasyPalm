@@ -39,6 +39,7 @@ export const MENU_CONFIG = {
         {
             title: 'การเบิกสินค้า',
             items: [
+                
                 { icon: TruckIcon, text: 'สินค้าที่รอเบิกจริง', path: '/warehouse/pending-shipments' },
                 { icon: ClipboardDocumentCheckIcon, text: 'ประวัติการเบิก', path: '/warehouse/shipment-history' },
             ]
@@ -46,6 +47,7 @@ export const MENU_CONFIG = {
         {
             title: 'ภาพรวม',
             items: [
+                { icon: CircleStackIcon, text: 'ตรวจสอบ Stock', path: '/warehouse/stock-summary' },
                 { icon: ArchiveBoxIcon, text: 'สต็อกคงคลัง', path: '/warehouse/stock' },
                 { icon: BuildingStorefrontIcon, text: 'จัดการคลังสินค้า', path: '/warehouse/management'},
             ]

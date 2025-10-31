@@ -8,19 +8,14 @@ class SalesOrder(db.Model):
     sale_order_number = db.Column(db.String(5), primary_key=True)
     s_date = db.Column(db.DateTime)
     s_total_price = db.Column(db.Float)
-
     shipment_status = db.Column(db.String(30), default='Pending')
     delivery_status = db.Column(db.String(30), default='Not Delivered')
     payment_status = db.Column(db.String(30), default='Unpaid')
-
     F_id = db.Column(db.String(5), db.ForeignKey('foodindustry.F_id'), nullable=False)
-
-    # --- ( เพิ่มใหม่ ) Field สำหรับเก็บข้อมูลการทำรายการ ---
     created_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
     shipped_by_id = db.Column(db.String(50), db.ForeignKey('employee.e_id'))
     delivered_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
     paid_by_id = db.Column(db.String(5), db.ForeignKey('employee.e_id'))
-
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
     shipped_date = db.Column(db.DateTime)
     delivered_date = db.Column(db.DateTime)

@@ -66,7 +66,7 @@ const FarmerManagement = () => {
     const handleDelete = (id, name) => {
         setConfirmInfo({
             show: true,
-            message: `คุณแน่ใจหรือไม่ว่าต้องการลบ "${name}" ?`,
+            message: `คุณแน่ใจหรือไม่?ว่าต้องการลบ "${name}" ?`,
             onConfirm: () => executeDelete(id)
         });
     };

@@ -4,10 +4,10 @@ class StockLevel(db.Model):
     __tablename__ = 'stocklevel'
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Float, nullable=False, default=0)
-
     p_id = db.Column(db.String(5), db.ForeignKey('product.p_id'), nullable=False)
     warehouse_id = db.Column(db.String(5), db.ForeignKey('warehouse.warehouse_id'), nullable=False)
-
+    
+    
     product = db.relationship('Product', back_populates='stock_levels')
     warehouse = db.relationship('Warehouse', back_populates='stock_levels')
 

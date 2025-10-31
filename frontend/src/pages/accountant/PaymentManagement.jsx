@@ -260,7 +260,7 @@ const PaymentManagement = () => {
             isOpen: true,
             orderNumber: orderNumber,
             title: 'ยืนยันการจ่ายเงิน',
-            message: `คุณต้องการยืนยันการจ่ายเงินสำหรับ PO ${orderNumber} ใช่หรือไม่?`
+            message: `คุณต้องการยืนยันการจ่ายเงินสำหรับใบสั่งซื้อเลขที่ ${orderNumber} ใช่หรือไม่?`
         });
     };
     

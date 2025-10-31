@@ -99,7 +99,7 @@ const SoReceipts = () => {
             isOpen: true,
             orderNumber: orderNumber,
             title: 'ยืนยันการรับชำระเงิน',
-            message: `คุณต้องการยืนยันการชำระเงินสำหรับ SO ${orderNumber} ใช่หรือไม่?`
+            message: `คุณต้องการยืนยันการรับชำระเงินสำหรับเลขที่ใบสั่งขาย ${orderNumber} ใช่หรือไม่?`
         });
     };
 
@@ -213,7 +213,7 @@ const SoReceipts = () => {
                                                 ) : (
                                                     <CheckCircle className="mr-2" size={16} />
                                                 )}
-                                                {submittingId === order.sale_order_number ? 'กำลังยืนยัน...' : 'ยืนยันการชำระเงิน'}
+                                                {submittingId === order.sale_order_number ? 'กำลังยืนยัน...' : 'ยืนยันการรับชำระเงิน'}
                                             </button>
                                         </td>
                                     </tr>

@@ -50,7 +50,6 @@ class StockTransactionReturn(db.Model):
     
     # --- (แก้ไข) เพิ่ม Primary Key กลับเข้ามา ---
     return_transaction_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-
     return_transaction_date = db.Column(db.DateTime, nullable=False)
     return_quantity = db.Column(db.Float, nullable=False)
     reason = db.Column(db.Text)

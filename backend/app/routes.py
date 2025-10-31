@@ -56,10 +56,40 @@ def get_food_industries():
     industries = models.FoodIndustry.query.all()
     return jsonify([i.to_dict() for i in industries])
 
-@bp.route('/warehouses', methods=['GET'])
-def get_warehouses():
-    warehouses = models.Warehouse.query.all()
-    return jsonify([w.to_dict() for w in warehouses])
+@bp.route('/warehouses', methods=['GET', 'POST'])
+def handle_warehouses():
+    """ (สร้างใหม่) Handles fetching all warehouses and creating a new one. """
+    
+    # --- Create New Warehouse ---
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data or not data.get('warehouse_id') or not data.get('warehouse_name'):
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ warehouse_id และ warehouse_name)'}), 400
+        
+        # Check if ID already exists
+        if models.Warehouse.query.get(data['warehouse_id']):
+            return jsonify({'message': 'รหัสคลังสินค้านี้มีอยู่แล้ว'}), 409
+
+        try:
+            new_warehouse = models.Warehouse(
+                warehouse_id=data['warehouse_id'],
+                warehouse_name=data['warehouse_name'],
+                location=data.get('location')
+            )
+            db.session.add(new_warehouse)
+            db.session.commit()
+            return jsonify(new_warehouse.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': str(e)}), 500
+
+    # --- Get All Warehouses ---
+    else: # GET
+        try:
+            warehouses = models.Warehouse.query.all()
+            return jsonify([w.to_dict() for w in warehouses])
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
 
 @bp.route('/warehouse/storage-history', methods=['GET'])
 def get_storage_history():
