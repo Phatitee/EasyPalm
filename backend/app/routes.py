@@ -941,11 +941,12 @@ def handle_sales_orders():
     
     if request.method == 'POST':
         data = request.get_json()
-        required_fields = ['f_id', 'items', 'warehouse_id']
+        required_fields = ['f_id', 'items', 'warehouse_id','employee_id']
         if not all(field in data for field in required_fields) or not isinstance(data['items'], list) or not data['items']:
-            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, warehouse_id, และ items ที่เป็น array)'}), 400
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, warehouse_id, employee_id และ items)'}), 400
         
         warehouse_id = data['warehouse_id']
+        employee_id = data['employee_id']
         
         try:
             # --- Step 1: ตรวจสอบสต็อก (เหมือนเดิม) ---
@@ -969,6 +970,7 @@ def handle_sales_orders():
                 F_id=data['f_id'], 
                 s_total_price=total_price,
                 s_date=datetime.utcnow(),
+                created_by_id = employee_id,
                 warehouse_id=data['warehouse_id'] # <-- บันทึก warehouse_id ที่นี่
             )
             db.session.add(new_order)
