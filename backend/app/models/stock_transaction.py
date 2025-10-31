@@ -52,7 +52,6 @@ class StockTransactionReturn(db.Model):
     return_transaction_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     return_transaction_date = db.Column(db.DateTime, nullable=False)
     return_quantity = db.Column(db.Float, nullable=False)
-    reason = db.Column(db.Text)
     p_id = db.Column(db.String(5), db.ForeignKey('product.p_id'), nullable=False, index=True)
     warehouse_id = db.Column(db.String(5), db.ForeignKey('warehouse.warehouse_id'), nullable=False, index=True)
     so_item_id = db.Column(db.Integer, db.ForeignKey('salesorderitem.so_item_id'), nullable=False)

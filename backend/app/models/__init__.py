@@ -14,7 +14,6 @@ from .purchase_order import PurchaseOrder
 from .sales_order import SalesOrder
 from .stock_transaction import StockTransactionIn, StockTransactionOut, StockTransactionReturn, SalesOrderItemCost
 from .warehouse import Warehouse
-from .role_authorization import RoleAuthorization
 from .purchase_order_item import PurchaseOrderItem
 from .stock_level import StockLevel
 from .sales_order_item import SalesOrderItem

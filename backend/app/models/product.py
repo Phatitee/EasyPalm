@@ -5,11 +5,7 @@ from sqlalchemy.orm import relationship
 class Product(db.Model):
     __tablename__ = 'product'
     p_id = db.Column(db.String(5), primary_key=True)
-    p_name = db.Column(db.String(100), nullable=False)
-    
-    # --- (จุดแก้ไข) เพิ่มคอลัมน์ p_unit ที่ขาดไป ---
-  
-    
+    p_name = db.Column(db.String(100), nullable=False)  
     price_per_unit = db.Column(db.Float)
     effective_date = db.Column(db.DateTime)
 

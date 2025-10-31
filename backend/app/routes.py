@@ -501,14 +501,8 @@ def handle_warehouse(warehouse_id):
 #==============================================================================
 # PURCHASE & STOCK MANAGEMENT
 #==============================================================================
-
+    
 @bp.route('/purchaseorders/<string:order_number>', methods=['GET'])
-def get_purchase_order(order_number):
-    try:
-        order = models.PurchaseOrder.query.get_or_404(order_number)
-        return jsonify(order.to_dict())
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500@bp.route('/purchaseorders/<string:order_number>', methods=['GET'])
 def get_purchase_order(order_number):
     """
     ดึงข้อมูลใบสั่งซื้อใบเดียวโดยอ้างอิงจากฟังก์ชัน handle_purchase_orders
@@ -820,20 +814,77 @@ def ship_sales_order(order_number):
     data = request.get_json()
     if not data or not data.get('employee_id'):
         return jsonify({'message': 'กรุณาระบุ ID ของพนักงานที่ทำรายการ'}), 400
-    employee_id = data.get('employee_id')
+        
+    employee_id = data['employee_id']
+    
     try:
         order = models.SalesOrder.query.get_or_404(order_number)
-        if order.shipment_status == 'Shipped':
-            return jsonify({'message': 'ใบสั่งขายนี้ถูกจัดส่งไปแล้ว'}), 409
+        if order.shipment_status != 'Pending':
+            return jsonify({'message': f'ใบสั่งขายนี้ไม่อยู่ในสถานะรอเบิก (สถานะปัจจุบัน: {order.shipment_status})'}), 409
+        
+        warehouse_id = order.warehouse_id # <-- ดึง warehouse_id จาก order ที่บันทึกไว้
 
+        # --- Step 1: ตรวจสอบสต็อกอีกครั้งก่อนตัดจริง ---
+        for item in order.items:
+            stock_level = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
+            if not stock_level or stock_level.quantity < item.quantity:
+                product = models.Product.query.get(item.p_id)
+                return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอเบิก!'}), 400
+        
+        # --- Step 2: Logic การตัดสต็อก, คำนวณ COGS, สร้าง Transaction (ย้ายมาจาก handle_sales_orders) ---
+        for item in order.items:
+            quantity_to_sell = item.quantity
+            cogs_for_item = 0.0
+            
+            # ค้นหา Lot สินค้าตามหลัก FIFO
+            stock_in_lots = models.StockTransactionIn.query.filter(
+                models.StockTransactionIn.p_id == item.p_id,
+                models.StockTransactionIn.warehouse_id == warehouse_id,
+                models.StockTransactionIn.remaining_quantity > 0
+            ).order_by(asc(models.StockTransactionIn.in_transaction_date)).all()
+
+            # วน Loop ตัดสตออกจาก Lot ที่เก่าที่สุดก่อน
+            for lot in stock_in_lots:
+                if quantity_to_sell <= 0: break
+                quantity_from_this_lot = min(lot.remaining_quantity, quantity_to_sell)
+                
+                cogs_for_item += quantity_from_this_lot * lot.unit_cost
+                lot.remaining_quantity -= quantity_from_this_lot
+                quantity_to_sell -= quantity_from_this_lot
+
+            if quantity_to_sell > 0:
+                # This should not happen if stock check passed, but as a safeguard
+                raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
+            
+            # บันทึกต้นทุนของสินค้าชิ้นนี้
+            db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
+            
+            # สร้าง Transaction ขาออก
+            db.session.add(models.StockTransactionOut(
+                out_transaction_date=datetime.utcnow(), 
+                p_id=item.p_id, 
+                out_quantity=item.quantity,
+                warehouse_id=warehouse_id, 
+                so_item_id=item.so_item_id
+            ))
+            
+            # อัปเดต Stock Level รวม
+            stock_level_to_update = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
+            stock_level_to_update.quantity -= item.quantity
+
+        # --- Step 3: อัปเดตสถานะใบสั่งขาย ---
         order.shipment_status = 'Shipped'
         order.shipped_by_id = employee_id
         order.shipped_date = datetime.utcnow()
+        
         db.session.commit()
-        return jsonify({'message': f'ยืนยันการจัดส่ง SO {order_number} สำเร็จ'})
+        return jsonify({'message': f'ยืนยันการจัดส่ง SO {order_number} สำเร็จ และตัดสต็อกเรียบร้อยแล้ว'})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': str(e)}), 500
+
+
 
 @bp.route('/purchasing/warehouse-summary', methods=['GET'])
 def get_warehouse_summary():
@@ -886,40 +937,43 @@ def get_shipment_history():
 
 @bp.route('/salesorders', methods=['GET', 'POST'])
 def handle_sales_orders():
+    """Handles creating (POST) and retrieving (GET) sales orders with filtering."""
+    
     if request.method == 'POST':
         data = request.get_json()
-        required_fields = ['f_id', 'items', 'warehouse_id', 'employee_id']
+        required_fields = ['f_id', 'items', 'warehouse_id']
         if not all(field in data for field in required_fields) or not isinstance(data['items'], list) or not data['items']:
-            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, warehouse_id, employee_id และ items)'}), 400
-
+            return jsonify({'message': 'ข้อมูลไม่ครบถ้วน (ต้องการ f_id, warehouse_id, และ items ที่เป็น array)'}), 400
+        
         warehouse_id = data['warehouse_id']
-        employee_id = data['employee_id']
-
+        
         try:
+            # --- Step 1: ตรวจสอบสต็อก (เหมือนเดิม) ---
             for item_data in data['items']:
                 stock_level = models.StockLevel.query.filter_by(p_id=item_data['p_id'], warehouse_id=warehouse_id).first()
                 if not stock_level or stock_level.quantity < float(item_data['quantity']):
                     product = models.Product.query.get(item_data['p_id'])
                     return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอขาย!'}), 400
 
+            # --- Step 2: สร้าง Sales Order ---
             last_order = models.SalesOrder.query.order_by(models.SalesOrder.sale_order_number.desc()).first()
             new_so_number = 'SO001'
             if last_order and last_order.sale_order_number.startswith('SO'):
                 last_num = int(last_order.sale_order_number[2:])
                 new_so_number = f'SO{last_num + 1:03d}'
-
+            
             total_price = sum(float(item['quantity']) * float(item['price_per_unit']) for item in data['items'])
 
             new_order = models.SalesOrder(
                 sale_order_number=new_so_number,
-                F_id=data['f_id'],
+                F_id=data['f_id'], 
                 s_total_price=total_price,
                 s_date=datetime.utcnow(),
-                created_by_id=employee_id,
-                created_date=datetime.utcnow()
+                warehouse_id=data['warehouse_id'] # <-- บันทึก warehouse_id ที่นี่
             )
             db.session.add(new_order)
-
+            
+            
             new_order_items = []
             for item_data in data['items']:
                 order_item = models.SalesOrderItem(
@@ -930,11 +984,12 @@ def handle_sales_orders():
                 )
                 db.session.add(order_item)
                 new_order_items.append(order_item)
-
+            
             db.session.flush()
 
             for item in new_order_items:
                 quantity_to_sell = item.quantity
+                cogs_for_item = 0.0
                 stock_in_lots = models.StockTransactionIn.query.filter(
                     models.StockTransactionIn.p_id == item.p_id,
                     models.StockTransactionIn.warehouse_id == warehouse_id,
@@ -944,39 +999,35 @@ def handle_sales_orders():
                 for lot in stock_in_lots:
                     if quantity_to_sell <= 0: break
                     quantity_from_this_lot = min(lot.remaining_quantity, quantity_to_sell)
+                    cogs_for_item += quantity_from_this_lot * lot.unit_cost
                     lot.remaining_quantity -= quantity_from_this_lot
                     quantity_to_sell -= quantity_from_this_lot
 
-                if quantity_to_sell > 0:
-                    raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
-
+                if quantity_to_sell > 0: raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
+                
+                db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
+                db.session.add(models.StockTransactionOut(
+                    out_transaction_date=datetime.utcnow(), p_id=item.p_id, out_quantity=item.quantity,
+                    warehouse_id=warehouse_id, so_item_id=item.so_item_id
+                ))
                 stock_level_to_update = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
                 stock_level_to_update.quantity -= item.quantity
-
+            
             db.session.commit()
             return jsonify(new_order.to_dict()), 201
 
         except Exception as e:
             db.session.rollback()
+            # ส่ง error message ที่แท้จริงกลับไปเพื่อ debug ได้ง่ายขึ้น
             return jsonify({'message': f"เกิดข้อผิดพลาด: {str(e)}"}), 500
-
-    else:
+    
+    else: # GET request
         try:
             query = models.SalesOrder.query
-
             status_filter = request.args.get('status')
             if status_filter:
-                query = query.filter(models.SalesOrder.payment_status == status_filter)
-
-            search_term = request.args.get('search')
-            if search_term:
-                query = query.join(models.FoodIndustry).filter(
-                    or_(
-                        models.SalesOrder.sale_order_number.ilike(f'%{search_term}%'),
-                        models.FoodIndustry.F_name.ilike(f'%{search_term}%')
-                    )
-                )
-
+                query = query.filter(models.SalesOrder.shipment_status == status_filter)
+            
             orders = query.order_by(models.SalesOrder.s_date.desc()).all()
             return jsonify([order.to_dict() for order in orders])
         except Exception as e:

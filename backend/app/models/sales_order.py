@@ -1,7 +1,7 @@
 # backend/app/models/sales_order.py
 from app import db
 from sqlalchemy.orm import relationship
-from datetime import datetime # เพิ่ม datetime
+from datetime import datetime
 
 class SalesOrder(db.Model):
     __tablename__ = 'salesorder'
@@ -20,18 +20,18 @@ class SalesOrder(db.Model):
     shipped_date = db.Column(db.DateTime)
     delivered_date = db.Column(db.DateTime)
     paid_date = db.Column(db.DateTime)
-    # --- ( สิ้นสุดส่วนที่เพิ่มใหม่ ) ---
+    warehouse_id = db.Column(db.String(5), db.ForeignKey('warehouse.warehouse_id'))
 
 
     customer = relationship('FoodIndustry', back_populates='sales_orders')
     items = relationship('SalesOrderItem', back_populates='sales_order', cascade="all, delete-orphan")
 
-    # --- ( เพิ่มใหม่ ) Relationships ไปยัง Employee ---
+    # --- ( เพิ่มใหม่ ) Relationships ไปยัง Employee และ Warehouse ---
     created_by = relationship('Employee', foreign_keys=[created_by_id])
     shipped_by = relationship('Employee', foreign_keys=[shipped_by_id])
     delivered_by = relationship('Employee', foreign_keys=[delivered_by_id])
     paid_by = relationship('Employee', foreign_keys=[paid_by_id])
-    # --- ( สิ้นสุดส่วนที่เพิ่มใหม่ ) ---
+    warehouse = relationship('Warehouse') #  <-- เพิ่มความสัมพันธ์ไปยัง Warehouse
 
 
     def to_dict(self):
@@ -45,8 +45,7 @@ class SalesOrder(db.Model):
             'delivery_status': self.delivery_status,
             'payment_status': self.payment_status,
            
-
-            # --- ( เพิ่มใหม่ ) ส่งข้อมูลพนักงานและวันที่กลับไปให้ Frontend ---
+            # --- ( เพิ่มใหม่ ) ส่งข้อมูลพนักงาน, วันที่, และคลังสินค้ากลับไปให้ Frontend ---
             'created_by_name': self.created_by.e_name if self.created_by else None,
             'shipped_by_name': self.shipped_by.e_name if self.shipped_by else None,
             'delivered_by_name': self.delivered_by.e_name if self.delivered_by else None,
@@ -55,5 +54,6 @@ class SalesOrder(db.Model):
             'shipped_date': self.shipped_date.isoformat() if self.shipped_date else None,
             'delivered_date': self.delivered_date.isoformat() if self.delivered_date else None,
             'paid_date': self.paid_date.isoformat() if self.paid_date else None,
-            # --- ( สิ้นสุดส่วนที่เพิ่มใหม่ ) ---
+            'warehouse_id': self.warehouse_id,
+            'warehouse_name': self.warehouse.warehouse_name if self.warehouse else None, # <-- เพิ่มชื่อคลัง
         }
