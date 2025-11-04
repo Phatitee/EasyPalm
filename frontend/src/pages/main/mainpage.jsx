@@ -29,10 +29,7 @@ const PriceCard = ({ product }) => {
                 </p>
                 <p className="text-gray-500">฿ / กก.</p>
             </div>
-            <p className="mt-4 text-sm text-gray-600 flex items-center">
-                <Package size={16} className="mr-2 text-gray-500" />
-                ปริมาณรับซื้อ <span className="font-semibold text-gray-800 ml-1">N/A</span>
-            </p>
+
         </div>
     );
 };
@@ -166,24 +163,9 @@ const MainPage = ({ products, error: productsError }) => {
 
             {/* ส่วนสรุปท้ายหน้า */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl shadow p-6">
-                    <h3 className="font-bold text-gray-800 mb-4">สรุปยอดวันนี้</h3>
-                    <div className="flex justify-between text-gray-700 mb-2">
-                        <span>ยอดรับซื้อรวม</span>
-                        <span className="font-semibold">N/A</span>
-                    </div>
-                    <div className="flex justify-between text-gray-700 mb-6">
-                        <span>ยอดจ่ายโดยประมาณ</span>
-                        <span className="font-semibold">N/A</span>
-                    </div>
-                    <button className="w-full bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">
-                        <Phone size={18} />
-                        ติดต่อสอบถาม
-                    </button>
-                </div>
                 <div className="bg-orange-50 rounded-2xl shadow p-6 border border-orange-200">
                     <div className="flex items-center mb-2">
-                         <AlertTriangle size={20} className="text-orange-700 mr-2" />
+                         <AlertTriangle size={30} className="text-orange-700 mr-2" />
                          <h3 className="font-bold text-orange-700">แจ้งเตือน</h3>
                     </div>
                     <p className="text-gray-700 text-sm pl-7">

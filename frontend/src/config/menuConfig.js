@@ -48,7 +48,7 @@ export const MENU_CONFIG = {
             title: 'ภาพรวม',
             items: [
                 { icon: CircleStackIcon, text: 'ตรวจสอบ Stock', path: '/warehouse/stock-summary' },
-                { icon: ArchiveBoxIcon, text: 'สต็อกคงคลัง', path: '/warehouse/stock' },
+                { icon: ArchiveBoxIcon, text: 'มูลค่ารวม Stock', path: '/warehouse/stock' },
                 { icon: BuildingStorefrontIcon, text: 'จัดการคลังสินค้า', path: '/warehouse/management'},
             ]
         }
@@ -68,7 +68,8 @@ export const MENU_CONFIG = {
             title: 'ข้อมูล',
             items: [
                 { icon: BriefcaseIcon, text: 'ข้อมูลลูกค้า', path: '/sales/customers' },
-                { icon: ArchiveBoxIcon, text: 'ตรวจสอบ Stock', path: '/sales/stock' },
+                { icon: ArchiveBoxIcon, text: 'มูลค่ารวม Stock', path: '/sales/stock' },
+                { icon: ArchiveBoxIcon, text: 'สต็อกคงคลัง', path: '/sales/stock-summary' },
             ]
         }
     ],

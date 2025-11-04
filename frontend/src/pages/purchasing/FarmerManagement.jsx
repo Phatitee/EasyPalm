@@ -157,10 +157,9 @@ const FarmerManagement = () => {
             fetchFarmers();
         } catch (error) {
             console.error("Error updating farmer:", error.response);
-            // Don't close modal on backend error, let user fix it.
-            // handleCloseEditModal();
+            handleCloseEditModal(); // ปิด Edit Modal ก่อนแสดง Error Modal
             setModalInfo({
-                show: true, // Show the error modal instead of just alert
+                show: true,
                 type: 'error',
                 message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึก'
             });

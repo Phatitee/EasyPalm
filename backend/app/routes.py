@@ -746,6 +746,38 @@ def receive_items_into_stock():
         if order.stock_status == 'Completed':
             return jsonify({'message': 'ใบสั่งซื้อนี้ถูกจัดเก็บเข้าคลังไปแล้ว'}), 409
 
+        # --- ( ★★★ ส่วนที่เพิ่มเข้ามาเพื่อตรวจสอบ Capacity ★★★ ) ---
+        
+        # 1. ดึงข้อมูลคลังสินค้า
+        warehouse = models.Warehouse.query.get(warehouse_id)
+        if not warehouse:
+            return jsonify({'message': f'ไม่พบคลังสินค้า {warehouse_id}'}), 404
+
+        # 2. คำนวณยอดรวมสินค้าทั้งหมดที่จะนำเข้าจาก PO นี้
+        total_incoming_quantity = sum(item.quantity for item in order.items)
+
+        # 3. คำนวณสต็อกปัจจุบันทั้งหมดในคลัง (ดึงตรรกะมาจาก /purchasing/warehouse-summary)
+        current_stock_agg = db.session.query(
+            func.sum(models.StockLevel.quantity)
+        ).filter(
+            models.StockLevel.warehouse_id == warehouse_id
+        ).scalar()
+        
+        current_stock = current_stock_agg or 0.0
+
+        # 4. คำนวณพื้นที่ว่างที่เหลือ
+        available_capacity = warehouse.capacity - current_stock
+
+        # 5. ตรวจสอบเงื่อนไข (สำคัญที่สุด)
+        if total_incoming_quantity > available_capacity:
+            return jsonify({
+                'message': f'พื้นที่คลังสินค้าไม่เพียงพอ',
+                'detail': f'ต้องการพื้นที่: {total_incoming_quantity}, พื้นที่คงเหลือ: {available_capacity}'
+            }), 400 # 400 Bad Request หรือ 409 Conflict ก็ได้
+        
+        # --- ( ★★★ จบส่วนที่เพิ่มเข้ามา ★★★ ) ---
+
+        # (Code เดิม) ถ้าผ่านการตรวจสอบ ให้ดำเนินการจัดเก็บตามปกติ
         for item in order.items:
             db.session.add(models.StockTransactionIn(
                 in_transaction_date=datetime.utcnow(),
@@ -823,38 +855,11 @@ def ship_sales_order(order_number):
             return jsonify({'message': f'ใบสั่งขายนี้ไม่อยู่ในสถานะรอเบิก (สถานะปัจจุบัน: {order.shipment_status})'}), 409
         
         warehouse_id = order.warehouse_id # <-- ดึง warehouse_id จาก order ที่บันทึกไว้
-
-        # --- Step 1: ตรวจสอบสต็อกอีกครั้งก่อนตัดจริง ---
-        for item in order.items:
-            stock_level = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
-            if not stock_level or stock_level.quantity < item.quantity:
-                product = models.Product.query.get(item.p_id)
-                return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอเบิก!'}), 400
         
         # --- Step 2: Logic การตัดสต็อก, คำนวณ COGS, สร้าง Transaction (ย้ายมาจาก handle_sales_orders) ---
         for item in order.items:
             quantity_to_sell = item.quantity
             cogs_for_item = 0.0
-            
-            # ค้นหา Lot สินค้าตามหลัก FIFO
-            stock_in_lots = models.StockTransactionIn.query.filter(
-                models.StockTransactionIn.p_id == item.p_id,
-                models.StockTransactionIn.warehouse_id == warehouse_id,
-                models.StockTransactionIn.remaining_quantity > 0
-            ).order_by(asc(models.StockTransactionIn.in_transaction_date)).all()
-
-            # วน Loop ตัดสตออกจาก Lot ที่เก่าที่สุดก่อน
-            for lot in stock_in_lots:
-                if quantity_to_sell <= 0: break
-                quantity_from_this_lot = min(lot.remaining_quantity, quantity_to_sell)
-                
-                cogs_for_item += quantity_from_this_lot * lot.unit_cost
-                lot.remaining_quantity -= quantity_from_this_lot
-                quantity_to_sell -= quantity_from_this_lot
-
-            if quantity_to_sell > 0:
-                # This should not happen if stock check passed, but as a safeguard
-                raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
             
             # บันทึกต้นทุนของสินค้าชิ้นนี้
             db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
@@ -867,10 +872,6 @@ def ship_sales_order(order_number):
                 warehouse_id=warehouse_id, 
                 so_item_id=item.so_item_id
             ))
-            
-            # อัปเดต Stock Level รวม
-            stock_level_to_update = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
-            stock_level_to_update.quantity -= item.quantity
 
         # --- Step 3: อัปเดตสถานะใบสั่งขาย ---
         order.shipment_status = 'Shipped'
@@ -878,7 +879,7 @@ def ship_sales_order(order_number):
         order.shipped_date = datetime.utcnow()
         
         db.session.commit()
-        return jsonify({'message': f'ยืนยันการจัดส่ง SO {order_number} สำเร็จ และตัดสต็อกเรียบร้อยแล้ว'})
+        return jsonify({'message': f'ยืนยันการจัดส่งใบสั่งขาย {order_number} สำเร็จ'})
 
     except Exception as e:
         db.session.rollback()
@@ -898,13 +899,33 @@ def get_warehouse_summary():
                 models.StockLevel.warehouse_id == w.warehouse_id
             ).scalar() or 0.0
 
+            # --- ( ★★★ ส่วนที่เพิ่มเข้ามา ★★★ ) ---
+            # ดึงสต็อกแยกตามรายชื่อสินค้า
+            stock_items = db.session.query(
+                models.Product.p_name,
+                models.StockLevel.quantity
+            ).join(
+                models.Product, models.StockLevel.p_id == models.Product.p_id
+            ).filter(
+                models.StockLevel.warehouse_id == w.warehouse_id,
+                models.StockLevel.quantity > 0
+            ).order_by(models.Product.p_name).all()
+
+            # แปลงข้อมูลให้อยู่ในรูปแบบ list ของ dict
+            product_breakdown = [
+                {'product_name': p_name, 'quantity': float(quantity)}
+                for p_name, quantity in stock_items
+            ]
+            # --- ( ★★★ จบส่วนที่เพิ่มเข้ามา ★★★ ) ---
+
             summary.append({
                 'warehouse_id': w.warehouse_id,
                 'warehouse_name': w.warehouse_name,
                 'location': w.location,
                 'capacity': w.capacity,
                 'current_stock': float(current_stock_agg),
-                'remaining_capacity': float(w.capacity - current_stock_agg)
+                'remaining_capacity': float(w.capacity - current_stock_agg),
+                'product_breakdown': product_breakdown  # <-- (เพิ่ม) ส่งข้อมูลใหม่นี้ไปด้วย
             })
         return jsonify(summary)
     except Exception as e:
