@@ -673,19 +673,57 @@ def confirm_return():
     data = request.get_json()
     order_number = data.get('sales_order_number')
     warehouse_id = data.get('warehouse_id')
-    employee_id = data.get('employee_id') # employee_id ยังคงรับมา แต่อาจจะไม่ได้ใช้ใน StockTransactionReturn โดยตรง
+    employee_id = data.get('employee_id') 
 
     if not all([order_number, warehouse_id, employee_id]):
         return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
 
     try:
-        order = models.SalesOrder.query.options(joinedload(models.SalesOrder.items)).get(order_number)
+        # 1. ค้นหา SalesOrder
+        order = models.SalesOrder.query.options(
+            joinedload(models.SalesOrder.items)
+        ).get(order_number)
         
         if not order:
             return jsonify({'message': 'ไม่พบใบสั่งขายนี้'}), 404
         if order.shipment_status != 'รอจัดเก็บคืน':
             return jsonify({'message': f'สถานะปัจจุบันคือ "{order.shipment_status}" ไม่สามารถรับคืนได้'}), 409
 
+        # --- ( ★★★ ส่วนที่เพิ่มเข้ามา: ตรวจสอบพื้นที่คลังสินค้า ★★★ ) ---
+
+        # 2. ค้นหาคลังสินค้าและ Capacity
+        warehouse = models.Warehouse.query.get(warehouse_id)
+        if not warehouse:
+            return jsonify({'message': 'ไม่พบข้อมูลคลังสินค้า'}), 404
+        
+        # 3. คำนวณสต็อกปัจจุบันทั้งหมดในคลังนี้ (รวมทุก Product)
+        # (อ้างอิง: models/warehouse.py, models/stock_level.py)
+        current_total_stock_query = db.session.query(
+            func.sum(models.StockLevel.quantity)
+        ).filter(models.StockLevel.warehouse_id == warehouse_id).scalar()
+        
+        current_total_stock = current_total_stock_query if current_total_stock_query is not None else 0
+        
+        # 4. คำนวณพื้นที่ว่างคงเหลือ
+        available_space = warehouse.capacity - current_total_stock
+        
+        # 5. คำนวณน้ำหนักรวมของสินค้าทั้งหมดที่จะรับคืน
+        # (อ้างอิง: models/sales_order_item.py)
+        total_return_quantity = sum(item.quantity for item in order.items)
+        
+        # 6. เปรียบเทียบพื้นที่
+        if total_return_quantity > available_space:
+            return jsonify({
+                'message': 'พื้นที่คลังสินค้าไม่เพียงพอ',
+                'available_space_kg': available_space,
+                'required_space_kg': total_return_quantity,
+                'current_stock_kg': current_total_stock,
+                'capacity_kg': warehouse.capacity
+            }), 409 # 409 (Conflict) เนื่องจากทรัพยากร (พื้นที่) ไม่พอ
+        
+        # --- ( ★★★ จบส่วนที่เพิ่ม ★★★ ) ---
+
+        # (โค้ดเดิม) ถ้าพื้นที่เพียงพอ ดำเนินการรับคืนสินค้า
         for item in order.items:
             stock = models.StockLevel.query.filter_by(
                 p_id=item.p_id,
@@ -696,20 +734,19 @@ def confirm_return():
                 stock = models.StockLevel(p_id=item.p_id, warehouse_id=warehouse_id, quantity=0)
                 db.session.add(stock)
             
-            stock.quantity += item.quantity
+            stock.quantity += item.quantity # เพิ่มสต็อก
 
-            # (★★★ จุดที่แก้ไข ★★★) เปลี่ยนไปใช้ models.StockTransactionReturn
-            # และปรับแก้ฟิลด์ให้ตรงกับ Model
+            # สร้าง Transaction การรับคืน
             transaction = models.StockTransactionReturn(
                 return_transaction_date=datetime.utcnow(),
                 return_quantity=item.quantity,
                 p_id=item.p_id,
                 warehouse_id=warehouse_id,
-                so_item_id=item.so_item_id # ใช้ so_item_id จาก sales_order_item
-                # สามารถเพิ่ม reason ได้ถ้าต้องการ เช่น reason=f'รับคืนจาก SO {order_number}'
+                so_item_id=item.so_item_id 
             )
             db.session.add(transaction)
 
+        # อัปเดตสถานะ Order
         order.shipment_status = 'จัดเก็บคืนแล้ว'
         
         db.session.commit()

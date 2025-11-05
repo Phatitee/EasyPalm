@@ -160,14 +160,22 @@ const PurchaseProduct = () => {
             price_per_unit: product.price_per_unit.toString(),
         }]);
     };
-    const handleItemChange = (p_id, field, value) => { /* ... โค้ดส่วนนี้เหมือนเดิม ... */
+    const handleItemChange = (p_id, field, value) => {
         if (value && !/^\d*\.?\d*$/.test(value)) return;
+        // Prevent price_per_unit from being 0
+        if (field === 'price_per_unit' && (parseFloat(value) === 0 || value === '0')) return;
         setOrderItems(prev => prev.map(item => item.p_id === p_id ? { ...item, [field]: value } : item));
     };
     const handleItemBlur = (p_id, field, value) => { /* ... โค้ดส่วนนี้เหมือนเดิม ... */
         setOrderItems(prev => prev.map(item => {
-            if (item.p_id === p_id && (value.trim() === '' || value.trim() === '.')) {
-                return { ...item, [field]: '0' };
+            if (item.p_id === p_id) {
+                // Prevent price_per_unit from being 0 or blank
+                if (field === 'price_per_unit' && (value.trim() === '' || value.trim() === '.' || parseFloat(value) === 0)) {
+                    return { ...item, [field]: item.price_per_unit || '1' };
+                }
+                if ((value.trim() === '' || value.trim() === '.')) {
+                    return { ...item, [field]: '0' };
+                }
             }
             return item;
         }));
