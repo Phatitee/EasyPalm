@@ -11,8 +11,7 @@ __pycache__/
 *.pyc
 
 # SQLite
-*.db
-*.sqlite3
+
 
 # Flask instance and env
 instance/

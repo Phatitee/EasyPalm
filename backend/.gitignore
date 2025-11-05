@@ -11,8 +11,7 @@ __pycache__/
 
 # SQLite Database
 # ไฟล์ฐานข้อมูลที่เราใช้ทดสอบในเครื่อง ไม่ควรเก็บใน Git
-*.db
-*.sqlite3
+
 
 # Instance folder (สำหรับ Flask config)
 # ไฟล์ตั้งค่าส่วนตัวหรือ secret keys
