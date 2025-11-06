@@ -71,6 +71,53 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => { /* ... โค้�
     );
 };
 
+// --- Modal for order confirmation ---
+const ConfirmOrderDialog = ({ isOpen, onClose, onConfirm, farmer, items, total }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-lg text-center transform transition-all animate-fade-in-up">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">ตรวจสอบรายละเอียดใบสั่งซื้อ</h3>
+                <div className="mb-4 text-left">
+                    <div className="mb-2"><span className="font-semibold">เกษตรกร:</span> {farmer?.f_name || '-'} </div>
+                    <table className="w-full text-sm border-collapse mb-2">
+                        <thead>
+                            <tr className="bg-gray-100 dark:bg-gray-700">
+                                <th className="p-2 border">#</th>
+                                <th className="p-2 border">สินค้า</th>
+                                <th className="p-2 border text-right">จำนวน (กก.)</th>
+                                <th className="p-2 border text-right">ราคา/หน่วย</th>
+                                <th className="p-2 border text-right">ราคารวม</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => (
+                                <tr key={item.p_id}>
+                                    <td className="p-2 border">{idx + 1}</td>
+                                    <td className="p-2 border">{item.p_name}</td>
+                                    <td className="p-2 border text-right">{parseFloat(item.quantity || 0).toLocaleString()}</td>
+                                    <td className="p-2 border text-right">{parseFloat(item.price_per_unit || 0).toFixed(2)}</td>
+                                    <td className="p-2 border text-right">{(parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr className="font-bold">
+                                <td colSpan="4" className="p-2 border text-right">ยอดรวม</td>
+                                <td className="p-2 border text-right text-lg">{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                    <button onClick={onClose} className="w-full px-4 py-2.5 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">ตรวจสอบ/แก้ไข</button>
+                    <button onClick={onConfirm} className="w-full px-4 py-2.5 text-white rounded-lg font-semibold bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"><CheckCircle size={18} />ยืนยันสร้างใบสั่งซื้อ</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const PurchaseProduct = () => {
     // ... (States ส่วนใหญ่เหมือนเดิม) ...
     const [farmers, setFarmers] = useState([]);
@@ -85,6 +132,7 @@ const PurchaseProduct = () => {
     const [isFarmerListOpen, setIsFarmerListOpen] = useState(false);
     const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'error', message: '' });
     const [completedOrder, setCompletedOrder] = useState(null);
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const receiptRef = useRef(null); // ★★★★★ จุดแก้ไขที่ 1: กำหนดค่าเริ่มต้นเป็น null ★★★★★
     const farmerSearchRef = useRef(null);
 
@@ -188,13 +236,20 @@ const PurchaseProduct = () => {
         setIsFarmerListOpen(false);
     };
 
-    const handleSubmitOrder = async () => { /* ... handleSubmitOrder เหมือนเดิม ... */
+    // Show confirm dialog before actual submit
+    const handleConfirmOrder = () => {
         if (!selectedFarmer || orderItems.length === 0) {
             setResultDialog({ isOpen: true, type: 'error', message: 'กรุณาเลือกเกษตรกรและเพิ่มสินค้า' }); return;
         }
         if (orderItems.some(item => parseFloat(item.quantity || 0) <= 0)) {
             setResultDialog({ isOpen: true, type: 'error', message: 'จำนวนสินค้าต้องมากกว่า 0' }); return;
         }
+        setIsConfirmDialogOpen(true);
+    };
+
+    // Actual submit after confirmation
+    const handleSubmitOrder = async () => {
+        setIsConfirmDialogOpen(false);
         setIsSubmitting(true);
         const orderData = {
             f_id: selectedFarmer,
@@ -248,11 +303,31 @@ const PurchaseProduct = () => {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">ข้อมูลหลัก</h2><div ref={farmerSearchRef}><label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><User size={16} className="mr-2"/>ค้นหาเกษตรกร</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} /><input type="text" placeholder="พิมพ์เพื่อค้นหา..." value={farmerSearch} onFocus={() => setIsFarmerListOpen(true)} onChange={(e) => {setFarmerSearch(e.target.value); setSelectedFarmer(''); setIsFarmerListOpen(true);}} className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />{isFarmerListOpen && (<div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">{filteredFarmers.length > 0 ? filteredFarmers.map(f => (<div key={f.f_id} onClick={() => handleSelectFarmer(f)} className="p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-600">{f.f_name}</div>)) : <div className="p-2 text-gray-500">ไม่พบเกษตรกร</div>}</div>)}</div></div></div>
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าทั้งหมด</h2><div className="max-h-64 overflow-y-auto pr-2"><ul className="divide-y divide-gray-200 dark:divide-gray-700">{products.map(p => (<li key={p.p_id} className="flex justify-between items-center py-3"><div><p className="font-semibold text-gray-800 dark:text-gray-100">{p.p_name}</p><p className="text-sm text-gray-500 dark:text-gray-400">ราคาล่าสุด: <span className="font-mono text-blue-600 ml-1">{p.price_per_unit.toFixed(2)} บ.</span></p></div><button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.p_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.p_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}</button></li>))}</ul></div></div>
                 </div>
-                <div className="lg:col-span-1"><div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart/>สรุปรายการ</h2><div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">{orderItems.length === 0 ? <p className="text-center text-gray-500 py-12">ยังไม่มีสินค้า</p> : orderItems.map(item => (<div key={item.p_id} className="border-b dark:border-gray-700 pb-3"><div className="flex justify-between items-start"><p className="font-semibold dark:text-gray-100">{item.p_name}</p><button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button></div><div className="flex gap-2 mt-2"><input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity} onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" /><input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit} onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" /></div></div>))}</div>{orderItems.length > 0 && (<div className="mt-6 pt-4 border-t-2 border-dashed dark:border-gray-700"><div className="flex justify-between items-center text-xl font-bold mb-4"><span className="text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalPurchasePrice.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div><button onClick={handleSubmitOrder} disabled={isSubmitting || !selectedFarmer} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">{isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}{isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งซื้อ'}</button></div>)}</div></div>
+                <div className="lg:col-span-1"><div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart/>สรุปรายการ</h2><div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">{orderItems.length === 0 ? <p className="text-center text-gray-500 py-12">ยังไม่มีสินค้า</p> : orderItems.map(item => (<div key={item.p_id} className="border-b dark:border-gray-700 pb-3"><div className="flex justify-between items-start"><p className="font-semibold dark:text-gray-100">{item.p_name}</p><button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button></div>
+                        {/* เพิ่มหัวข้อราคา/หน่วย */}
+                        <div className="flex gap-2 mb-1">
+                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
+                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                            <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity} onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                            <input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit} onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                    </div>))}</div>{orderItems.length > 0 && (<div className="mt-6 pt-4 border-t-2 border-dashed dark:border-gray-700"><div className="flex justify-between items-center text-xl font-bold mb-4"><span className="text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalPurchasePrice.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div><button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedFarmer} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">{isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}{isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งซื้อ'}</button></div>)}</div></div>
             </div>
             
             {/* ส่วนที่ซ่อนไว้สำหรับพิมพ์ (ref จะถูกผูกกับ div นี้เมื่อ completedOrder มีค่า) */}
             {completedOrder && <div style={{ display: "none" }}><PrintableReceipt ref={receiptRef} order={completedOrder} /></div>}
+
+            {/* Modal for order confirmation */}
+            <ConfirmOrderDialog
+                isOpen={isConfirmDialogOpen}
+                onClose={() => setIsConfirmDialogOpen(false)}
+                onConfirm={handleSubmitOrder}
+                farmer={farmers.find(f => f.f_id === selectedFarmer)}
+                items={orderItems}
+                total={totalPurchasePrice}
+            />
         </div>
     );
 };

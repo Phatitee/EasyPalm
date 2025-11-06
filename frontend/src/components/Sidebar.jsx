@@ -3,7 +3,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MENU_CONFIG } from '../config/menuConfig';
-import { TreePalm } from 'lucide-react';
+// import { TreePalm } from 'lucide-react';
+import logoImg from './Gemini_Generated_Image_y930e8y930e8y930-removebg.png';
 
 const Sidebar = ({ isOpen }) => {
     const { user } = useAuth();
@@ -33,19 +34,22 @@ const Sidebar = ({ isOpen }) => {
                         !isOpen ? 'scale-0 w-0' : 'w-auto'
                     } transition-transform duration-300 ease-in-out`}
                 >
-                    <TreePalm
-                        className="text-green-600 flex-shrink-0 transition-all duration-300"
-                        size={isOpen ? 28 : 32}
+                    <img
+                        src={logoImg}
+                        alt="EasyPalm Logo"
+                        className="flex-shrink-0 transition-all duration-300"
+                        style={{ width: isOpen ? 32 : 36, height: isOpen ? 32 : 36 }}
                     />
-                    {/* ★★★ FIX 3: Dark Mode Text for Logo ★★★ */}
                     <span className="font-semibold text-2xl whitespace-nowrap text-gray-800 dark:text-white"> 
                         EasyPalm
                     </span>
                 </div>
                 {!isOpen && (
-                    <TreePalm
-                        className="text-green-600 transition-all duration-300"
-                        size={32}
+                    <img
+                        src={logoImg}
+                        alt="EasyPalm Logo"
+                        className="transition-all duration-300"
+                        style={{ width: 36, height: 36 }}
                     />
                 )}
             </div>

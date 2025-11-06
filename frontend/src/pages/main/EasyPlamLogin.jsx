@@ -71,7 +71,6 @@ const EasyPlamLogin = () => {
                 {/* Left Side: Branding and Image */}
                 <div className="hidden md:flex flex-col items-center justify-center bg-gradient-to-br from-green-100 to-green-200 p-12 text-center">
                     <img src={palmLeafImage} alt="EasyPalm Logo" className="w-48 h-auto" />
-                    <h1 className="text-4xl font-bold text-green-800 mt-4">EasyPalm</h1>
                     <p className="text-gray-600 mt-2">ระบบจัดการสวนปาล์มครบวงจร</p>
                 </div>
 

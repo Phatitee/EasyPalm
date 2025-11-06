@@ -24,6 +24,61 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     );
 }
 
+// --- Modal for order confirmation ---
+const ConfirmOrderDialog = ({ isOpen, onClose, onConfirm, customer, warehouse, items, totalRevenue, totalProfit }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-lg text-center transform transition-all animate-fade-in-up">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">ตรวจสอบรายละเอียดใบสั่งขาย</h3>
+                <div className="mb-4 text-left">
+                    <div className="mb-2"><span className="font-semibold">ลูกค้า:</span> {customer?.F_name || '-'}</div>
+                    <div className="mb-2"><span className="font-semibold">คลังสินค้า:</span> {warehouse?.warehouse_name || '-'}</div>
+                    <table className="w-full text-sm border-collapse mb-2">
+                        <thead>
+                            <tr className="bg-gray-100 dark:bg-gray-700">
+                                <th className="p-2 border">#</th>
+                                <th className="p-2 border">สินค้า</th>
+                                <th className="p-2 border text-right">จำนวน (กก.)</th>
+                                <th className="p-2 border text-right">ราคา/หน่วย</th>
+                                <th className="p-2 border text-right">ราคารวม</th>
+                                <th className="p-2 border text-right">กำไร</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => {
+                                const lineRevenue = parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0);
+                                const lineProfit = lineRevenue - (parseFloat(item.quantity || 0) * item.average_cost);
+                                return (
+                                    <tr key={item.p_id}>
+                                        <td className="p-2 border">{idx + 1}</td>
+                                        <td className="p-2 border">{item.p_name}</td>
+                                        <td className="p-2 border text-right">{parseFloat(item.quantity || 0).toLocaleString()}</td>
+                                        <td className="p-2 border text-right">{parseFloat(item.price_per_unit || 0).toFixed(2)}</td>
+                                        <td className="p-2 border text-right">{lineRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={`p-2 border text-right ${lineProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{lineProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                        <tfoot>
+                            <tr className="font-bold">
+                                <td colSpan="4" className="p-2 border text-right">ยอดรวม</td>
+                                <td className="p-2 border text-right text-lg">{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className={`p-2 border text-right text-lg ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                    <button onClick={onClose} className="w-full px-4 py-2.5 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">ตรวจสอบ/แก้ไข</button>
+                    <button onClick={onConfirm} className="w-full px-4 py-2.5 text-white rounded-lg font-semibold bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"><CheckCircle size={18} />ยืนยันสร้างใบสั่งขาย</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const CreateSalesOrder = () => {
     // Data states
     const [customers, setCustomers] = useState([]);
@@ -43,6 +98,7 @@ const CreateSalesOrder = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
     const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'success', message: '' }); // Modal State
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
     const customerSearchRef = useRef(null);
 
@@ -169,17 +225,22 @@ const CreateSalesOrder = () => {
         setIsCustomerListOpen(false);
     };
 
-    const handleSubmitOrder = async () => {
+    // Show confirm dialog before actual submit
+    const handleConfirmOrder = () => {
         if (!selectedWarehouse || !selectedCustomer || orderItems.length === 0) {
             setResultDialog({ isOpen: true, type: 'error', message: 'กรุณากรอกข้อมูลให้ครบ' });
             return;
         }
-        
         if (orderItems.some(item => parseFloat(item.quantity || 0) <= 0 || parseFloat(item.price_per_unit || 0) <= 0)) {
             setResultDialog({ isOpen: true, type: 'error', message: 'กรุณากรอกจำนวนและราคาของสินค้าทุกรายการให้ถูกต้อง (ต้องมากกว่า 0)' });
             return;
         }
+        setIsConfirmDialogOpen(true);
+    };
 
+    // Actual submit after confirmation
+    const handleSubmitOrder = async () => {
+        setIsConfirmDialogOpen(false);
         setIsSubmitting(true);
         const orderData = {
             f_id: selectedCustomer,
@@ -191,7 +252,6 @@ const CreateSalesOrder = () => {
                 price_per_unit: parseFloat(price_per_unit),
             })),
         };
-        
         try {
             const response = await fetch('http://127.0.0.1:5000/salesorders', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData),
@@ -329,18 +389,20 @@ const CreateSalesOrder = () => {
                                         {/* ★★★ Dark Mode FIX: Remove Button Color ★★★ */}
                                         <button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"><Trash2 size={16}/></button>
                                     </div>
-                                    {/* ★★★ Dark Mode FIX: Item Info Text Color ★★★ */}
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">สูงสุด: {item.max_quantity.toLocaleString()} kg | ต้นทุน: {item.average_cost.toFixed(2)} บ.</p>
+                                    {/* เพิ่มหัวข้อราคา/หน่วย */}
+                                    <div className="flex gap-2 mb-1">
+                                        <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
+                                        <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
+                                    </div>
                                     <div className="flex gap-2">
                                         <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity}
                                             onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)}
                                             onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)}
-                                            // ★★★ Dark Mode FIX: Input Field Styling ★★★
                                             className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
                                         <input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit}
                                             onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)}
                                             onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)}
-                                            // ★★★ Dark Mode FIX: Input Field Styling ★★★
                                             className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
                                     </div>
                                     <div className="flex justify-between text-sm mt-1">
@@ -358,7 +420,7 @@ const CreateSalesOrder = () => {
                                 <div className="flex justify-between items-center text-lg mb-2"><span className="font-semibold text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
                                  {/* ★★★ Dark Mode FIX: Profit Text Color ★★★ */}
                                  <div className={`flex justify-between items-center text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}><span className="flex items-center gap-2"><TrendingUp/>กำไรโดยประมาณ</span><span>{totalProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
-                                <button onClick={handleSubmitOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                <button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
                                     {isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}
                                     {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งขาย'}
                                 </button>
@@ -367,6 +429,18 @@ const CreateSalesOrder = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal for order confirmation */}
+            <ConfirmOrderDialog
+                isOpen={isConfirmDialogOpen}
+                onClose={() => setIsConfirmDialogOpen(false)}
+                onConfirm={handleSubmitOrder}
+                customer={customers.find(c => c.F_id === selectedCustomer)}
+                warehouse={warehouses.find(w => w.warehouse_id === selectedWarehouse)}
+                items={orderItems}
+                totalRevenue={totalRevenue}
+                totalProfit={totalProfit}
+            />
         </div>
     );
 };
