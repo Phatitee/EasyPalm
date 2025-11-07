@@ -1,11 +1,12 @@
+// frontend/src/pages/warehouse/PendingStorage.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-// (เพิ่ม) Import ไอคอน RefreshCw
 import { PackagePlus, CheckCircle, Loader, ServerCrash, Inbox, Archive, AlertTriangle, XCircle, Users, Truck, RefreshCw } from 'lucide-react';
 import StorageDetail from './StorageDetail';
 import SalesHistoryDetail from '../sales/SalesHistoryDetail';
 
-// (ปรับปรุง) ConfirmDialog ให้รองรับ actionType เพื่อเปลี่ยนสีปุ่มและไอคอน
+// (Component ConfirmDialog และ ResultDialog ไม่มีการแก้ไข)
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, actionType }) => {
     if (!isOpen) return null;
     const confirmButtonColor = actionType === 'SO_Return' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600';
@@ -39,15 +40,15 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
         <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up">
                  <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
-                    {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
-                </div>
-                <div className="mt-3 text-center">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{isSuccess ? 'สำเร็จ' : 'เกิดข้อผิดพลาด'}</h3>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{message}</p>
-                </div>
-                <div className="mt-6">
-                    <button onClick={onClose} type="button" className={`w-full px-4 py-2 text-white rounded-lg font-semibold ${isSuccess ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'}`}>ตกลง</button>
-                </div>
+                     {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
+                 </div>
+                 <div className="mt-3 text-center">
+                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{isSuccess ? 'สำเร็จ' : 'เกิดข้อผิดพลาด'}</h3>
+                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{message}</p>
+                 </div>
+                 <div className="mt-6">
+                     <button onClick={onClose} type="button" className={`w-full px-4 py-2 text-white rounded-lg font-semibold ${isSuccess ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'}`}>ตกลง</button>
+                 </div>
             </div>
         </div>
     );
@@ -63,7 +64,6 @@ const PendingStorage = () => {
 
     const [selectedItem, setSelectedItem] = useState({ id: null, type: null });
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    // (ปรับปรุง) State ของ Dialog ให้เก็บข้อมูลที่จำเป็นทั้งหมด
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, item: null, warehouseId: null, title: '', message: '', actionType: '' });
     const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'success', message: '' });
 
@@ -71,6 +71,7 @@ const PendingStorage = () => {
         setLoading(true);
         setError(null);
         try {
+            // (สันนิษฐานว่า /pending-storage-items สำหรับ SO_Return จะมี field 'warehouse_id' มาให้ด้วย)
             const [itemsRes, warehousesRes] = await Promise.all([
                 fetch('http://127.0.0.1:5000/warehouse/pending-storage-items'),
                 fetch('http://127.0.0.1:5000/warehouses')
@@ -95,25 +96,35 @@ const PendingStorage = () => {
         fetchInitialData();
     }, [fetchInitialData]);
 
+    // --- ( ★★★ เริ่มส่วนที่แก้ไข ★★★ ) ---
     // (ปรับปรุง) ฟังก์ชันเปิด Dialog ให้รองรับทั้ง PO และ SO_Return
     const handleOpenConfirmDialog = (e, item) => {
         e.stopPropagation();
         
-        const form = e.currentTarget.form;
-        const warehouseId = form.elements[`warehouse-select-${item.order_number}`].value;
-        const warehouseName = warehouses.find(w => w.warehouse_id === warehouseId)?.warehouse_name || 'ไม่ระบุคลัง';
+        const isReturn = item.type === 'SO_Return';
+        let warehouseId = null;
+        let warehouseName = null;
+
+        if (isReturn) {
+            // 1. ถ้าเป็น "รับคืน" -> ดึง ID คลังจาก `item` โดยตรง
+            warehouseId = item.warehouse_id; // (สำคัญ: ต้องมีข้อมูลนี้จาก Backend)
+            warehouseName = warehouses.find(w => w.warehouse_id === warehouseId)?.warehouse_name || 'ไม่พบคลัง';
+        } else {
+            // 2. ถ้าเป็น "รับเข้า (PO)" -> อ่านค่าจาก <select>
+            const form = e.currentTarget.form;
+            warehouseId = form.elements[`warehouse-select-${item.order_number}`].value;
+            warehouseName = warehouses.find(w => w.warehouse_id === warehouseId)?.warehouse_name || 'ไม่ระบุคลัง';
+        }
 
         if (!warehouseId) {
             setResultDialog({ isOpen: true, type: 'error', message: 'กรุณาเลือกคลังสินค้าที่จะจัดเก็บ' });
             return;
         }
-
-        const isReturn = item.type === 'SO_Return';
         
         setConfirmDialog({
             isOpen: true,
             item: item,
-            warehouseId: warehouseId,
+            warehouseId: warehouseId, // (ID คลังที่ถูกต้อง ไม่ว่าจะมาจาก <select> หรือ `item`)
             actionType: item.type,
             title: isReturn ? 'ยืนยันรับคืนสินค้า' : 'ยืนยันรับสินค้าเข้าคลัง',
             message: isReturn 
@@ -121,8 +132,9 @@ const PendingStorage = () => {
                 : `คุณต้องการยืนยันการรับสินค้าจาก PO ${item.order_number} เข้าคลัง ${warehouseName} ใช่หรือไม่?`
         });
     };
+    // --- ( ★★★ จบส่วนที่แก้ไข ★★★ ) ---
 
-    // (ปรับปรุง) ฟังก์ชันยืนยัน ให้รองรับการทำงานทั้งสองประเภท
+    // (ฟังก์ชัน handleExecuteConfirm ไม่ต้องแก้ไข ตรรกะถูกต้องแล้ว)
     const handleExecuteConfirm = async () => {
         const { item, warehouseId } = confirmDialog;
         setSubmittingId(item.order_number);
@@ -208,32 +220,62 @@ const PendingStorage = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {items.map((item) => (
-                                    <tr key={`${item.type}-${item.order_number}`} onDoubleClick={() => handleRowDoubleClick(item)} className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            {item.type === 'PO' ? (<span className="flex items-center text-blue-600 dark:text-blue-400 font-semibold"><Users className="mr-2" size={16}/> รับเข้าใหม่</span>) : (<span className="flex items-center text-red-600 dark:text-red-400 font-semibold"><Truck className="mr-2" size={16}/> รับคืน</span>)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{item.order_number}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.source_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(item.order_date).toLocaleDateString('th-TH')}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            {/* (★★★ จุดที่แก้ไข ★★★) แสดงฟอร์มสำหรับทั้ง PO และ SO Return */}
-                                            <form className="flex items-center justify-center gap-2">
-                                                <div className="relative w-48">
-                                                    <Archive className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
-                                                    <select id={`warehouse-select-${item.order_number}`} onClick={(e) => e.stopPropagation()} className="w-full pl-9 pr-4 py-2 border rounded-lg appearance-none bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
-                                                        <option value="">-- เลือกคลัง --</option>
-                                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
-                                                    </select>
-                                                </div>
-                                                <button type="button" onClick={(e) => handleOpenConfirmDialog(e, item)} disabled={submittingId === item.order_number} className={`flex items-center justify-center font-bold py-2 px-4 rounded-lg transition text-white disabled:bg-gray-400 ${item.type === 'SO_Return' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}>
-                                                    {submittingId === item.order_number ? ( <Loader className="animate-spin mr-2" size={16} /> ) : ( item.type === 'SO_Return' ? <RefreshCw className="mr-2" size={16}/> : <CheckCircle className="mr-2" size={16} /> )}
-                                                    {submittingId === item.order_number ? 'กำลังบันทึก...' : (item.type === 'SO_Return' ? 'ยืนยันรับคืน' : 'ยืนยัน')}
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {items.map((item) => {
+                                    
+                                    // --- ( ★★★ เริ่มส่วนที่แก้ไข ★★★ ) ---
+                                    // (คำนวณชื่อคลังสำหรับ 'SO_Return' ไว้ล่วงหน้า)
+                                    const returnWarehouseName = item.type === 'SO_Return' 
+                                        ? (warehouses.find(w => w.warehouse_id === item.warehouse_id)?.warehouse_name || 'ไม่พบคลัง') 
+                                        : null;
+                                    // --- ( ★★★ จบส่วนที่แก้ไข ★★★ ) ---
+
+                                    return (
+                                        <tr key={`${item.type}-${item.order_number}`} onDoubleClick={() => handleRowDoubleClick(item)} className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                {item.type === 'PO' ? (<span className="flex items-center text-blue-600 dark:text-blue-400 font-semibold"><Users className="mr-2" size={16}/> รับเข้าใหม่</span>) : (<span className="flex items-center text-red-600 dark:text-red-400 font-semibold"><Truck className="mr-2" size={16}/> รับคืน</span>)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{item.order_number}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.source_name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(item.order_date).toLocaleDateString('th-TH')}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                
+                                                <form className="flex items-center justify-center gap-2">
+                                                    
+                                                    {/* ( ★★★ ) ส่วนที่แก้ไข: แสดงผลแบบมีเงื่อนไข ( ★★★ ) */}
+                                                    <div className="relative w-48">
+                                                        {item.type === 'PO' ? (
+                                                            // 1. ถ้าเป็น 'PO' -> แสดง Dropdown ให้เลือก
+                                                            <>
+                                                                <Archive className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
+                                                                <select 
+                                                                    id={`warehouse-select-${item.order_number}`} 
+                                                                    onClick={(e) => e.stopPropagation()} 
+                                                                    className="w-full pl-9 pr-4 py-2 border rounded-lg appearance-none bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                                                                >
+                                                                    <option value="">-- เลือกคลัง --</option>
+                                                                    {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                                                                </select>
+                                                            </>
+                                                        ) : (
+                                                            // 2. ถ้าเป็น 'SO_Return' -> แสดง Text (ReadOnly)
+                                                            <div className="flex items-center justify-start h-[42px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700">
+                                                                <Archive className="text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" size={16} />
+                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate" title={returnWarehouseName}>
+                                                                    {returnWarehouseName}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <button type="button" onClick={(e) => handleOpenConfirmDialog(e, item)} disabled={submittingId === item.order_number} className={`flex items-center justify-center font-bold py-2 px-4 rounded-lg transition text-white disabled:bg-gray-400 ${item.type === 'SO_Return' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}>
+                                                        {submittingId === item.order_number ? ( <Loader className="animate-spin mr-2" size={16} /> ) : ( item.type === 'SO_Return' ? <RefreshCw className="mr-2" size={16}/> : <CheckCircle className="mr-2" size={16} /> )}
+                                                        {submittingId === item.order_number ? 'กำลังบันทึก...' : (item.type === 'SO_Return' ? 'ยืนยันรับคืน' : 'ยืนยัน')}
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>

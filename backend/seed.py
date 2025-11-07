@@ -43,7 +43,7 @@ def seed_base_data():
     # --- Employees ---
     employees = [
         Employee(e_id='E001', e_name='แอดมิน ใหญ่สุด', e_gender='Male', e_citizen_id_card='1111111111111', e_tel='0800000001', position='System Administrator', e_role=EmployeeRole.ADMIN, username='admin', password='123', is_active=True),
-        Employee(e_id='E002', e_name='สมศรี ฝ่ายขาย', e_gender='Female', e_citizen_id_card='2222222222222', e_tel='0800000002', position='Sales Representative', e_role=EmployeeRole.SALES, username='sales', password='123', is_active=True),
+        Employee(e_id='E002', e_name='สมศรี ก่ายขาย', e_gender='Female', e_citizen_id_card='2222222222222', e_tel='0800000002', position='Sales Representative', e_role=EmployeeRole.SALES, username='sales', password='123', is_active=True),
         Employee(e_id='E003', e_name='มานี การเงิน', e_gender='Female', e_citizen_id_card='3333333333333', e_tel='0800000003', position='Accountant', e_role=EmployeeRole.ACCOUNTANT, username='accountant', password='123', is_active=True),
         Employee(e_id='E004', e_name='สมศักดิ์ คลังใหญ่', e_gender='Male', e_citizen_id_card='4444444444444', e_tel='0800000004', position='Warehouse Manager', e_role=EmployeeRole.WAREHOUSE, username='warehouse', password='123', is_active=True),
         Employee(e_id='E005', e_name='สุดา จัดซื้อ', e_gender='Female', e_citizen_id_card='5555555555555', e_tel='0800000005', position='Purchasing Officer', e_role=EmployeeRole.PURCHASING, username='purchasing', password='123', is_active=True),
@@ -83,7 +83,7 @@ def seed_base_data():
             F_address=f'อำเภออุตสาหกรรม {i} จังหวัดสมุทรปราการ'
         ))
 
-    # --- Products (★★★ REMOVED p_unit ★★★) ---
+    # --- Products ---
     products = [
         Product(p_id='P001', p_name='ปาล์มทะลาย', price_per_unit=5.50),
         Product(p_id='P002', p_name='น้ำมันปาล์มดิบ', price_per_unit=35.0),
@@ -357,13 +357,15 @@ def seed_transaction_history():
                 db.session.add(so)
                 db.session.flush()
 
-                # ประมวลผล FIFO และสร้าง transactions เฉพาะเมื่อจัดส่งแล้ว
+                # ★★★ FIX: ประมวลผล FIFO และสร้าง StockTransactionOut ที่มีครบทุกฟิลด์ ★★★
                 if shipment_status in ['Shipped', 'Delivered'] and shipped_date:
                     for so_item, product, quantity in so_items:
+                        db.session.flush()  # ให้แน่ใจว่า so_item.so_item_id มีค่า
+                        
                         quantity_to_process = quantity
                         total_cogs = 0
 
-                        # FIFO
+                        # FIFO: ดึง lot ที่เก่าที่สุดมาก่อน
                         stock_lots = StockTransactionIn.query.filter(
                             StockTransactionIn.p_id == product.p_id,
                             StockTransactionIn.warehouse_id == chosen_warehouse.warehouse_id,
@@ -379,18 +381,20 @@ def seed_transaction_history():
                             lot.remaining_quantity -= take_qty
                             quantity_to_process -= take_qty
 
-                        # สร้าง COGS และ Stock Out
+                            # ★★★ สร้าง StockTransactionOut พร้อมฟิลด์ครบถ้วน ★★★
+                            db.session.add(StockTransactionOut(
+                                out_transaction_date=shipped_date,
+                                out_quantity=take_qty,
+                                p_id=product.p_id,
+                                warehouse_id=chosen_warehouse.warehouse_id,
+                                so_item_id=so_item.so_item_id,
+                                in_transaction_id=lot.in_transaction_id  # ★★★ เพิ่มฟิลด์นี้ ★★★
+                            ))
+
+                        # สร้าง COGS
                         db.session.add(SalesOrderItemCost(
                             so_item_id=so_item.so_item_id,
                             cogs=total_cogs
-                        ))
-
-                        db.session.add(StockTransactionOut(
-                            out_transaction_date=shipped_date,
-                            out_quantity=quantity,
-                            p_id=product.p_id,
-                            warehouse_id=chosen_warehouse.warehouse_id,
-                            so_item_id=so_item.so_item_id
                         ))
 
                         # ลดสต็อก
@@ -414,223 +418,76 @@ def seed_transaction_history():
         print(f"   - ❌ Error generating history: {e}")
         raise
 
-    """Generates 60 days of purchase and sales history."""
-    print("🗓️ Generating 150 days of purchase and sales history...")
-    try:
-        products = Product.query.all()
-        farmers = Farmer.query.all()
-        food_industries = FoodIndustry.query.all()
-        warehouses = Warehouse.query.all()
-        employees = Employee.query.all()
-
-        # เลือกผู้ใช้แต่ละ role
-        purchasing_users = [e for e in employees if e.e_role == EmployeeRole.PURCHASING]
-        warehouse_users = [e for e in employees if e.e_role == EmployeeRole.WAREHOUSE]
-        sales_users = [e for e in employees if e.e_role == EmployeeRole.SALES]
-        accountant_users = [e for e in employees if e.e_role == EmployeeRole.ACCOUNTANT]
-        executive_users = [e for e in employees if e.e_role == EmployeeRole.EXECUTIVE]
-
-        # Start counters from the last known number to avoid duplicates
-        last_po = PurchaseOrder.query.order_by(PurchaseOrder.purchase_order_number.desc()).first()
-        po_counter = int(last_po.purchase_order_number[2:]) + 1 if last_po else 1
-
-        last_so = SalesOrder.query.order_by(SalesOrder.sale_order_number.desc()).first()
-        so_counter = int(last_so.sale_order_number[2:]) + 1 if last_so else 1
-
-        for i in range(149, -1, -1): # Loop from 149 days ago to today (150 days)
-            current_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=i)
-            print(f"   - Processing transactions for {current_date.strftime('%Y-%m-%d')}...")
-
-            # --- Create 1 to 2 Purchase Orders per day ---
-            for _ in range(random.randint(1, 2)):
-                po_number = f'PO{po_counter:03d}'
-                chosen_warehouse_id = random.choice(warehouses).warehouse_id
-                created_by = random.choice(purchasing_users) if purchasing_users else None
-                paid_by = random.choice(accountant_users) if accountant_users else None
-                received_by = random.choice(warehouse_users) if warehouse_users else None
-
-                po = PurchaseOrder(
-                    purchase_order_number=po_number,
-                    f_id=random.choice(farmers).f_id,
-                    b_date=current_date,
-                    payment_status='Paid', stock_status='Completed',
-                    created_by_id=created_by.e_id if created_by else None,
-                    paid_by_id=paid_by.e_id if paid_by else None,
-                    received_by_id=received_by.e_id if received_by else None,
-                    created_date=current_date,
-                    paid_date=current_date,
-                    received_date=current_date
-                )
-
-                total_price = 0
-                po_items_data = []
-                for _ in range(random.randint(1, 2)):
-                    product = random.choice(products)
-                    # จำกัดจำนวนซื้อไม่ให้เกิน capacity ที่เหลือของ warehouse
-                    stock_level = StockLevel.query.filter_by(p_id=product.p_id, warehouse_id=chosen_warehouse_id).first()
-                    max_add = max(0, int(stock_level.quantity * 0.5)) if stock_level else 10000
-                    quantity = random.randint(1000, max(2000, max_add))
-                    price = round(product.price_per_unit * random.uniform(0.95, 1.05), 2)
-                    po_items_data.append({'product': product, 'quantity': quantity, 'price': price})
-                    total_price += quantity * price
-
-                po.b_total_price = total_price
-                db.session.add(po)
-                db.session.flush()
-
-                for item_data in po_items_data:
-                    stock_level = StockLevel.query.filter_by(p_id=item_data['product'].p_id, warehouse_id=chosen_warehouse_id).first()
-                    warehouse = next((w for w in warehouses if w.warehouse_id == chosen_warehouse_id), None)
-                    # ตรวจสอบ capacity ก่อนเพิ่ม
-                    max_add = warehouse.capacity - stock_level.quantity if (stock_level and warehouse) else 0
-                    add_qty = min(item_data['quantity'], max_add)
-                    if add_qty <= 0:
-                        continue
-                    po_item = PurchaseOrderItem(
-                        purchase_order_number=po_number,
-                        p_id=item_data['product'].p_id,
-                        quantity=add_qty,
-                        price_per_unit=item_data['price']
-                    )
-                    db.session.add(po_item)
-                    db.session.flush()
-
-                    db.session.add(StockTransactionIn(
-                        in_transaction_date=current_date,
-                        p_id=item_data['product'].p_id,
-                        in_quantity=add_qty,
-                        remaining_quantity=add_qty,
-                        unit_cost=item_data['price'],
-                        warehouse_id=chosen_warehouse_id,
-                        po_item_id=po_item.po_item_id
-                    ))
-                    if stock_level:
-                        stock_level.quantity += add_qty
-
-                po_counter += 1
-
-            # --- Create 1 to 3 Sales Orders per day ---
-            for _ in range(random.randint(1, 3)):
-                so_number = f'SO{so_counter:03d}'
-                product_to_sell = random.choice(products)
-                warehouse_to_sell_from_id = random.choice(warehouses).warehouse_id
-                created_by = random.choice(sales_users) if sales_users else None
-                shipped_by = random.choice(warehouse_users) if warehouse_users else None
-                delivered_by = random.choice(sales_users) if sales_users else None
-                paid_by = random.choice(accountant_users) if accountant_users else None
-
-                stock_level = StockLevel.query.filter_by(p_id=product_to_sell.p_id, warehouse_id=warehouse_to_sell_from_id).first()
-                if not stock_level or stock_level.quantity < 500:
-                    continue
-
-                quantity_to_sell = random.randint(100, min(1500, int(stock_level.quantity / 2)))
-                price = round(product_to_sell.price_per_unit * random.uniform(1.2, 1.5), 2)
-
-                so = SalesOrder(
-                    sale_order_number=so_number,
-                    F_id=random.choice(food_industries).F_id,
-                    s_date=current_date,
-                    s_total_price=quantity_to_sell * price,
-                    shipment_status='Delivered', delivery_status='Delivered', payment_status='Paid',
-                    created_by_id=created_by.e_id if created_by else None,
-                    shipped_by_id=shipped_by.e_id if shipped_by else None,
-                    delivered_by_id=delivered_by.e_id if delivered_by else None,
-                    paid_by_id=paid_by.e_id if paid_by else None,
-                    created_date=current_date,
-                    shipped_date=current_date,
-                    delivered_date=current_date,
-                    paid_date=current_date,
-                    warehouse_id=warehouse_to_sell_from_id
-                )
-                db.session.add(so)
-
-                so_item = SalesOrderItem(
-                    sale_order_number=so_number,
-                    p_id=product_to_sell.p_id,
-                    quantity=quantity_to_sell,
-                    price_per_unit=price
-                )
-                db.session.add(so_item)
-                db.session.flush()
-
-                # FIFO COGS Calculation and Stock Out Transaction
-                quantity_to_process, total_cogs = quantity_to_sell, 0
-                stock_lots = StockTransactionIn.query.filter(
-                    StockTransactionIn.p_id == product_to_sell.p_id,
-                    StockTransactionIn.warehouse_id == warehouse_to_sell_from_id,
-                    StockTransactionIn.remaining_quantity > 0
-                ).order_by(StockTransactionIn.in_transaction_date.asc()).all()
-
-                for lot in stock_lots:
-                    if quantity_to_process <= 0: break
-                    take_from_lot = min(quantity_to_process, lot.remaining_quantity)
-
-                    db.session.add(StockTransactionOut(
-                        out_transaction_date=current_date,
-                        out_quantity=take_from_lot,
-                        p_id=product_to_sell.p_id,
-                        warehouse_id=warehouse_to_sell_from_id,
-                        so_item_id=so_item.so_item_id
-                    ))
-
-                    total_cogs += take_from_lot * lot.unit_cost
-                    lot.remaining_quantity -= take_from_lot
-                    quantity_to_process -= take_from_lot
-
-                db.session.add(SalesOrderItemCost(so_item_id=so_item.so_item_id, cogs=total_cogs))
-                stock_level.quantity = max(0, stock_level.quantity - quantity_to_sell)
-                so_counter += 1
-
-        db.session.commit()
-        print("   - ✅ History generation complete.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"   - ❌ Error generating history: {e}")
-
 def seed_returns():
-    """Generates some random return transactions for recent sales."""
-    print("↩️ Generating random return transactions...")
+    """Seeds random returns for already delivered items and REVERSES the FIFO stock."""
+    print("↩️ Seeding returns and reversing FIFO stock...")
     try:
-        # Get sales items from the last 30 days
-        recent_so_items = SalesOrderItem.query.join(SalesOrder).filter(
-            SalesOrder.s_date >= datetime.utcnow() - timedelta(days=30)
+        # ค้นหา SO Items ที่ส่งของแล้ว (Delivered)
+        delivered_items = SalesOrderItem.query.join(SalesOrder).filter(
+            SalesOrder.shipment_status == 'Delivered'
         ).all()
 
-        # Randomly select about 5% of items to be returned
-        items_to_return = random.sample(recent_so_items, k=min(len(recent_so_items), max(1, int(len(recent_so_items) * 0.05))))
-
-        if not items_to_return:
-            print("   - No recent sales items to process returns for.")
+        if not delivered_items:
+            print("   - ⚠️ No delivered items found to create returns for. Skipping.")
             return
 
-        for item in items_to_return:
-            # Return a random quantity, but not more than what was sold
-            return_qty = round(random.uniform(0.1, 0.5) * item.quantity, 2)
-            if return_qty < 1: continue
+        # จำลองการคืนสินค้าสำหรับ 1 รายการ (SO001, P001, ที่ขายไป 12000)
+        item = delivered_items[0] # (สมมติเลือก item แรก)
+        return_qty = min(1200, item.quantity * 0.1) # คืน 10%
+        return_date = item.sales_order.delivered_date + timedelta(days=random.randint(1, 5))
 
-            return_date = item.sales_order.delivered_date + timedelta(days=random.randint(1, 5))
+        # A. สร้างประวัติ StockTransactionReturn (เหมือนเดิม)
+        db.session.add(StockTransactionReturn(
+            return_transaction_date=return_date,
+            return_quantity=return_qty,
+            p_id=item.p_id,
+            warehouse_id=item.sales_order.warehouse_id,
+            so_item_id=item.so_item_id
+        ))
 
-            # Create the return transaction
-            db.session.add(StockTransactionReturn(
-                return_transaction_date=return_date,
-                return_quantity=return_qty,
-                p_id=item.p_id,
-                warehouse_id=item.sales_order.warehouse_id,
-                so_item_id=item.so_item_id
-            ))
+        # B. อัปเดต StockLevel (เหมือนเดิม)
+        stock_level = StockLevel.query.filter_by(
+            p_id=item.p_id,
+            warehouse_id=item.sales_order.warehouse_id
+        ).first()
+        if stock_level:
+            stock_level.quantity += return_qty
 
-            # Update stock level
-            stock_level = StockLevel.query.filter_by(
-                p_id=item.p_id,
-                warehouse_id=item.sales_order.warehouse_id
-            ).first()
-            if stock_level:
-                stock_level.quantity += return_qty
+        # --- ( ★★★ เริ่มส่วนที่แก้ไขตรรกะการคืน FIFO ★★★ ) ---
+        
+        # C. ค้นหา "ทุก" StockTransactionOut ที่เชื่อมโยงกับ SalesOrderItem นี้
+        related_stock_outs = StockTransactionOut.query.filter_by(
+            so_item_id=item.so_item_id
+        ).all()
+        
+        if related_stock_outs:
+            # D. คำนวดสัดส่วนการคืน
+            total_sold_quantity = sum(out.out_quantity for out in related_stock_outs)
+            
+            return_proportion = 0
+            if total_sold_quantity > 0:
+                return_proportion = return_qty / total_sold_quantity
 
-            print(f"   - Processed return for SO Item ID {item.so_item_id} with quantity {return_qty}")
+            # E. วนลูปคืนยอดกลับเข้า StockTransactionIn แต่ละล็อตตามสัดส่วน
+            for stock_out_row in related_stock_outs:
+                
+                # ค้นหาล็อต In เดิม
+                original_in_lot = stock_out_row.consumed_from_lot
+                
+                if original_in_lot:
+                    # คำนวดยอดที่จะคืนให้ล็อตนี้
+                    quantity_to_return_to_lot = stock_out_row.out_quantity * return_proportion
+                    
+                    # คืนยอด!
+                    original_in_lot.remaining_quantity += quantity_to_return_to_lot
+                    db.session.add(original_in_lot)
+            
+            print(f"   - Processed FIFO reversal for SO Item ID {item.so_item_id} (Returned {return_qty} kg)")
+        
+        # --- ( ★★★ จบส่วนที่แก้ไข ★★★ ) ---
 
         db.session.commit()
-        print("   - ✅ Return transaction generation complete.")
+        print("   - ✅ Return transaction generation and FIFO reversal complete.")
     except Exception as e:
         db.session.rollback()
         print(f"   - ❌ Error generating returns: {e}")

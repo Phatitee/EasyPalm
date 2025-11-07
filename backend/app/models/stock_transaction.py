@@ -22,7 +22,7 @@ class StockTransactionIn(db.Model):
     # --- (แก้ไข) ทำให้การเชื่อมโยงถูกต้องและชัดเจน ---
     po_item_id = db.Column(db.Integer, db.ForeignKey('purchaseorderitem.po_item_id'), nullable=False)
     purchase_order_item = relationship('PurchaseOrderItem', back_populates='stock_ins')
-    
+    stock_outs = relationship("StockTransactionOut", back_populates="consumed_from_lot")
     # --- (ลบออก) ไม่ใช้คอลัมน์และ relationship เจ้าปัญหาแล้ว ---
     # purchase_order_number = db.Column(...)
     # purchase_order = relationship(...)
@@ -41,6 +41,8 @@ class StockTransactionOut(db.Model):
     # --- (แก้ไข) ทำให้การเชื่อมโยงถูกต้องและชัดเจน ---
     so_item_id = db.Column(db.Integer, db.ForeignKey('salesorderitem.so_item_id'), nullable=False)
     sales_order_item = relationship('SalesOrderItem', back_populates='stock_outs')
+    in_transaction_id = db.Column(db.Integer, db.ForeignKey('stocktransactionin.in_transaction_id'), nullable=False, index=True)
+    consumed_from_lot = relationship("StockTransactionIn", back_populates="stock_outs")
     
     product = relationship('Product')
     warehouse = relationship('Warehouse')

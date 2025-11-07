@@ -679,7 +679,7 @@ def confirm_return():
         return jsonify({'message': 'ข้อมูลไม่ครบถ้วน'}), 400
 
     try:
-        # 1. ค้นหา SalesOrder
+        # 1. ค้นหา SalesOrder (เหมือนเดิม)
         order = models.SalesOrder.query.options(
             joinedload(models.SalesOrder.items)
         ).get(order_number)
@@ -689,68 +689,93 @@ def confirm_return():
         if order.shipment_status != 'รอจัดเก็บคืน':
             return jsonify({'message': f'สถานะปัจจุบันคือ "{order.shipment_status}" ไม่สามารถรับคืนได้'}), 409
 
-        # --- ( ★★★ ส่วนที่เพิ่มเข้ามา: ตรวจสอบพื้นที่คลังสินค้า ★★★ ) ---
-
-        # 2. ค้นหาคลังสินค้าและ Capacity
+        # --- ( ส่วนตรวจสอบพื้นที่คลังสินค้า - เหมือนเดิม ) ---
         warehouse = models.Warehouse.query.get(warehouse_id)
         if not warehouse:
             return jsonify({'message': 'ไม่พบข้อมูลคลังสินค้า'}), 404
         
-        # 3. คำนวณสต็อกปัจจุบันทั้งหมดในคลังนี้ (รวมทุก Product)
-        # (อ้างอิง: models/warehouse.py, models/stock_level.py)
         current_total_stock_query = db.session.query(
             func.sum(models.StockLevel.quantity)
         ).filter(models.StockLevel.warehouse_id == warehouse_id).scalar()
         
         current_total_stock = current_total_stock_query if current_total_stock_query is not None else 0
-        
-        # 4. คำนวณพื้นที่ว่างคงเหลือ
         available_space = warehouse.capacity - current_total_stock
-        
-        # 5. คำนวณน้ำหนักรวมของสินค้าทั้งหมดที่จะรับคืน
-        # (อ้างอิง: models/sales_order_item.py)
         total_return_quantity = sum(item.quantity for item in order.items)
         
-        # 6. เปรียบเทียบพื้นที่
         if total_return_quantity > available_space:
             return jsonify({
                 'message': 'พื้นที่คลังสินค้าไม่เพียงพอ',
                 'available_space_kg': available_space,
                 'required_space_kg': total_return_quantity,
-                'current_stock_kg': current_total_stock,
-                'capacity_kg': warehouse.capacity
-            }), 409 # 409 (Conflict) เนื่องจากทรัพยากร (พื้นที่) ไม่พอ
-        
-        # --- ( ★★★ จบส่วนที่เพิ่ม ★★★ ) ---
+            }), 409 
+        # --- ( จบส่วนตรวจสอบพื้นที่ ) ---
 
-        # (โค้ดเดิม) ถ้าพื้นที่เพียงพอ ดำเนินการรับคืนสินค้า
+        # --- ( ★★★ เริ่มส่วนที่แก้ไขตรรกะการรับคืน ★★★ ) ---
+
         for item in order.items:
+            
+            # A. คืนของเข้า StockLevel (บวกยอดรวม) (เหมือนเดิม)
             stock = models.StockLevel.query.filter_by(
                 p_id=item.p_id,
                 warehouse_id=warehouse_id
             ).first()
-
             if not stock:
                 stock = models.StockLevel(p_id=item.p_id, warehouse_id=warehouse_id, quantity=0)
                 db.session.add(stock)
-            
-            stock.quantity += item.quantity # เพิ่มสต็อก
+            stock.quantity += item.quantity 
 
-            # สร้าง Transaction การรับคืน
+            # B. สร้างประวัติ StockTransactionReturn (บันทึก Log การคืน) (เหมือนเดิม)
             transaction = models.StockTransactionReturn(
                 return_transaction_date=datetime.utcnow(),
                 return_quantity=item.quantity,
                 p_id=item.p_id,
                 warehouse_id=warehouse_id,
                 so_item_id=item.so_item_id 
+                # (คุณอาจเพิ่ม reason="some reason" ถ้า Frontend ส่งมา)
             )
             db.session.add(transaction)
 
-        # อัปเดตสถานะ Order
+            # C. ★★★ (ส่วนสำคัญ) คืนยอดกลับเข้าล็อต FIFO เดิม (ตรรกะใหม่) ★★★
+            
+            # C.1 ค้นหา "ทุก" StockTransactionOut ที่เชื่อมโยงกับ SalesOrderItem นี้
+            related_stock_outs = models.StockTransactionOut.query.filter_by(
+                so_item_id=item.so_item_id
+            ).all()
+            
+            if not related_stock_outs:
+                # ไม่ควรเกิดขึ้น แต่ป้องกันไว้ก่อน
+                continue 
+
+            # C.2 คำนวณสัดส่วนการคืน
+            total_sold_quantity = sum(out.out_quantity for out in related_stock_outs)
+            
+            return_proportion = 0
+            if total_sold_quantity > 0:
+                # เช่น คืน 10 กก. จากที่ขายไป 100 กก. -> 0.1 (10%)
+                return_proportion = item.quantity / total_sold_quantity 
+
+            # C.3 วนลูปคืนยอดกลับเข้า StockTransactionIn แต่ละล็อตตามสัดส่วน
+            for stock_out_row in related_stock_outs:
+                
+                # ค้นหาล็อต In เดิม (ง่ายมากเพราะเราเก็บ FK ไว้)
+                original_in_lot = stock_out_row.consumed_from_lot
+                
+                if original_in_lot:
+                    # คำนวณยอดที่จะคืนให้ล็อตนี้
+                    # (เช่น ล็อตนี้เคยถูกเบิกไป 80 กก. -> คืนให้ 80 * 0.1 = 8 กก.)
+                    quantity_to_return_to_lot = stock_out_row.out_quantity * return_proportion
+                    
+                    # คืนยอด!
+                    original_in_lot.remaining_quantity += quantity_to_return_to_lot
+                    db.session.add(original_in_lot)
+
+        # --- ( ★★★ จบส่วนที่แก้ไข ★★★ ) ---
+
+        # อัปเดตสถานะ Order (เหมือนเดิม)
         order.shipment_status = 'จัดเก็บคืนแล้ว'
         
         db.session.commit()
-        return jsonify({'message': f'รับคืนสินค้าจาก SO {order_number} สำเร็จ'})
+        return jsonify({'message': f'รับคืนสินค้าจาก SO {order_number} สำเร็จ (คืนสต็อก FIFO เดิม)'})
 
     except Exception as e:
         db.session.rollback()
@@ -890,26 +915,6 @@ def ship_sales_order(order_number):
         order = models.SalesOrder.query.get_or_404(order_number)
         if order.shipment_status != 'Pending':
             return jsonify({'message': f'ใบสั่งขายนี้ไม่อยู่ในสถานะรอเบิก (สถานะปัจจุบัน: {order.shipment_status})'}), 409
-        
-        warehouse_id = order.warehouse_id # <-- ดึง warehouse_id จาก order ที่บันทึกไว้
-        
-        # --- Step 2: Logic การตัดสต็อก, คำนวณ COGS, สร้าง Transaction (ย้ายมาจาก handle_sales_orders) ---
-        for item in order.items:
-            quantity_to_sell = item.quantity
-            cogs_for_item = 0.0
-            
-            # บันทึกต้นทุนของสินค้าชิ้นนี้
-            db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
-            
-            # สร้าง Transaction ขาออก
-            db.session.add(models.StockTransactionOut(
-                out_transaction_date=datetime.utcnow(), 
-                p_id=item.p_id, 
-                out_quantity=item.quantity,
-                warehouse_id=warehouse_id, 
-                so_item_id=item.so_item_id
-            ))
-
         # --- Step 3: อัปเดตสถานะใบสั่งขาย ---
         order.shipment_status = 'Shipped'
         order.shipped_by_id = employee_id
@@ -1007,14 +1012,15 @@ def handle_sales_orders():
         employee_id = data['employee_id']
         
         try:
-            # --- Step 1: ตรวจสอบสต็อก (เหมือนเดิม) ---
+            # --- Step 1: ตรวจสอบสต็อก (StockLevel) (เหมือนเดิม) ---
+            # (นี่เป็นการเช็กคร่าวๆ ที่ดีมากครับ)
             for item_data in data['items']:
                 stock_level = models.StockLevel.query.filter_by(p_id=item_data['p_id'], warehouse_id=warehouse_id).first()
                 if not stock_level or stock_level.quantity < float(item_data['quantity']):
                     product = models.Product.query.get(item_data['p_id'])
-                    return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอขาย!'}), 400
+                    return jsonify({'message': f'สินค้า "{product.p_name}" ในคลัง "{warehouse_id}" มีไม่พอขาย! (StockLevel)'}), 400
 
-            # --- Step 2: สร้าง Sales Order ---
+            # --- Step 2: สร้าง Sales Order (เหมือนเดิม) ---
             last_order = models.SalesOrder.query.order_by(models.SalesOrder.sale_order_number.desc()).first()
             new_so_number = 'SO001'
             if last_order and last_order.sale_order_number.startswith('SO'):
@@ -1029,7 +1035,7 @@ def handle_sales_orders():
                 s_total_price=total_price,
                 s_date=datetime.utcnow(),
                 created_by_id = employee_id,
-                warehouse_id=data['warehouse_id'] # <-- บันทึก warehouse_id ที่นี่
+                warehouse_id=data['warehouse_id']
             )
             db.session.add(new_order)
             
@@ -1045,34 +1051,69 @@ def handle_sales_orders():
                 db.session.add(order_item)
                 new_order_items.append(order_item)
             
-            db.session.flush()
+            db.session.flush() # flush เพื่อให้ new_order_items มี so_item_id
 
+            # --- ( ★★★ เริ่มส่วนที่แก้ไขตรรกะ FIFO ★★★ ) ---
+            
             for item in new_order_items:
                 quantity_to_sell = item.quantity
                 cogs_for_item = 0.0
+                
+                # B.1 ค้นหาล็อต FIFO (เหมือนเดิม)
                 stock_in_lots = models.StockTransactionIn.query.filter(
                     models.StockTransactionIn.p_id == item.p_id,
                     models.StockTransactionIn.warehouse_id == warehouse_id,
                     models.StockTransactionIn.remaining_quantity > 0
                 ).order_by(asc(models.StockTransactionIn.in_transaction_date)).all()
 
+                # B.2 ★★★ (เพิ่ม) ตรวจสอบสต็อก FIFO จริง ★★★
+                # (ป้องกันปัญหากรณี StockLevel ไม่ตรงกับ StockTransactionIn)
+                total_available = sum(lot.remaining_quantity for lot in stock_in_lots)
+                if total_available < quantity_to_sell:
+                    product = models.Product.query.get(item.p_id)
+                    raise Exception(f'สต็อกสินค้า (FIFO) "{product.p_name}" ไม่เพียงพอ มีเพียง {total_available} กก. (ต้องการ {quantity_to_sell} กก.)')
+
+                # B.3 วนลูปตัดสต็อกและสร้าง StockTransactionOut
                 for lot in stock_in_lots:
                     if quantity_to_sell <= 0: break
+                    
                     quantity_from_this_lot = min(lot.remaining_quantity, quantity_to_sell)
+                    
                     cogs_for_item += quantity_from_this_lot * lot.unit_cost
                     lot.remaining_quantity -= quantity_from_this_lot
                     quantity_to_sell -= quantity_from_this_lot
+                    
+                    # B.4 ★★★ (แก้ไข) สร้าง StockTransactionOut 1 แถว ต่อ 1 ล็อต ★★★
+                    new_stock_out = models.StockTransactionOut(
+                        out_transaction_date=datetime.utcnow(),
+                        out_quantity=quantity_from_this_lot, # ปริมาณที่เบิกจากล็อตนี้
+                        p_id=item.p_id,
+                        warehouse_id=warehouse_id,
+                        sales_order_item=item,      # เชื่อมกับ SO Item (item)
+                        consumed_from_lot=lot       # เชื่อมกับล็อต In (lot)
+                    )
+                    db.session.add(new_stock_out)
 
-                if quantity_to_sell > 0: raise Exception(f'เกิดข้อผิดพลาดในการคำนวณสต็อกสำหรับสินค้า {item.p_id}')
+                # B.5 ★★★ (ลบ) เช็ก `quantity_to_sell > 0` ที่ซ้ำซ้อนทิ้ง ★★★
+                # (เพราะเราเช็กด้วย `total_available` ก่อนหน้านี้แล้ว)
                 
+                # B.6 บันทึก COGS (เหมือนเดิม)
                 db.session.add(models.SalesOrderItemCost(so_item_id=item.so_item_id, cogs=cogs_for_item))
-                db.session.add(models.StockTransactionOut(
-                    out_transaction_date=datetime.utcnow(), p_id=item.p_id, out_quantity=item.quantity,
-                    warehouse_id=warehouse_id, so_item_id=item.so_item_id
-                ))
+                
+                # B.7 ★★★ (ลบ) การสร้าง StockTransactionOut แบบเดิม (ยอดรวม) ★★★
+                # (เราได้สร้าง new_stock_out ใน loop B.4 แทนแล้ว)
+                # db.session.add(models.StockTransactionOut(
+                #     out_transaction_date=datetime.utcnow(), p_id=item.p_id, out_quantity=item.quantity,
+                #     warehouse_id=warehouse_id, so_item_id=item.so_item_id
+                # ))
+                
+                # B.8 อัปเดต StockLevel (เหมือนเดิม)
                 stock_level_to_update = models.StockLevel.query.filter_by(p_id=item.p_id, warehouse_id=warehouse_id).first()
-                stock_level_to_update.quantity -= item.quantity
-            
+                if stock_level_to_update: # (เพิ่ม if ป้องกัน error)
+                    stock_level_to_update.quantity -= item.quantity
+                
+            # --- ( ★★★ จบส่วนที่แก้ไข ★★★ ) ---
+                
             db.session.commit()
             return jsonify(new_order.to_dict()), 201
 
@@ -1128,8 +1169,7 @@ def request_return(order_number):
 @bp.route('/warehouse/pending-storage-items', methods=['GET'])
 def get_pending_storage_items():
     try:
-        # 1. ดึง PO ที่รอจัดเก็บ
-        # (★★★ จุดที่แก้ไข ★★★) เปลี่ยนจาก status='Pending' เป็น receipt_status='Pending'
+        # 1. ดึง PO ที่รอจัดเก็บ (เหมือนเดิม)
         pending_pos = models.PurchaseOrder.query.filter_by(stock_status='Pending').all()
         po_list = []
         for po in pending_pos:
@@ -1139,6 +1179,7 @@ def get_pending_storage_items():
                 'source_name': po.farmer.f_name if po.farmer else 'N/A',
                 'order_date': po.created_date.isoformat() if po.created_date else None,
                 'total_price': po.b_total_price
+                # (PO ไม่ต้องมี warehouse_id เพราะรอผู้ใช้เลือก)
             })
 
         # 2. ดึง SO ที่ขอคืนและรอจัดเก็บ
@@ -1151,6 +1192,10 @@ def get_pending_storage_items():
                 'source_name': so.customer.F_name if so.customer else 'N/A',
                 'order_date': so.delivered_date.isoformat() if so.delivered_date else None,
                 'total_price': so.s_total_price,
+                
+                # --- ( ★★★ นี่คือบรรทัดที่เพิ่มเข้ามา ★★★ ) ---
+                'warehouse_id': so.warehouse_id 
+                # --- ( ★★★ จบส่วนที่เพิ่ม ★★★ ) ---
             })
         
         combined_list = po_list + so_return_list
