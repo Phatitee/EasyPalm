@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-    TreePalm, User, Package, Phone, AlertTriangle, TrendingUp, Loader
+    User, Package, Phone, AlertTriangle, TrendingUp, Loader
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -113,7 +113,7 @@ const MainPage = ({ products, error: productsError }) => {
         <div className="min-h-screen bg-gradient-to-b from-green-50 to-orange-50 p-6">
             <header className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-2">
-                    <TreePalm size={28} className="text-green-600" />
+                    <img src={process.env.PUBLIC_URL + '/Gemini_Generated_Image_y930e8y930e8y930-removebg-preview.png'} alt="EasyPalm Logo" className="h-10 w-10 object-contain" />
                     <span className="font-bold text-xl text-gray-800">EasyPalm</span>
                 </div>
                 <button className="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1" onClick={handlelogin}>
