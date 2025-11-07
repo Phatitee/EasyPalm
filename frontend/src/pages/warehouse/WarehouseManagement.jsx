@@ -1,3 +1,4 @@
+// frontend/src/pages/warehouse/WarehouseManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { Archive, PlusCircle, Edit, Trash2, Loader, ServerCrash, Inbox, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
 import WarehouseForm from '../../components/forms/WarehouseForm';
@@ -60,7 +61,8 @@ const WarehouseManagement = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://127.0.0.1:5000/warehouses', { cache: 'no-cache' });
+            const response = await fetch('http://127.0.0.1:5000/purchasing/warehouse-summary', { cache: 'no-cache' });
+            
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลคลังสินค้าได้');
             const data = await response.json();
             setWarehouses(data);
@@ -87,6 +89,25 @@ const WarehouseManagement = () => {
 
     const handleSaveWarehouse = async (warehouseData) => {
         const isEditMode = Boolean(warehouseData && warehouseData.warehouse_id && editingWarehouse);
+        
+        if (isEditMode) {
+            const newCapacity = parseFloat(warehouseData.capacity);
+            const originalWarehouse = warehouses.find(w => w.warehouse_id === warehouseData.warehouse_id);
+            
+            if (originalWarehouse) {
+                const currentStock = parseFloat(originalWarehouse.current_stock || 0);
+                
+                if (newCapacity < currentStock) {
+                    setResultDialog({ 
+                        isOpen: true, 
+                        type: 'error', 
+                        message: `ไม่สามารถลดความจุ (${newCapacity.toLocaleString()} kg) ให้ต่ำกว่าสต็อกปัจจุบัน (${currentStock.toLocaleString()} kg) ได้` 
+                    });
+                    return; 
+                }
+            }
+        }
+
         const url = isEditMode 
             ? `http://127.0.0.1:5000/warehouses/${warehouseData.warehouse_id}` 
             : 'http://127.0.0.1:5000/warehouses';
@@ -138,7 +159,6 @@ const WarehouseManagement = () => {
     };
 
     return (
-        // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <ConfirmDialog {...confirmDialog} onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} />
             <ResultDialog {...resultDialog} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} />
@@ -158,54 +178,49 @@ const WarehouseManagement = () => {
             </div>
 
             {loading ? (
-                 // ★★★ Dark Mode FIX: Loading State ★★★
-                 <div className="flex justify-center items-center h-64 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /></div>
+                <div className="flex justify-center items-center h-64 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /></div>
             ) : error ? (
-                // ★★★ Dark Mode FIX: Error State ★★★
                 <div className="flex flex-col justify-center items-center h-64 text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-800 p-10 rounded-lg shadow-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
             ) : warehouses.length === 0 ? (
-                // ★★★ Dark Mode FIX: Empty State Background and Text ★★★
                 <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl shadow-lg transition-colors duration-300">
                     <Inbox size={64} className="mx-auto text-gray-400 dark:text-gray-500" />
                     <h2 className="mt-4 text-2xl font-semibold text-gray-700 dark:text-gray-200">ไม่พบคลังสินค้า</h2>
                     <p className="mt-2 text-gray-500 dark:text-gray-400">ยังไม่มีข้อมูลคลังสินค้าในระบบ คลิก 'เพิ่มคลังสินค้า' เพื่อเริ่มต้น</p>
                 </div>
             ) : (
-                // ★★★ Dark Mode FIX: Table Container Background and Shadow ★★★
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                             {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
-                             <thead className="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">รหัส</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ชื่อคลังสินค้า</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ที่ตั้ง</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ความจุ (kg)</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">จัดการ</th>
+                // ★★★ MODIFY START: แก้ไขปัญหา Overflow โดยย้าย overflow-x-auto มาที่นี่ ★★★
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-x-auto transition-colors duration-300">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">รหัส</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ชื่อคลังสินค้า</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ที่ตั้ง</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">สินค้าปัจจุบัน (kg)</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ความจุ (kg)</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {warehouses.map(w => (
+                                <tr key={w.warehouse_id} className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150">
+                                    <td className="px-6 py-4 font-mono text-sm text-gray-700 dark:text-gray-300">{w.warehouse_id}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{w.warehouse_name}</td>
+                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{w.location}</td>
+                                    <td className="px-6 py-4 text-right font-medium text-blue-600 dark:text-blue-400">{parseFloat(w.current_stock || 0).toLocaleString()}</td>
+                                    <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(w.capacity).toLocaleString()}</td>
+                                    <td className="px-6 py-4 text-center">
+                                        <div className="flex justify-center items-center gap-4">
+                                            <button onClick={() => handleOpenModal(w)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"><Edit size={18} /></button>
+                                            <button onClick={() => handleDeleteClick(w)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"><Trash2 size={18} /></button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {warehouses.map(w => (
-                                    <tr key={w.warehouse_id} className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150">
-                                        {/* ★★★ Dark Mode FIX: Text Colors ★★★ */}
-                                        <td className="px-6 py-4 font-mono text-sm text-gray-700 dark:text-gray-300">{w.warehouse_id}</td>
-                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{w.warehouse_name}</td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{w.location}</td>
-                                        <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(w.capacity).toLocaleString()}</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex justify-center items-center gap-4">
-                                                <button onClick={() => handleOpenModal(w)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"><Edit size={18} /></button>
-                                                <button onClick={() => handleDeleteClick(w)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"><Trash2 size={18} /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+                // ★★★ MODIFY END ★★★
             )}
             
             {isModalOpen && (

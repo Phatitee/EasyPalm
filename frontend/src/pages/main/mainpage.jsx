@@ -161,18 +161,7 @@ const MainPage = ({ products, error: productsError }) => {
                 <PriceChart data={chartData} loading={chartLoading} error={chartError} />
             </div>
 
-            {/* ส่วนสรุปท้ายหน้า */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-orange-50 rounded-2xl shadow p-6 border border-orange-200">
-                    <div className="flex items-center mb-2">
-                         <AlertTriangle size={30} className="text-orange-700 mr-2" />
-                         <h3 className="font-bold text-orange-700">แจ้งเตือน</h3>
-                    </div>
-                    <p className="text-gray-700 text-sm pl-7">
-                        พรุ่งนี้ราคาการเกรด A อาจมีการปรับขึ้นเล็กน้อย โปรดติดตาม
-                    </p>
-                </div>
-            </div>
+
         </div>
     );
 };

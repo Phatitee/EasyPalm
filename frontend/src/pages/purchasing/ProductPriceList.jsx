@@ -25,6 +25,8 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     );
 }
 
+const MAX_ALLOWED_PRICE = 9999999.99;
+
 const ProductPriceList = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -33,6 +35,40 @@ const ProductPriceList = () => {
     const [newPrice, setNewPrice] = useState("");
     // ★★★ ADDED: Modal State ★★★
     const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'success', message: '' }); 
+
+    const handlePriceChange = (e) => {
+        const value = e.target.value;
+
+        // 1. อนุญาตให้เป็นค่าว่าง (ถ้าผู้ใช้ลบหมด)
+        if (value === "") {
+            setNewPrice("");
+            return;
+        }
+
+        // 2. ใช้ Regular Expression ตรวจสอบ
+        //    - อนุญาตเฉพาะตัวเลข
+        //    - อนุญาตให้มีจุดทศนิยม 1 จุด
+        //    - อนุญาตให้มีตัวเลขหลังจุดทศนิยมไม่เกิน 2 ตัว
+        const regex = /^\d*(\.\d{0,2})?$/;
+
+        if (regex.test(value)) {
+            // 3. ถ้า-v' regex, ตรวจสอบค่าสูงสุด (Overflow)
+            const numericValue = parseFloat(value);
+
+            if (numericValue > MAX_ALLOWED_PRICE) {
+                // ถ้าค่าเกิน max, ไม่ต้องอัปเดต state (ทำให้พิมพ์ต่อไม่ได้)
+                // หรือจะกำหนดเป็นค่า max ไปเลยก็ได้
+                // setNewPrice(String(MAX_ALLOWED_PRICE));
+                return;
+            }
+
+            // 4. ถ้าผ่านทุกเงื่อนไข, อัปเดต state
+            setNewPrice(value);
+        }
+        // ถ้าไม่ตรง regex (เช่น 1.234 หรือ 'abc')
+        // state จะไม่อัปเดต ทำให้ค่าในช่อง input ไม่เปลี่ยนแปลง
+    };
+
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -61,10 +97,18 @@ const ProductPriceList = () => {
 
     const handleSaveClick = async (productId) => {
         // ★★★ แก้ไข: เปลี่ยนจาก < 0 เป็น <= 0 และปรับปรุงข้อความ
-        if (newPrice === "" || parseFloat(newPrice) <= 0) { 
+        const priceToSave = parseFloat(newPrice);
+
+        if (newPrice === "" || isNaN(priceToSave) || priceToSave <= 0) {
             setResultDialog({ isOpen: true, type: 'error', message: "กรุณากรอกราคาที่ถูกต้อง (ราคาต้องมากกว่า 0)" });
             return;
         }
+
+        if (priceToSave > MAX_ALLOWED_PRICE) {
+            setResultDialog({ isOpen: true, type: 'error', message: `ราคาสูงสุดที่กรอกได้คือ ${MAX_ALLOWED_PRICE.toLocaleString()}` });
+            return;
+        }
+
         try {
             await axios.put(`http://127.0.0.1:5000/products/${productId}`, {
                 price_per_unit: parseFloat(newPrice),
@@ -143,8 +187,9 @@ const ProductPriceList = () => {
                                                     type="number"
                                                     step="0.01"
                                                     min="0.01" // ★★★ เพิ่ม: ป้องกันการใส่ค่า 0 หรือติดลบ
+                                                    max={MAX_ALLOWED_PRICE} 
                                                     value={newPrice}
-                                                    onChange={(e) => setNewPrice(e.target.value)}
+                                                    onChange={handlePriceChange}
                                                     className="block w-28 ml-auto p-2 text-right text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-green-500 focus:border-green-500
                                                                dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-green-400 dark:focus:border-green-400"
                                                     autoFocus

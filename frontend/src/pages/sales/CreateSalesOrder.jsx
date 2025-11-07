@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search, XCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
+// Helper Modal (ResultDialog) - (ไม่มีการแก้ไข)
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
     const isSuccess = type === 'success';
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up">
-                 <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
                     {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
                 </div>
                 <div className="mt-3 text-center">
@@ -24,7 +24,7 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     );
 }
 
-// --- Modal for order confirmation ---
+// --- Modal for order confirmation (ไม่มีการแก้ไข) ---
 const ConfirmOrderDialog = ({ isOpen, onClose, onConfirm, customer, warehouse, items, totalRevenue, totalProfit }) => {
     if (!isOpen) return null;
     return (
@@ -79,6 +79,9 @@ const ConfirmOrderDialog = ({ isOpen, onClose, onConfirm, customer, warehouse, i
     );
 };
 
+// ★★★ 1. กำหนดค่าสูงสุดสำหรับ "ราคา" ★★★
+const MAX_ALLOWED_PRICE = 9999999.99; // เช่น 10 ล้าน (ลบ 0.01)
+
 const CreateSalesOrder = () => {
     // Data states
     const [customers, setCustomers] = useState([]);
@@ -102,7 +105,7 @@ const CreateSalesOrder = () => {
 
     const customerSearchRef = useRef(null);
 
-    // Fetch initial data
+    // Fetch initial data (ไม่มีการแก้ไข)
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -136,7 +139,7 @@ const CreateSalesOrder = () => {
         fetchData();
     }, []);
 
-    // Effect to close dropdown when clicking outside
+    // Effect to close dropdown (ไม่มีการแก้ไข)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (customerSearchRef.current && !customerSearchRef.current.contains(event.target)) {
@@ -151,7 +154,8 @@ const CreateSalesOrder = () => {
     const availableProducts = selectedWarehouse
         ? stockLevels.filter(stock => stock.warehouse_id === selectedWarehouse && stock.quantity > 0)
         : [];
-    
+
+    // (handleAddItem, handleItemBlur, handleRemoveItem, ... ไม่มีการแก้ไข)
     const handleAddItem = (product) => {
         if (!product || !product.product_id) {
             setResultDialog({ isOpen: true, type: 'error', message: "เกิดข้อผิดพลาด: ข้อมูลสินค้าจาก API ไม่ถูกต้อง" });
@@ -167,40 +171,68 @@ const CreateSalesOrder = () => {
             p_id: product.product_id,
             p_name: product.product_name,
             quantity: '1',
-            price_per_unit: '0',
+            price_per_unit: '0', // ตั้งเป็น 0 เพื่อให้ผู้ใช้กรอก
             max_quantity: product.quantity,
             average_cost: product.average_cost || 0,
         };
-        
+
         setOrderItems(prevItems => [...prevItems, newItem]);
     };
 
+    // ★★★ 2. แทนที่ handleItemChange ทั้งหมดด้วยฟังก์ชันนี้ ★★★
     const handleItemChange = (productId, field, value) => {
-        if (value && !/^\d*\.?\d*$/.test(value)) {
+        // 1. อนุญาตให้เป็นค่าว่าง
+        if (value === "") {
+            setOrderItems(prevItems => prevItems.map(item =>
+                item.p_id === productId ? { ...item, [field]: "" } : item
+            ));
             return;
         }
 
-        setOrderItems(prevItems => prevItems.map(item => {
-            if (item.p_id === productId) {
-                let updatedValue = value;
-                if (field === 'quantity') {
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue) && numValue > item.max_quantity) {
-                        // ไม่ต้องแจ้ง alert แต่จำกัดค่า
-                        updatedValue = item.max_quantity.toString(); 
+        // 2. Regex สำหรับทศนิยมไม่เกิน 2 ตำแหน่ง
+        const regex = /^\d*(\.\d{0,2})?$/;
+
+        if (regex.test(value)) {
+            // 3. ถ้าผ่าน Regex, อัปเดต state แต่ต้องตรวจสอบเงื่อนไข
+            setOrderItems(prevItems => prevItems.map(item => {
+                if (item.p_id === productId) {
+                    const numericValue = parseFloat(value);
+
+                    // --- Logic for 'quantity' (คง logic เดิมไว้) ---
+                    if (field === 'quantity') {
+                        if (!isNaN(numericValue) && numericValue > item.max_quantity) {
+                            return { ...item, quantity: item.max_quantity.toString() }; // ตั้งเป็นค่า max
+                        }
                     }
+
+                    // --- Logic for 'price_per_unit' (เพิ่มใหม่) ---
+                    if (field === 'price_per_unit') {
+                        if (numericValue > MAX_ALLOWED_PRICE) {
+                            return item; // ไม่ต้องอัปเดต state (ค่าเกิน)
+                        }
+                    }
+
+                    // ถ้าผ่านหมด
+                    return { ...item, [field]: value };
                 }
-                return { ...item, [field]: updatedValue };
-            }
-            return item;
-        }));
+                return item;
+            }));
+        }
+        // ถ้าไม่ตรง regex (เช่น 1.234) state จะไม่อัปเดต
     };
 
     const handleItemBlur = (productId, field, value) => {
         setOrderItems(prevItems => prevItems.map(item => {
             if (item.p_id === productId) {
                 if (value.trim() === '' || value.trim() === '.') {
-                    return { ...item, [field]: '0' };
+                    // ถ้าเป็น "จำนวน" แล้วเบลอ ให้เป็น '1' (หรือ '0' ตาม logic เดิม)
+                    if (field === 'quantity') {
+                        return { ...item, [field]: '1' };
+                    }
+                    // ถ้าเป็น "ราคา" แล้วเบลอ ให้เป็น '0'
+                    if (field === 'price_per_unit') {
+                        return { ...item, [field]: '0' };
+                    }
                 }
             }
             return item;
@@ -211,7 +243,7 @@ const CreateSalesOrder = () => {
     const handleRemoveItem = (productId) => {
         setOrderItems(prevItems => prevItems.filter(item => item.p_id !== productId));
     };
-    
+
     const calculateTotals = () => {
         const totalRevenue = orderItems.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0)), 0);
         const totalCost = orderItems.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * item.average_cost), 0);
@@ -225,20 +257,44 @@ const CreateSalesOrder = () => {
         setIsCustomerListOpen(false);
     };
 
-    // Show confirm dialog before actual submit
+    // ★★★ 3. แก้ไข handleConfirmOrder ให้ตรวจสอบละเอียดขึ้น ★★★
     const handleConfirmOrder = () => {
         if (!selectedWarehouse || !selectedCustomer || orderItems.length === 0) {
             setResultDialog({ isOpen: true, type: 'error', message: 'กรุณากรอกข้อมูลให้ครบ' });
             return;
         }
-        if (orderItems.some(item => parseFloat(item.quantity || 0) <= 0 || parseFloat(item.price_per_unit || 0) <= 0)) {
-            setResultDialog({ isOpen: true, type: 'error', message: 'กรุณากรอกจำนวนและราคาของสินค้าทุกรายการให้ถูกต้อง (ต้องมากกว่า 0)' });
-            return;
+
+        // --- NEW VALIDATION LOOP ---
+        for (const item of orderItems) {
+            const quantity = parseFloat(item.quantity);
+            const price = parseFloat(item.price_per_unit);
+
+            // ตรวจสอบจำนวน (Quantity)
+            if (item.quantity === "" || isNaN(quantity) || quantity <= 0) {
+                setResultDialog({ isOpen: true, type: 'error', message: `กรุณากรอกจำนวนของ "${item.p_name}" ให้ถูกต้อง (ต้องมากกว่า 0)` });
+                return;
+            }
+            if (quantity > item.max_quantity) {
+                setResultDialog({ isOpen: true, type: 'error', message: `จำนวนของ "${item.p_name}" เกินสต็อก (สูงสุด ${item.max_quantity.toLocaleString()})` });
+                return;
+            }
+
+            // ตรวจสอบราคา (Price)
+            if (item.price_per_unit === "" || isNaN(price) || price <= 0) {
+                setResultDialog({ isOpen: true, type: 'error', message: `กรุณากรอกราคาของ "${item.p_name}" ให้ถูกต้อง (ต้องมากกว่า 0)` });
+                return;
+            }
+            if (price > MAX_ALLOWED_PRICE) {
+                setResultDialog({ isOpen: true, type: 'error', message: `ราคาของ "${item.p_name}" เกินกำหนด (สูงสุด ${MAX_ALLOWED_PRICE.toLocaleString()})` });
+                return;
+            }
         }
+        // --- END NEW VALIDATION ---
+
         setIsConfirmDialogOpen(true);
     };
 
-    // Actual submit after confirmation
+    // Actual submit after confirmation (ไม่มีการแก้ไข)
     const handleSubmitOrder = async () => {
         setIsConfirmDialogOpen(false);
         setIsSubmitting(true);
@@ -246,9 +302,9 @@ const CreateSalesOrder = () => {
             f_id: selectedCustomer,
             warehouse_id: selectedWarehouse,
             employee_id: user.e_id,
-            items: orderItems.map(({ p_id, quantity, price_per_unit }) => ({ 
-                p_id, 
-                quantity: parseFloat(quantity), 
+            items: orderItems.map(({ p_id, quantity, price_per_unit }) => ({
+                p_id,
+                quantity: parseFloat(quantity),
                 price_per_unit: parseFloat(price_per_unit),
             })),
         };
@@ -258,15 +314,15 @@ const CreateSalesOrder = () => {
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดที่ไม่รู้จัก');
-            
+
             setResultDialog({ isOpen: true, type: 'success', message: `สร้างใบสั่งขาย ${result.sale_order_number} สำเร็จ!` });
-            
+
             const stockRes = await fetch('http://127.0.0.1:5000/stock');
             setStockLevels(await stockRes.json());
 
             // Reset form
-            setSelectedCustomer(''); 
-            setOrderItems([]); 
+            setSelectedCustomer('');
+            setOrderItems([]);
             setCustomerSearch('');
 
         } catch (error) {
@@ -283,165 +339,156 @@ const CreateSalesOrder = () => {
     if (error) return <div className="flex flex-col justify-center items-center h-screen text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-800 rounded-lg p-10 shadow-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>;
 
     return (
-        // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <ResultDialog isOpen={resultDialog.isOpen} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} type={resultDialog.type} message={resultDialog.message} />
 
             <div className="text-center mb-8">
-                {/* ★★★ Dark Mode FIX: Header Text Colors ★★★ */}
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">สร้างใบสั่งขาย (Sales Order)</h1>
                 <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">กระบวนการสร้างใบสั่งขายสำหรับลูกค้า</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
                     {/* Main Info: Warehouse and Customer */}
-                    {/* ★★★ Dark Mode FIX: Card Background ★★★ */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-6">
-                        {/* ★★★ Dark Mode FIX: Card Header Text Color ★★★ */}
                         <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">ข้อมูลหลัก</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    {/* ★★★ Dark Mode FIX: Label Text Color and Icon ★★★ */}
-                                    <label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><Archive size={16} className="mr-2 text-gray-500"/>เลือกคลังสินค้าต้นทาง</label>
-                                    {/* ★★★ Dark Mode FIX: Select Input Styling ★★★ */}
-                                    <select value={selectedWarehouse} onChange={(e) => { setSelectedWarehouse(e.target.value); setOrderItems([]); }} className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
-                                        <option value="">-- กรุณาเลือกคลังสินค้า --</option>
-                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
-                                    </select>
-                                </div>
+                            <div>
+                                <label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><Archive size={16} className="mr-2 text-gray-500" />เลือกคลังสินค้าต้นทาง</label>
+                                <select value={selectedWarehouse} onChange={(e) => { setSelectedWarehouse(e.target.value); setOrderItems([]); }} className="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                                    <option value="">-- กรุณาเลือกคลังสินค้า --</option>
+                                    {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                                </select>
+                            </div>
                             <div ref={customerSearchRef}>
-                                {/* ★★★ Dark Mode FIX: Label Text Color and Icon ★★★ */}
-                                <label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><User size={16} className="mr-2 text-gray-500"/>ค้นหาลูกค้า</label>
+                                <label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><User size={16} className="mr-2 text-gray-500" />ค้นหาลูกค้า</label>
                                 <div className="relative">
-                                    {/* ★★★ Dark Mode FIX: Search Icon Color ★★★ */}
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
-                                    <input type="text" placeholder="พิมพ์เพื่อค้นหาลูกค้า..." value={customerSearch} 
+                                    <input type="text" placeholder="พิมพ์เพื่อค้นหาลูกค้า..." value={customerSearch}
                                         onFocus={() => setIsCustomerListOpen(true)}
                                         onChange={(e) => {
                                             setCustomerSearch(e.target.value);
                                             setSelectedCustomer('');
                                             setIsCustomerListOpen(true);
-                                        }} 
-                                        disabled={!selectedWarehouse} 
-                                        // ★★★ Dark Mode FIX: Search Input Styling ★★★
+                                        }}
+                                        disabled={!selectedWarehouse}
                                         className="w-full pl-10 pr-4 py-2 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:disabled:bg-gray-600 dark:placeholder-gray-400"
                                     />
                                     {isCustomerListOpen && selectedWarehouse && (
-                                        // ★★★ Dark Mode FIX: Dropdown List Styling ★★★
                                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">
                                             {filteredCustomers.length > 0 ? filteredCustomers.map(c => (
-                                                <div key={c.F_id} onClick={() => handleSelectCustomer(c)} className="p-2 cursor-pointer hover:bg-blue-100 dark:text-gray-100 dark:hover:bg-gray-600">
-                                                    {c.F_name}
-                                                </div>
-                                            )) : <div className="p-2 text-gray-500 dark:text-gray-400">ไม่พบลูกค้า</div>}
+                                                < div key = { c.F_id } onClick = {() => handleSelectCustomer(c)} className="p-2 cursor-pointer hover:bg-blue-100 dark:text-gray-100 dark:hover:bg-gray-600">
+                                            {c.F_name}
                                         </div>
-                                    )}
+                                    )) : <div className="p-2 text-gray-500 dark:text-gray-400">ไม่พบลูกค้า</div>}
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Available Products List */}
-                    {/* ★★★ Dark Mode FIX: Card Background ★★★ */}
-                    <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transition-opacity duration-500 ${!selectedWarehouse ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                         {/* ★★★ Dark Mode FIX: Card Header Text Color ★★★ */}
-                         <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าที่ขายได้</h2>
-                        <div className="max-h-64 overflow-y-auto pr-2">
-                             {/* ★★★ Dark Mode FIX: Empty State Text Colors ★★★ */}
-                             {!selectedWarehouse ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">กรุณาเลือกคลังสินค้าเพื่อดูสต็อก</p>
-                            : availableProducts.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">ไม่พบสินค้าในคลังนี้</p>
-                            : (
-                                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {availableProducts.map(p => (
-                                        <li key={p.product_id} className="flex justify-between items-center py-3">
-                                            <div>
-                                                {/* ★★★ Dark Mode FIX: Product Text Colors ★★★ */}
-                                                <p className="font-semibold text-gray-800 dark:text-gray-100">{p.product_name}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือ: <span className="font-mono text-blue-600">{p.quantity.toLocaleString()} kg</span></p>
-                                            </div>
-                                            <button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.product_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100">
-                                                <PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.product_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
                             )}
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                {/* Order Summary */}
-                <div className="lg:col-span-1">
-                    {/* ★★★ Dark Mode FIX: Summary Card Background ★★★ */}
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8">
-                        {/* ★★★ Dark Mode FIX: Card Header Text Color ★★★ */}
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart/>สรุปรายการขาย</h2>
-                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
-                             {/* ★★★ Dark Mode FIX: Empty State Text Color ★★★ */}
-                             {orderItems.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-12">ยังไม่มีสินค้าในรายการ</p>
-                            : orderItems.map(item => {
-                                const lineRevenue = parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0);
-                                const lineProfit = lineRevenue - (parseFloat(item.quantity || 0) * item.average_cost);
-                                return (
-                                <div key={item.p_id} className="border-b border-gray-200 dark:border-gray-700 pb-3">
-                                    <div className="flex justify-between items-start">
-                                        <p className="font-semibold dark:text-gray-100">{item.p_name}</p>
-                                        {/* ★★★ Dark Mode FIX: Remove Button Color ★★★ */}
-                                        <button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"><Trash2 size={16}/></button>
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">สูงสุด: {item.max_quantity.toLocaleString()} kg | ต้นทุน: {item.average_cost.toFixed(2)} บ.</p>
-                                    {/* เพิ่มหัวข้อราคา/หน่วย */}
-                                    <div className="flex gap-2 mb-1">
-                                        <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
-                                        <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity}
-                                            onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)}
-                                            onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)}
-                                            className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
-                                        <input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit}
-                                            onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)}
-                                            onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)}
-                                            className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
-                                    </div>
-                                    <div className="flex justify-between text-sm mt-1">
-                                        {/* ★★★ Dark Mode FIX: Profit Text Color ★★★ */}
-                                        <span className={`font-semibold ${lineProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>กำไร: {lineProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
-                                        {/* ★★★ Dark Mode FIX: Total Revenue Text Color ★★★ */}
-                                        <span className="font-semibold dark:text-gray-200">รวม: {lineRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
-                                    </div>
-                                </div>
-                            )})}
-                        </div>
-                        {orderItems.length > 0 && (
-                            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 dark:border-gray-700">
-                                {/* ★★★ Dark Mode FIX: Total Revenue Text Color ★★★ */}
-                                <div className="flex justify-between items-center text-lg mb-2"><span className="font-semibold text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
-                                 {/* ★★★ Dark Mode FIX: Profit Text Color ★★★ */}
-                                 <div className={`flex justify-between items-center text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}><span className="flex items-center gap-2"><TrendingUp/>กำไรโดยประมาณ</span><span>{totalProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
-                                <button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                                    {isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}
-                                    {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งขาย'}
-                                </button>
-                            </div>
-                        )}
+
+                {/* Available Products List */}
+                <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transition-opacity duration-500 ${!selectedWarehouse ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าที่ขายได้</h2>
+                    <div className="max-h-64 overflow-y-auto pr-2">
+                        {!selectedWarehouse ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">กรุณาเลือกคลังสินค้าเพื่อดูสต็อก</p>
+                            : availableProducts.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">ไม่พบสินค้าในคลังนี้</p>
+                                : (
+                                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {availableProducts.map(p => (
+                                            <li key={p.product_id} className="flex justify-between items-center py-3">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-100">{p.product_name}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือ: <span className="font-mono text-blue-600">{p.quantity.toLocaleString()} kg</span></p>
+                                                </div>
+                                                <button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.product_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100">
+                                                    <PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.product_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                     </div>
                 </div>
             </div>
 
-            {/* Modal for order confirmation */}
-            <ConfirmOrderDialog
-                isOpen={isConfirmDialogOpen}
-                onClose={() => setIsConfirmDialogOpen(false)}
-                onConfirm={handleSubmitOrder}
-                customer={customers.find(c => c.F_id === selectedCustomer)}
-                warehouse={warehouses.find(w => w.warehouse_id === selectedWarehouse)}
-                items={orderItems}
-                totalRevenue={totalRevenue}
-                totalProfit={totalProfit}
-            />
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart />สรุปรายการขาย</h2>
+                    <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                        {orderItems.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-12">ยังไม่มีสินค้าในรายการ</p>
+                            : orderItems.map(item => {
+                                const lineRevenue = parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0);
+                                const lineProfit = lineRevenue - (parseFloat(item.quantity || 0) * item.average_cost);
+                                return (
+                                    <div key={item.p_id} className="border-b border-gray-200 dark:border-gray-700 pb-3">
+                                        <div className="flex justify-between items-start">
+                                            <p className="font-semibold dark:text-gray-100">{item.p_name}</p>
+                                            <button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"><Trash2 size={16} /></button>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">สูงสุด: {item.max_quantity.toLocaleString()} kg | ต้นทุน: {item.average_cost.toFixed(2)} บ.</p>
+                                        <div className="flex gap-2 mb-1">
+                                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
+                                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {/* ★★★ 4. เพิ่ม max attribute ให้ Input ★★★ */}
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                placeholder="จำนวน"
+                                                value={item.quantity}
+                                                onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)}
+                                                onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)}
+                                                className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                                                max={item.max_quantity}
+                                            />
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                placeholder="ราคา/หน่วย"
+                                                value={item.price_per_unit}
+                                                onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)}
+                                                onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)}
+                                                _ className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                                                max={MAX_ALLOWED_PRICE}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-sm mt-1">
+                                            <span className={`font-semibold ${lineProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>กำไร: {lineProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
+                                            <span className="font-semibold dark:text-gray-200">รวม: {lineRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                    </div>
+                    {orderItems.length > 0 && (
+                        <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 dark:border-gray-700">
+                            <div className="flex justify-between items-center text-lg mb-2"><span className="font-semibold text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
+                            <div className={`flex justify-between items-center text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}><span className="flex items-center gap-2"><TrendingUp />กำไรโดยประมาณ</span><span>{totalProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
+                            <button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                {isSubmitting ? <Loader className="animate-spin" /> : <CheckCircle />}
+                                {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งขาย'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
+
+            {/* Modal for order confirmation */ }
+    <ConfirmOrderDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={handleSubmitOrder}
+        T customer={customers.find(c => c.F_id === selectedCustomer)}
+        warehouse={warehouses.find(w => w.warehouse_id === selectedWarehouse)}
+        items={orderItems}
+        totalRevenue={totalRevenue}
+        totalProfit={totalProfit}
+    />
+        </div >
     );
 };
 

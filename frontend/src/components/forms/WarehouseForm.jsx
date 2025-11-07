@@ -43,11 +43,19 @@ const WarehouseForm = ({ initialData, onSave, onClose }) => {
         onSave(warehouse);
     };
 
+    // ★★★ MODIFY START: แก้ไขสไตล์ของ Input ให้รองรับ Light/Dark Mode Disabled ★★★
+    
     // Helper class for Input styling
-    const inputClasses = (disabled) => `w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 
-                                      dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${disabled ? 'disabled:bg-gray-600 disabled:text-gray-400' : ''}`;
-    const plainInputClasses = (disabled) => `w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 
-                                            dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${disabled ? 'disabled:bg-gray-600 disabled:text-gray-400' : ''}`;
+    const inputClasses = (disabled) => `w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500
+                                         bg-white text-gray-900 border-gray-300
+                                         dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 
+                                         ${disabled ? 'disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-600 dark:disabled:text-gray-400' : ''}`;
+    
+    const plainInputClasses = (disabled) => `w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500
+                                              bg-white text-gray-900 border-gray-300
+                                              dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100
+                                              ${disabled ? 'disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-600 dark:disabled:text-gray-400' : ''}`;
+    // ★★★ MODIFY END ★★★
 
 
     return (
@@ -82,7 +90,7 @@ const WarehouseForm = ({ initialData, onSave, onClose }) => {
                                     onChange={handleChange}
                                     disabled={isEditMode}
                                     placeholder="เช่น W003"
-                                    className={inputClasses(isEditMode)}
+                                    className={inputClasses(isEditMode)} // <--- ใช้คลาสที่แก้ไขแล้ว
                                 />
                             </div>
                         </div>
@@ -98,7 +106,7 @@ const WarehouseForm = ({ initialData, onSave, onClose }) => {
                                     value={warehouse.warehouse_name}
                                     onChange={handleChange}
                                     placeholder="เช่น คลังสินค้าภาคใต้"
-                                    className={inputClasses(false)}
+                                    className={inputClasses(false)} // <--- ใช้คลาสที่แก้ไขแล้ว
                                 />
                             </div>
                         </div>
@@ -115,7 +123,7 @@ const WarehouseForm = ({ initialData, onSave, onClose }) => {
                                         value={warehouse.location}
                                         onChange={handleChange}
                                         placeholder="เช่น อ.เมือง จ.สุราษฎร์ธานี"
-                                        className={inputClasses(false)}
+                                        className={inputClasses(false)} // <--- ใช้คลาสที่แก้ไขแล้ว
                                     />
                                 </div>
                             </div>
@@ -128,7 +136,7 @@ const WarehouseForm = ({ initialData, onSave, onClose }) => {
                                     value={warehouse.capacity}
                                     onChange={handleChange}
                                     placeholder="เช่น 100000"
-                                    className={plainInputClasses(false)}
+                                    className={plainInputClasses(false)} // <--- ใช้คลาสที่แก้ไขแล้ว
                                 />
                             </div>
                         </div>
