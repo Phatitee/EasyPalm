@@ -5,11 +5,11 @@ import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, Chec
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
 
-    const formattedDate = date 
-        ? new Date(date).toLocaleString('th-TH', {
+    const formattedDate = date
+        ? new Date(date + 'Z').toLocaleString('th-TH', {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
-          })
+        })
         : '';
 
     return (
@@ -74,12 +74,15 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                             <div>
                                 {/* ★★★ Dark Mode FIX: Title Text Color and Icon ★★★ */}
                                 <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                                    <Hash className="mr-2 text-blue-600 dark:text-blue-400"/>
+                                    <Hash className="mr-2 text-blue-600 dark:text-blue-400" />
                                     ใบสั่งขาย: {order.sale_order_number}
                                 </h2>
                                 {/* ★★★ Dark Mode FIX: Subtitle Text Color ★★★ */}
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}
+                                    วันที่สร้าง: {new Date(order.created_date + 'Z').toLocaleString('th-TH', {
+                                        year: 'numeric', month: 'long', day: 'numeric',
+                                        hour: '2-digit', minute: '2-digit'
+                                    })}
                                 </p>
                             </div>
                             {/* ★★★ Dark Mode FIX: Close Button Color ★★★ */}
@@ -91,13 +94,13 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                             <div className="space-y-6">
                                 <div>
                                     {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
-                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><User className="mr-2"/>ข้อมูลลูกค้า</h3>
+                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><User className="mr-2" />ข้อมูลลูกค้า</h3>
                                     {/* ★★★ Dark Mode FIX: Customer Info Text Color ★★★ */}
                                     <div className="text-gray-800 dark:text-gray-100 pl-8"><p>{order.customer_name}</p></div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded-lg">
                                     {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
-                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><ShoppingCart className="mr-2"/>รายการสินค้า</h3>
+                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><ShoppingCart className="mr-2" />รายการสินค้า</h3>
                                     {/* ★★★ Dark Mode FIX: Table Border and Divider ★★★ */}
                                     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -127,12 +130,12 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
                                     <div className="flex justify-end items-center gap-4">
                                         <div className="flex flex-col items-end">
-                                             {/* ★★★ Dark Mode FIX: Status Text Color ★★★ */}
+                                            {/* ★★★ Dark Mode FIX: Status Text Color ★★★ */}
                                             <span className="text-sm text-gray-600 dark:text-gray-400">สถานะ</span>
                                             {getStatusChip(order.payment_status)}
                                         </div>
                                         <div className="flex flex-col items-end">
-                                             {/* ★★★ Dark Mode FIX: Total Price Text Color ★★★ */}
+                                            {/* ★★★ Dark Mode FIX: Total Price Text Color ★★★ */}
                                             <span className="text-sm text-gray-600 dark:text-gray-400">ยอดรวมทั้งสิ้น</span>
                                             <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{parseFloat(order.s_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
                                         </div>
@@ -144,13 +147,13 @@ const ShipmentDetails = ({ orderId, onClose }) => {
                             {/* ★★★ Dark Mode FIX: Action History Card Background ★★★ */}
                             <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border border-gray-100 dark:border-gray-600">
                                 {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
-                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center"><Calendar className="mr-2"/>ประวัติการดำเนินการ</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center"><Calendar className="mr-2" />ประวัติการดำเนินการ</h3>
                                 {/* ★★★ Dark Mode FIX: Timeline Border Color ★★★ */}
                                 <div className="space-y-2 pl-8 border-l-2 border-gray-200 dark:border-gray-600">
-                                    <ActionDetail icon={<User size={16} className="mr-3 text-blue-500"/>} label="สร้างโดย" person={order.created_by_name} date={order.created_date} />
-                                    <ActionDetail icon={<Package size={16} className="mr-3 text-purple-500"/>} label="เบิกสินค้าโดย" person={order.shipped_by_name} date={order.shipped_date} />
-                                    <ActionDetail icon={<Truck size={16} className="mr-3 text-orange-500"/>} label="ยืนยันจัดส่งโดย" person={order.delivered_by_name} date={order.delivered_date} />
-                                    <ActionDetail icon={<CheckSquare size={16} className="mr-3 text-green-500"/>} label="ยืนยันรับเงินโดย" person={order.paid_by_name} date={order.paid_date} />
+                                    <ActionDetail icon={<User size={16} className="mr-3 text-blue-500" />} label="สร้างโดย" person={order.created_by_name} date={order.created_date} />
+                                    <ActionDetail icon={<Package size={16} className="mr-3 text-purple-500" />} label="เบิกสินค้าโดย" person={order.shipped_by_name} date={order.shipped_date} />
+                                    <ActionDetail icon={<Truck size={16} className="mr-3 text-orange-500" />} label="ยืนยันจัดส่งโดย" person={order.delivered_by_name} date={order.delivered_date} />
+                                    <ActionDetail icon={<CheckSquare size={16} className="mr-3 text-green-500" />} label="ยืนยันรับเงินโดย" person={order.paid_by_name} date={order.paid_date} />
                                 </div>
                             </div>
                         </div>

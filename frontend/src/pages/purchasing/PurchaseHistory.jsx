@@ -134,7 +134,14 @@ const PurchaseHistory = () => {
                                     >
                                         <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{order.purchase_order_number}</td>
                                         <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{order.farmer_name}</td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{new Date(order.b_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{new Date((order.order_date || order.b_date) + 'Z').toLocaleString('th-TH', {
+        year: '2-digit', // '25
+        month: '2-digit', // '11
+        day: '2-digit',   // '08
+        hour: '2-digit',  // '00
+        minute: '2-digit' // '00
+    })}
+</td>
                                         <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(order.b_total_price).toLocaleString('th-TH')} บาท</td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex justify-center items-center gap-2">

@@ -32,7 +32,7 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up">
-                 <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
                     {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
                 </div>
                 <div className="mt-3 text-center">
@@ -84,7 +84,7 @@ const SoReceipts = () => {
         try {
             const response = await fetch(`http://127.0.0.1:5000/salesorders/${orderNumber}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
-            
+
             const data = await response.json();
             setSelectedOrder(data);
             setIsDetailModalOpen(true);
@@ -94,7 +94,7 @@ const SoReceipts = () => {
     };
 
     const handleConfirmPayment = (e, orderNumber) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         setConfirmDialog({
             isOpen: true,
             orderNumber: orderNumber,
@@ -119,7 +119,7 @@ const SoReceipts = () => {
             if (!response.ok) {
                 throw new Error(result.message || 'เกิดข้อผิดพลาดในการยืนยัน');
             }
-            
+
             setResultDialog({ isOpen: true, type: 'success', message: result.message });
             fetchPendingPayments();
 
@@ -144,15 +144,15 @@ const SoReceipts = () => {
     return (
         // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-            <ConfirmDialog 
-                isOpen={confirmDialog.isOpen} 
-                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} 
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
                 onConfirm={handleExecuteConfirmPayment}
                 title={confirmDialog.title}
                 message={confirmDialog.message}
             />
-            <ResultDialog 
-                isOpen={resultDialog.isOpen} 
+            <ResultDialog
+                isOpen={resultDialog.isOpen}
                 onClose={() => setResultDialog({ ...resultDialog, isOpen: false })}
                 type={resultDialog.type}
                 message={resultDialog.message}
@@ -177,7 +177,7 @@ const SoReceipts = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                             {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
+                            {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">เลขที่ SO</th>
@@ -190,15 +190,19 @@ const SoReceipts = () => {
                             {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {orders.map((order) => (
-                                    <tr 
-                                        key={order.sale_order_number} 
+                                    <tr
+                                        key={order.sale_order_number}
                                         onDoubleClick={() => handleRowDoubleClick(order.sale_order_number)}
                                         className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150"
                                     >
                                         {/* ★★★ Dark Mode FIX: Text Colors ★★★ */}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{order.sale_order_number}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{order.customer_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.s_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.s_date + 'Z').toLocaleString('th-TH', {
+                                            year: '2-digit', month: '2-digit', day: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        })}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold text-right dark:text-gray-200">
                                             {parseFloat(order.s_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                                         </td>
@@ -225,9 +229,9 @@ const SoReceipts = () => {
             )}
             {/* Modal should be here, and it's correctly placed */}
             {isDetailModalOpen && (
-                <ReceiptDetail 
-                    order={selectedOrder} 
-                    onClose={() => setIsDetailModalOpen(false)} 
+                <ReceiptDetail
+                    order={selectedOrder}
+                    onClose={() => setIsDetailModalOpen(false)}
                 />
             )}
         </div>

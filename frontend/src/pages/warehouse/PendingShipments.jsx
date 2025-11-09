@@ -32,7 +32,7 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up">
-                 <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
                     {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
                 </div>
                 <div className="mt-3 text-center">
@@ -106,7 +106,7 @@ const PendingShipments = () => {
             if (!response.ok) {
                 throw new Error(result.message || 'เกิดข้อผิดพลาดในการยืนยัน');
             }
-            
+
             setResultDialog({ isOpen: true, type: 'success', message: result.message });
             fetchPendingOrders();
 
@@ -135,15 +135,15 @@ const PendingShipments = () => {
     return (
         // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-             <ConfirmDialog 
-                isOpen={confirmDialog.isOpen} 
-                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} 
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
                 onConfirm={handleExecuteConfirmShipment}
                 title={confirmDialog.title}
                 message={confirmDialog.message}
             />
-            <ResultDialog 
-                isOpen={resultDialog.isOpen} 
+            <ResultDialog
+                isOpen={resultDialog.isOpen}
                 onClose={() => setResultDialog({ ...resultDialog, isOpen: false })}
                 type={resultDialog.type}
                 message={resultDialog.message}
@@ -181,7 +181,7 @@ const PendingShipments = () => {
                             {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {orders.map((order) => (
-                                    <tr 
+                                    <tr
                                         key={order.sale_order_number}
                                         onDoubleClick={() => handleRowDoubleClick(order.sale_order_number)}
                                         className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150"
@@ -189,7 +189,11 @@ const PendingShipments = () => {
                                         {/* ★★★ Dark Mode FIX: Text Colors ★★★ */}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{order.sale_order_number}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{order.customer_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.s_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.s_date + 'Z').toLocaleString('th-TH', {
+                                            year: '2-digit', month: '2-digit', day: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        })}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-800 dark:text-gray-200">
                                             {parseFloat(order.s_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                                         </td>
@@ -214,11 +218,11 @@ const PendingShipments = () => {
                     </div>
                 </div>
             )}
-            
+
             {isDetailModalOpen && (
                 <ShipmentDetails
-                    orderId={selectedOrderId} 
-                    onClose={() => setIsDetailModalOpen(false)} 
+                    orderId={selectedOrderId}
+                    onClose={() => setIsDetailModalOpen(false)}
                 />
             )}
         </div>

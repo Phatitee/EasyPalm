@@ -754,7 +754,7 @@ def confirm_return():
                 # เช่น คืน 10 กก. จากที่ขายไป 100 กก. -> 0.1 (10%)
                 return_proportion = item.quantity / total_sold_quantity 
 
-            # C.3 วนลูปคืนยอดกลับเข้า StockTransactionIn แต่ละล็อตตามสัดส่วน
+            # C.3 วนลูปคืนยอดกลับเข้า StockTransactionIn แต่ละล็อตตามสัดส่วน    
             for stock_out_row in related_stock_outs:
                 
                 # ค้นหาล็อต In เดิม (ง่ายมากเพราะเราเก็บ FK ไว้)

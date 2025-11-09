@@ -4,11 +4,11 @@ import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign } fr
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
-    const formattedDate = date 
-        ? new Date(date).toLocaleString('th-TH', {
+    const formattedDate = date
+        ? new Date(date + 'Z').toLocaleString('th-TH', {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
-          })
+        })
         : '';
     return (
         // ★★★ Dark Mode FIX: Container Text Color ★★★
@@ -72,10 +72,14 @@ const StorageDetail = ({ orderId, onClose }) => {
                             <div>
                                 {/* ★★★ Dark Mode FIX: Title Text Color and Icon ★★★ */}
                                 <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                                    <Hash className="mr-2 text-purple-600 dark:text-purple-400"/>ใบสั่งซื้อ: {order.purchase_order_number}
+                                    <Hash className="mr-2 text-purple-600 dark:text-purple-400" />ใบสั่งซื้อ: {order.purchase_order_number}
                                 </h2>
                                 {/* ★★★ Dark Mode FIX: Subtitle Text Color ★★★ */}
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">วันที่สร้าง: {new Date(order.created_date + 'Z').toLocaleString('th-TH', {
+                                    year: 'numeric', month: 'long', day: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                })}
+                                </p>
                             </div>
                             {/* ★★★ Dark Mode FIX: Close Button Color ★★★ */}
                             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><X size={28} /></button>
@@ -86,13 +90,13 @@ const StorageDetail = ({ orderId, onClose }) => {
                             <div className="space-y-6">
                                 <div>
                                     {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
-                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><User className="mr-2"/>ข้อมูลเกษตรกร</h3>
+                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><User className="mr-2" />ข้อมูลเกษตรกร</h3>
                                     {/* ★★★ Dark Mode FIX: Customer Info Text Color ★★★ */}
                                     <div className="text-gray-800 dark:text-gray-100 pl-8"><p>{order.farmer_name}</p></div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded-lg">
                                     {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
-                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><ShoppingCart className="mr-2"/>รายการสินค้า</h3>
+                                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center"><ShoppingCart className="mr-2" />รายการสินค้า</h3>
                                     {/* ★★★ Dark Mode FIX: Table Border and Divider ★★★ */}
                                     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -138,12 +142,12 @@ const StorageDetail = ({ orderId, onClose }) => {
                             {/* ★★★ Dark Mode FIX: Action History Card Background ★★★ */}
                             <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border border-gray-100 dark:border-gray-600">
                                 {/* ★★★ Dark Mode FIX: Section Header Text Color ★★★ */}
-                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center"><Calendar className="mr-2"/>ประวัติการดำเนินการ</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center"><Calendar className="mr-2" />ประวัติการดำเนินการ</h3>
                                 {/* ★★★ Dark Mode FIX: Timeline Border Color ★★★ */}
                                 <div className="space-y-2 pl-8 border-l-2 border-gray-200 dark:border-gray-600">
-                                    <ActionDetail icon={<User size={16} className="mr-3 text-blue-500"/>} label="สร้างโดย" person={order.created_by_name} date={order.created_date} />
-                                    <ActionDetail icon={<DollarSign size={16} className="mr-3 text-green-500"/>} label="จ่ายเงินโดย" person={order.paid_by_name} date={order.paid_date} />
-                                    <ActionDetail icon={<Package size={16} className="mr-3 text-orange-500"/>} label="รับเข้าคลังโดย" person={order.received_by_name} date={order.received_date} />
+                                    <ActionDetail icon={<User size={16} className="mr-3 text-blue-500" />} label="สร้างโดย" person={order.created_by_name} date={order.created_date} />
+                                    <ActionDetail icon={<DollarSign size={16} className="mr-3 text-green-500" />} label="จ่ายเงินโดย" person={order.paid_by_name} date={order.paid_date} />
+                                    <ActionDetail icon={<Package size={16} className="mr-3 text-orange-500" />} label="รับเข้าคลังโดย" person={order.received_by_name} date={order.received_date} />
                                 </div>
                             </div>
                         </div>

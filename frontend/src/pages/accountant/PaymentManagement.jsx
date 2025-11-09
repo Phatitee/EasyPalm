@@ -33,7 +33,7 @@ const ResultDialog = ({ isOpen, onClose, type, message }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-gray-900 dark:bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up">
-                 <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
                     {isSuccess ? <CheckCircle className="h-6 w-6 text-green-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
                 </div>
                 <div className="mt-3 text-center">
@@ -65,16 +65,16 @@ const SuccessPrintDialog = ({ isOpen, onClose, onPrint, orderNumber }) => {
                     <p className="mt-1 text-sm text-gray-500">คุณต้องการพิมพ์ใบเสร็จหรือไม่?</p>
                 </div>
                 <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button 
-                        onClick={onClose} 
-                        type="button" 
+                    <button
+                        onClick={onClose}
+                        type="button"
                         className="w-full px-4 py-2.5 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                     >
                         ปิด
                     </button>
-                    <button 
-                        onClick={onPrint} 
-                        type="button" 
+                    <button
+                        onClick={onPrint}
+                        type="button"
                         className="w-full px-4 py-2.5 text-white rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
                     >
                         <Printer size={18} />
@@ -90,14 +90,14 @@ const SuccessPrintDialog = ({ isOpen, onClose, onPrint, orderNumber }) => {
 const PrintablePaymentReceipt = React.forwardRef(({ order }, ref) => {
     if (!order) return null;
     const today = new Date();
-    
+
     return (
         <div ref={ref} className="p-8 font-sans">
             <header className="flex justify-between items-center pb-4 border-b-2 border-black">
                 <h1 className="text-3xl font-bold">EasyPalm Co., Ltd.</h1>
                 <h2 className="text-4xl font-bold text-gray-800">ใบเสร็จจ่ายเงิน</h2>
             </header>
-            
+
             <section className="my-6 grid grid-cols-2 gap-4">
                 <div>
                     <h3 className="text-md font-semibold mb-1">ชำระเงินให้:</h3>
@@ -105,19 +105,17 @@ const PrintablePaymentReceipt = React.forwardRef(({ order }, ref) => {
                 </div>
                 <div className="text-right">
                     <p><strong>เลขที่ใบสั่งซื้อ:</strong> {order?.purchase_order_number ?? 'N/A'}</p>
-                    <p><strong>วันที่สั่งซื้อ:</strong> {new Date(order?.b_date).toLocaleDateString('th-TH', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
+                    <p><strong>วันที่สั่งซื้อ:</strong> {new Date((order?.b_date || order?.created_date) + 'Z').toLocaleString('th-TH', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
                     })}</p>
-                    <p><strong>วันที่จ่ายเงิน:</strong> {new Date(order?.paid_date || today).toLocaleDateString('th-TH', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    })}</p>
+                    {/* <p><strong>วันที่สั่งซื้อ:</strong> {new Date((order?.b_date || order?.created_date) + 'Z').toLocaleString('th-TH', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    })}</p> */}
                 </div>
             </section>
-            
+
             <table className="w-full text-left border-collapse my-8">
                 <thead>
                     <tr className="bg-gray-100">
@@ -136,9 +134,9 @@ const PrintablePaymentReceipt = React.forwardRef(({ order }, ref) => {
                             <td className="p-2 border text-right">{item?.quantity?.toLocaleString() ?? 0}</td>
                             <td className="p-2 border text-right">{item?.price_per_unit?.toFixed(2) ?? '0.00'}</td>
                             <td className="p-2 border text-right">
-                                {(item?.quantity * item?.price_per_unit)?.toLocaleString(undefined, { 
-                                    minimumFractionDigits: 2, 
-                                    maximumFractionDigits: 2 
+                                {(item?.quantity * item?.price_per_unit)?.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
                                 }) ?? '0.00'}
                             </td>
                         </tr>
@@ -148,20 +146,20 @@ const PrintablePaymentReceipt = React.forwardRef(({ order }, ref) => {
                     <tr className="font-bold">
                         <td colSpan="4" className="p-2 border text-right">ยอดเงินที่จ่าย</td>
                         <td className="p-2 border text-right text-lg">
-                            {order?.b_total_price?.toLocaleString(undefined, { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
+                            {order?.b_total_price?.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
                             }) ?? '0.00'} บาท
                         </td>
                     </tr>
                 </tfoot>
             </table>
-            
+
             <div className="my-6 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm"><strong>สถานะ:</strong> <span className="text-green-600 font-semibold">✓ จ่ายเงินแล้ว</span></p>
                 <p className="text-sm mt-1"><strong>ผู้ยืนยันการจ่ายเงิน:</strong> {order?.paid_by_name || 'N/A'}</p>
             </div>
-            
+
             <footer className="mt-12 pt-4 border-t text-xs text-gray-500">
                 <div className="grid grid-cols-2 gap-4 mt-8 text-center">
                     <div>
@@ -193,7 +191,7 @@ const PaymentManagement = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, orderNumber: null, title: '', message: '' });
     const [resultDialog, setResultDialog] = useState({ isOpen: false, type: 'success', message: '' });
-    
+
     // ★★★★★ States และ Refs สำหรับการพิมพ์ ★★★★★
     const [completedPayment, setCompletedPayment] = useState(null);
     const receiptRef = useRef(null);
@@ -203,7 +201,7 @@ const PaymentManagement = () => {
         setError(null);
         try {
             const response = await fetch('http://127.0.0.1:5000/purchaseorders?status=unpaid', {
-                cache: 'no-cache' 
+                cache: 'no-cache'
             });
 
             if (!response.ok) {
@@ -232,10 +230,10 @@ const PaymentManagement = () => {
         },
         onPrintError: (errorLocation, error) => {
             console.error('Print error:', errorLocation, error);
-            setResultDialog({ 
-                isOpen: true, 
-                type: 'error', 
-                message: 'เกิดข้อผิดพลาดในการพิมพ์ กรุณาลองใหม่อีกครั้ง' 
+            setResultDialog({
+                isOpen: true,
+                type: 'error',
+                message: 'เกิดข้อผิดพลาดในการพิมพ์ กรุณาลองใหม่อีกครั้ง'
             });
         }
     });
@@ -246,16 +244,16 @@ const PaymentManagement = () => {
             handlePrint();
         } else {
             console.error("Print Error: Missing ref or payment data");
-            setResultDialog({ 
-                isOpen: true, 
-                type: 'error', 
-                message: 'ไม่สามารถพิมพ์ได้: ไม่พบข้อมูลใบเสร็จ' 
+            setResultDialog({
+                isOpen: true,
+                type: 'error',
+                message: 'ไม่สามารถพิมพ์ได้: ไม่พบข้อมูลใบเสร็จ'
             });
         }
     };
 
     const handleMarkAsPaid = (e, orderNumber) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         setConfirmDialog({
             isOpen: true,
             orderNumber: orderNumber,
@@ -263,7 +261,7 @@ const PaymentManagement = () => {
             message: `คุณต้องการยืนยันการจ่ายเงินสำหรับใบสั่งซื้อเลขที่ ${orderNumber} ใช่หรือไม่?`
         });
     };
-    
+
     const handleExecuteMarkAsPaid = async () => {
         const orderNumber = confirmDialog.orderNumber;
         setPayingOrderId(orderNumber);
@@ -279,15 +277,15 @@ const PaymentManagement = () => {
             if (!response.ok) {
                 throw new Error(result.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
             }
-            
+
             // ★★★★★ ดึงข้อมูลใบสั่งซื้อที่สมบูรณ์เพื่อพิมพ์ ★★★★★
             const detailResponse = await fetch(`http://127.0.0.1:5000/purchaseorders/${orderNumber}`);
             if (detailResponse.ok) {
                 const orderDetail = await detailResponse.json();
                 setCompletedPayment(orderDetail);
             }
-            
-            fetchUnpaidOrders(); 
+
+            fetchUnpaidOrders();
         } catch (err) {
             setResultDialog({ isOpen: true, type: 'error', message: `เกิดข้อผิดพลาด: ${err.message}` });
         } finally {
@@ -314,26 +312,26 @@ const PaymentManagement = () => {
 
     return (
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-            <ConfirmDialog 
-                isOpen={confirmDialog.isOpen} 
-                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} 
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
                 onConfirm={handleExecuteMarkAsPaid}
                 title={confirmDialog.title}
                 message={confirmDialog.message}
             />
-            <ResultDialog 
-                isOpen={resultDialog.isOpen} 
+            <ResultDialog
+                isOpen={resultDialog.isOpen}
                 onClose={() => setResultDialog({ ...resultDialog, isOpen: false })}
                 type={resultDialog.type}
                 message={resultDialog.message}
             />
-            
+
             {/* ★★★★★ Dialog สำหรับพิมพ์ใบเสร็จ ★★★★★ */}
-            <SuccessPrintDialog 
-                isOpen={!!completedPayment} 
-                onClose={handleCloseSuccessDialog} 
+            <SuccessPrintDialog
+                isOpen={!!completedPayment}
+                onClose={handleCloseSuccessDialog}
                 onPrint={triggerPrint}
-                orderNumber={completedPayment?.purchase_order_number} 
+                orderNumber={completedPayment?.purchase_order_number}
             />
 
             <div className="flex justify-between items-center mb-6">
@@ -364,14 +362,18 @@ const PaymentManagement = () => {
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {orders.map((order) => (
-                                    <tr 
+                                    <tr
                                         key={order.purchase_order_number}
                                         onDoubleClick={() => handleRowDoubleClick(order.purchase_order_number)}
                                         className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150"
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{order.purchase_order_number}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{order.farmer_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.b_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{new Date(order.b_date + 'Z').toLocaleString('th-TH', {
+                                            year: '2-digit', month: '2-digit', day: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        })}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold text-right dark:text-gray-200">
                                             {parseFloat(order.b_total_price).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                                         </td>
@@ -396,18 +398,18 @@ const PaymentManagement = () => {
                     </div>
                 </div>
             )}
-            
+
             {isDetailModalOpen && (
-                <PurchaseOrderDetail 
-                    orderId={selectedOrderId} 
-                    onClose={() => setIsDetailModalOpen(false)} 
+                <PurchaseOrderDetail
+                    orderId={selectedOrderId}
+                    onClose={() => setIsDetailModalOpen(false)}
                 />
             )}
 
             {/* ★★★★★ Component ใบเสร็จที่ซ่อนไว้สำหรับพิมพ์ ★★★★★ */}
             {completedPayment && (
-                <div style={{ 
-                    position: "absolute", 
+                <div style={{
+                    position: "absolute",
                     left: "-9999px",
                     top: 0
                 }}>

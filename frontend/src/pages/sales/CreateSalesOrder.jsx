@@ -53,7 +53,9 @@ const ConfirmOrderDialog = ({ isOpen, onClose, onConfirm, customer, warehouse, i
                                     <tr key={item.p_id}>
                                         <td className="p-2 border">{idx + 1}</td>
                                         <td className="p-2 border">{item.p_name}</td>
-                                        <td className="p-2 border text-right">{parseFloat(item.quantity || 0).toLocaleString()}</td>
+                                        {/* ★★★★★ จุดแก้ไข ★★★★★ */}
+                                        <td className="p-2 border text-right">{parseFloat(item.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
+                                        {/* ★★★★★ สิ้นสุดจุดแก้ไข ★★★★★ */}
                                         <td className="p-2 border text-right">{parseFloat(item.price_per_unit || 0).toFixed(2)}</td>
                                         <td className="p-2 border text-right">{lineRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td className={`p-2 border text-right ${lineProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{lineProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -189,10 +191,17 @@ const CreateSalesOrder = () => {
             return;
         }
 
-        // 2. Regex สำหรับทศนิยมไม่เกิน 2 ตำแหน่ง
-        const regex = /^\d*(\.\d{0,2})?$/;
+        // ★★★★★ จุดแก้ไขที่ 1: สร้าง Regex แยกกัน ★★★★★
+        // Regex สำหรับราคา (2 ตำแหน่ง)
+        const decimalRegexPrice = /^\d*(\.\d{0,2})?$/;
+        // Regex สำหรับจำนวน (3 ตำแหน่ง)
+        const decimalRegexQuantity = /^\d*(\.\d{0,3})?$/;
 
-        if (regex.test(value)) {
+        // เลือก Regex ที่ถูกต้องตาม field ที่กำลังแก้
+        const currentRegex = (field === 'quantity') ? decimalRegexQuantity : decimalRegexPrice;
+        // ★★★★★ สิ้นสุดจุดแก้ไข ★★★★★
+
+        if (currentRegex.test(value)) { // ★★★ แก้ไขมาใช้ currentRegex ★★★
             // 3. ถ้าผ่าน Regex, อัปเดต state แต่ต้องตรวจสอบเงื่อนไข
             setOrderItems(prevItems => prevItems.map(item => {
                 if (item.p_id === productId) {
@@ -205,7 +214,7 @@ const CreateSalesOrder = () => {
                         }
                     }
 
-                    // --- Logic for 'price_per_unit' (เพิ่มใหม่) ---
+                    // --- Logic for 'price_per_unit' (คง logic เดิมไว้) ---
                     if (field === 'price_per_unit') {
                         if (numericValue > MAX_ALLOWED_PRICE) {
                             return item; // ไม่ต้องอัปเดต state (ค่าเกิน)
@@ -218,7 +227,7 @@ const CreateSalesOrder = () => {
                 return item;
             }));
         }
-        // ถ้าไม่ตรง regex (เช่น 1.234) state จะไม่อัปเดต
+        // ถ้าไม่ตรง regex (เช่น 1.2345) state จะไม่อัปเดต
     };
 
     const handleItemBlur = (productId, field, value) => {
@@ -376,118 +385,118 @@ const CreateSalesOrder = () => {
                                     {isCustomerListOpen && selectedWarehouse && (
                                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">
                                             {filteredCustomers.length > 0 ? filteredCustomers.map(c => (
-                                                < div key = { c.F_id } onClick = {() => handleSelectCustomer(c)} className="p-2 cursor-pointer hover:bg-blue-100 dark:text-gray-100 dark:hover:bg-gray-600">
-                                            {c.F_name}
+                                                < div key={c.F_id} onClick={() => handleSelectCustomer(c)} className="p-2 cursor-pointer hover:bg-blue-100 dark:text-gray-100 dark:hover:bg-gray-600">
+                                                    {c.F_name}
+                                                </div>
+                                            )) : <div className="p-2 text-gray-500 dark:text-gray-400">ไม่พบลูกค้า</div>}
                                         </div>
-                                    )) : <div className="p-2 text-gray-500 dark:text-gray-400">ไม่พบลูกค้า</div>}
+                                    )}
                                 </div>
-                            )}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Available Products List */}
-                <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transition-opacity duration-500 ${!selectedWarehouse ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าที่ขายได้</h2>
-                    <div className="max-h-64 overflow-y-auto pr-2">
-                        {!selectedWarehouse ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">กรุณาเลือกคลังสินค้าเพื่อดูสต็อก</p>
-                            : availableProducts.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">ไม่พบสินค้าในคลังนี้</p>
-                                : (
-                                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {availableProducts.map(p => (
-                                            <li key={p.product_id} className="flex justify-between items-center py-3">
-                                                <div>
-                                                    <p className="font-semibold text-gray-800 dark:text-gray-100">{p.product_name}</p>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือ: <span className="font-mono text-blue-600">{p.quantity.toLocaleString()} kg</span></p>
-                                                </div>
-                                                <button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.product_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100">
-                                                    <PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.product_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart />สรุปรายการขาย</h2>
-                    <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
-                        {orderItems.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-12">ยังไม่มีสินค้าในรายการ</p>
-                            : orderItems.map(item => {
-                                const lineRevenue = parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0);
-                                const lineProfit = lineRevenue - (parseFloat(item.quantity || 0) * item.average_cost);
-                                return (
-                                    <div key={item.p_id} className="border-b border-gray-200 dark:border-gray-700 pb-3">
-                                        <div className="flex justify-between items-start">
-                                            <p className="font-semibold dark:text-gray-100">{item.p_name}</p>
-                                            <button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"><Trash2 size={16} /></button>
-                                        </div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">สูงสุด: {item.max_quantity.toLocaleString()} kg | ต้นทุน: {item.average_cost.toFixed(2)} บ.</p>
-                                        <div className="flex gap-2 mb-1">
-                                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
-                                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {/* ★★★ 4. เพิ่ม max attribute ให้ Input ★★★ */}
-                                            <input
-                                                type="text"
-                                                inputMode="decimal"
-                                                placeholder="จำนวน"
-                                                value={item.quantity}
-                                                onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)}
-                                                onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)}
-                                                className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                                                max={item.max_quantity}
-                                            />
-                                            <input
-                                                type="text"
-                                                inputMode="decimal"
-                                                placeholder="ราคา/หน่วย"
-                                                value={item.price_per_unit}
-                                                onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)}
-                                                onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)}
-                                                _ className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                                                max={MAX_ALLOWED_PRICE}
-                                            />
-                                        </div>
-                                        <div className="flex justify-between text-sm mt-1">
-                                            <span className={`font-semibold ${lineProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>กำไร: {lineProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
-                                            <span className="font-semibold dark:text-gray-200">รวม: {lineRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                    </div>
-                    {orderItems.length > 0 && (
-                        <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 dark:border-gray-700">
-                            <div className="flex justify-between items-center text-lg mb-2"><span className="font-semibold text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
-                            <div className={`flex justify-between items-center text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}><span className="flex items-center gap-2"><TrendingUp />กำไรโดยประมาณ</span><span>{totalProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
-                            <button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                                {isSubmitting ? <Loader className="animate-spin" /> : <CheckCircle />}
-                                {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งขาย'}
-                            </button>
+                    {/* Available Products List */}
+                    <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transition-opacity duration-500 ${!selectedWarehouse ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าที่ขายได้</h2>
+                        <div className="max-h-64 overflow-y-auto pr-2">
+                            {!selectedWarehouse ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">กรุณาเลือกคลังสินค้าเพื่อดูสต็อก</p>
+                                : availableProducts.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-10">ไม่พบสินค้าในคลังนี้</p>
+                                    : (
+                                        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                                            {availableProducts.map(p => (
+                                                <li key={p.product_id} className="flex justify-between items-center py-3">
+                                                    <div>
+                                                        <p className="font-semibold text-gray-800 dark:text-gray-100">{p.product_name}</p>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือ: <span className="font-mono text-blue-600">{p.quantity.toLocaleString()} kg</span></p>
+                                                    </div>
+                                                    <button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.product_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100">
+                                                        <PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.product_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                         </div>
-                    )}
+                    </div>
+                </div>
+
+                {/* Order Summary */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8">
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart />สรุปรายการขาย</h2>
+                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                            {orderItems.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-12">ยังไม่มีสินค้าในรายการ</p>
+                                : orderItems.map(item => {
+                                    const lineRevenue = parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0);
+                                    const lineProfit = lineRevenue - (parseFloat(item.quantity || 0) * item.average_cost);
+                                    return (
+                                        <div key={item.p_id} className="border-b border-gray-200 dark:border-gray-700 pb-3">
+                                            <div className="flex justify-between items-start">
+                                                <p className="font-semibold dark:text-gray-100">{item.p_name}</p>
+                                                <button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"><Trash2 size={16} /></button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">สูงสุด: {item.max_quantity.toLocaleString()} kg | ต้นทุน: {item.average_cost.toFixed(2)} บ.</p>
+                                            <div className="flex gap-2 mb-1">
+                                                <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน (กก.)</span>
+                                                <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {/* ★★★ 4. เพิ่ม max attribute ให้ Input ★★★ */}
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    placeholder="จำนวน"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)}
+                                                    onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)}
+                                                    className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                                                    max={item.max_quantity}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    placeholder="ราคา/หน่วย"
+                                                    value={item.price_per_unit}
+                                                    onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)}
+                                                    onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)}
+                                                    _ className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                                                    max={MAX_ALLOWED_PRICE}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between text-sm mt-1">
+                                                <span className={`font-semibold ${lineProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>กำไร: {lineProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
+                                                <span className="font-semibold dark:text-gray-200">รวม: {lineRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                        </div>
+                        {orderItems.length > 0 && (
+                            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 dark:border-gray-700">
+                                <div className="flex justify-between items-center text-lg mb-2"><span className="font-semibold text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalRevenue.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
+                                <div className={`flex justify-between items-center text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}><span className="flex items-center gap-2"><TrendingUp />กำไรโดยประมาณ</span><span>{totalProfit.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div>
+                                <button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedCustomer} className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                    {isSubmitting ? <Loader className="animate-spin" /> : <CheckCircle />}
+                                    {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งขาย'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
 
-            {/* Modal for order confirmation */ }
-    <ConfirmOrderDialog
-        isOpen={isConfirmDialogOpen}
-        onClose={() => setIsConfirmDialogOpen(false)}
-        onConfirm={handleSubmitOrder}
-        T customer={customers.find(c => c.F_id === selectedCustomer)}
-        warehouse={warehouses.find(w => w.warehouse_id === selectedWarehouse)}
-        items={orderItems}
-        totalRevenue={totalRevenue}
-        totalProfit={totalProfit}
-    />
+            {/* Modal for order confirmation */}
+            <ConfirmOrderDialog
+                isOpen={isConfirmDialogOpen}
+                onClose={() => setIsConfirmDialogOpen(false)}
+                onConfirm={handleSubmitOrder}
+                T customer={customers.find(c => c.F_id === selectedCustomer)}
+                warehouse={warehouses.find(w => w.warehouse_id === selectedWarehouse)}
+                items={orderItems}
+                totalRevenue={totalRevenue}
+                totalProfit={totalProfit}
+            />
         </div >
     );
 };

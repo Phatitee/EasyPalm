@@ -9,7 +9,7 @@ const SalesHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    
+
     // State for filtering and searching
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -25,10 +25,10 @@ const SalesHistory = () => {
             const params = new URLSearchParams();
             if (searchTerm) params.append('search', searchTerm);
             if (statusFilter) params.append('status', statusFilter);
-            
+
             const response = await fetch(`http://127.0.0.1:5000/salesorders?${params.toString()}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการขายได้');
-            
+
             const data = await response.json();
             setOrders(data);
         } catch (err) {
@@ -63,7 +63,7 @@ const SalesHistory = () => {
         // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
-                <List className="mr-3 text-blue-600 dark:text-blue-400"/>
+                <List className="mr-3 text-blue-600 dark:text-blue-400" />
                 ประวัติการขาย
             </h1>
 
@@ -100,8 +100,8 @@ const SalesHistory = () => {
 
             {/* Content Area */}
             {loading ? (
-                 // ★★★ Dark Mode FIX: Loading State ★★★
-                 <div className="flex justify-center items-center h-64 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /></div>
+                // ★★★ Dark Mode FIX: Loading State ★★★
+                <div className="flex justify-center items-center h-64 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /></div>
             ) : error ? (
                 // ★★★ Dark Mode FIX: Error State ★★★
                 <div className="flex flex-col justify-center items-center h-64 text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-800 p-10 rounded-lg shadow-lg"><ServerCrash size={48} className="mb-4" /> <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2><p>{error}</p></div>
@@ -113,12 +113,12 @@ const SalesHistory = () => {
                     <p className="mt-2 text-gray-500 dark:text-gray-400">ไม่พบรายการขายที่ตรงกับเงื่อนไขการค้นหาของคุณ</p>
                 </div>
             ) : (
-                 // ★★★ Dark Mode FIX: Table Container Background and Shadow ★★★
+                // ★★★ Dark Mode FIX: Table Container Background and Shadow ★★★
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                             {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
-                             <thead className="bg-gray-50 dark:bg-gray-700">
+                            {/* ★★★ Dark Mode FIX: Table Header Background and Text ★★★ */}
+                            <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">เลขที่ SO</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ลูกค้า</th>
@@ -134,7 +134,11 @@ const SalesHistory = () => {
                                         {/* ★★★ Dark Mode FIX: Text Colors ★★★ */}
                                         <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{order.sale_order_number}</td>
                                         <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{order.customer_name}</td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{new Date(order.s_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{new Date(order.s_date + 'Z').toLocaleString('th-TH', {
+                                            year: '2-digit', month: '2-digit', day: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        })}
+                                        </td>
                                         <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(order.s_total_price).toLocaleString('th-TH')} บาท</td>
                                         <td className="px-6 py-4 text-center">{getStatusChip(order.payment_status)}</td>
                                     </tr>
@@ -144,7 +148,7 @@ const SalesHistory = () => {
                     </div>
                 </div>
             )}
-            
+
             {isDetailModalOpen && <SalesHistoryDetail orderId={selectedOrderId} onClose={() => setIsDetailModalOpen(false)} />}
         </div>
     );
