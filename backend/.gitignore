@@ -1,0 +1,24 @@
+# Virtual Environment
+# โฟลเดอร์ที่เก็บ library ทั้งหมดของ Python ไม่ควร push ขึ้นไป
+venv/
+.venv/
+..venv/
+...venv/
+
+# ไฟล์ที่ Python สร้างขึ้นมาอัตโนมัติ
+__pycache__/
+*.pyc
+
+# SQLite Database
+# ไฟล์ฐานข้อมูลที่เราใช้ทดสอบในเครื่อง ไม่ควรเก็บใน Git
+
+
+# Instance folder (สำหรับ Flask config)
+# ไฟล์ตั้งค่าส่วนตัวหรือ secret keys
+instance/
+.env
+
+# IDE settings
+# ไฟล์ตั้งค่าของโปรแกรมเขียนโค้ด
+.vscode/
+.idea/
