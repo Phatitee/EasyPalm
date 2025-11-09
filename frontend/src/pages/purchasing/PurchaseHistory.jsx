@@ -168,36 +168,11 @@ const PurchaseHistory = () => {
                                         onClick={() => handleRowClick(order.purchase_order_number)}
                                         className="hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-pointer transition-all duration-150"
                                     >
-                                        <td className="px-6 py-4">
-                                            <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                                {order.purchase_order_number}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-                                                <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                    {order.farmer_name}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                {new Date((order.order_date || order.b_date) + 'Z').toLocaleString('th-TH', {
-                                                    year: '2-digit',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-right font-bold text-blue-600 dark:text-blue-400 block">
-                                                {parseFloat(order.b_total_price).toLocaleString('th-TH')} บาท
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{order.purchase_order_number}</td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{order.farmer_name}</td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{new Date(order.b_date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(order.b_total_price).toLocaleString('th-TH')} บาท</td>
+                                        <td className="px-6 py-4 text-center">
                                             <div className="flex justify-center items-center gap-2">
                                                 {getStatusChip(order.payment_status, 'payment')}
                                                 {getStatusChip(order.stock_status, 'stock')}

@@ -324,189 +324,32 @@ const PurchaseProduct = () => {
     return (
         <div className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen transition-colors duration-200">
             <ResultDialog isOpen={resultDialog.isOpen} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} type={resultDialog.type} message={resultDialog.message} />
-
-            <SuccessPrintDialog
-                isOpen={!!completedOrder}
-                onClose={handleCloseSuccessDialog}
-                onPrint={triggerPrint}
-                orderNumber={completedOrder?.purchase_order_number}
+            
+            <SuccessPrintDialog 
+                isOpen={!!completedOrder} 
+                onClose={handleCloseSuccessDialog} 
+                onPrint={triggerPrint} // ★★★★★ จุดแก้ไขที่ 4: เรียกใช้ triggerPrint ★★★★★
+                orderNumber={completedOrder?.purchase_order_number} 
             />
-
-            <div className="text-center mb-8 bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 transform hover:scale-[1.02] transition-all duration-300">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">สร้างใบสั่งซื้อ</h1>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">บันทึกรายการสั่งซื้อวัตถุดิบจากเกษตรกร</p>
-            </div>
-
+            
+            {/* ... (JSX ที่เหลือเหมือนเดิม) ... */}
+            <div className="text-center mb-8"><h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">สร้างใบสั่งซื้อ</h1><p className="text-lg text-gray-500 dark:text-gray-400 mt-2">บันทึกรายการสั่งซื้อวัตถุดิบจากเกษตรกร</p></div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    {/* ส่วนข้อมูลหลัก */}
-                    <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-                        <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-200 mb-6 flex items-center gap-3">
-                            <User size={24} className="text-blue-500" />
-                            <span>ข้อมูลหลัก</span>
-                        </h2>
-                        <div ref={farmerSearchRef}>
-                            <label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                                <User size={16} className="mr-2 text-blue-500" />
-                                ค้นหาเกษตรกร
-                            </label>
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                <input 
-                                    type="text" 
-                                    placeholder="พิมพ์เพื่อค้นหา..." 
-                                    value={farmerSearch} 
-                                    onFocus={() => setIsFarmerListOpen(true)} 
-                                    onChange={(e) => { 
-                                        setFarmerSearch(e.target.value); 
-                                        setSelectedFarmer(''); 
-                                        setIsFarmerListOpen(true); 
-                                    }} 
-                                    className="w-full pl-12 pr-4 py-3 border-2 rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all duration-200" 
-                                />
-                                {isFarmerListOpen && (
-                                    <div className="absolute z-10 w-full mt-2 bg-white border-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">
-                                        {filteredFarmers.length > 0 ? 
-                                            filteredFarmers.map(f => (
-                                                <div 
-                                                    key={f.f_id} 
-                                                    onClick={() => handleSelectFarmer(f)} 
-                                                    className="p-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg"
-                                                >
-                                                    {f.f_name}
-                                                </div>
-                                            )) : 
-                                            <div className="p-3 text-gray-500">ไม่พบเกษตรกร</div>
-                                        }
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ส่วนรายการสินค้า */}
-                    <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700">
-                        <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-200 mb-6 flex items-center gap-3">
-                            <Archive size={24} className="text-green-500" />
-                            <span>รายการสินค้าทั้งหมด</span>
-                        </h2>
-                        <div className="max-h-[calc(100vh-400px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                            <ul className="grid grid-cols-1 gap-4">
-                                {products.map(p => (
-                                    <li key={p.p_id} className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:shadow-md transition-all duration-200">
-                                        <div>
-                                            <p className="font-semibold text-gray-800 dark:text-gray-100 text-lg">{p.p_name}</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                ราคาล่าสุด: 
-                                                <span className="font-mono text-green-600 dark:text-green-400 ml-2 text-lg">
-                                                    {p.price_per_unit.toFixed(2)} บ.
-                                                </span>
-                                            </p>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleAddItem(p)} 
-                                            disabled={orderItems.some(item => item.p_id === p.p_id)} 
-                                            className="bg-blue-500 text-white hover:bg-blue-600 font-semibold py-2 px-4 rounded-xl text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                        >
-                                            <PlusCircle size={16} />
-                                            {orderItems.some(item => item.p_id === p.p_id) ? 'เพิ่มแล้ว' : 'เพิ่มสินค้า'}
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">ข้อมูลหลัก</h2><div ref={farmerSearchRef}><label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><User size={16} className="mr-2"/>ค้นหาเกษตรกร</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} /><input type="text" placeholder="พิมพ์เพื่อค้นหา..." value={farmerSearch} onFocus={() => setIsFarmerListOpen(true)} onChange={(e) => {setFarmerSearch(e.target.value); setSelectedFarmer(''); setIsFarmerListOpen(true);}} className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />{isFarmerListOpen && (<div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">{filteredFarmers.length > 0 ? filteredFarmers.map(f => (<div key={f.f_id} onClick={() => handleSelectFarmer(f)} className="p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-600">{f.f_name}</div>)) : <div className="p-2 text-gray-500">ไม่พบเกษตรกร</div>}</div>)}</div></div></div>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าทั้งหมด</h2><div className="max-h-64 overflow-y-auto pr-2"><ul className="divide-y divide-gray-200 dark:divide-gray-700">{products.map(p => (<li key={p.p_id} className="flex justify-between items-center py-3"><div><p className="font-semibold text-gray-800 dark:text-gray-100">{p.p_name}</p><p className="text-sm text-gray-500 dark:text-gray-400">ราคาล่าสุด: <span className="font-mono text-blue-600 ml-1">{p.price_per_unit.toFixed(2)} บ.</span></p></div><button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.p_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.p_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}</button></li>))}</ul></div></div>
                 </div>
-                <div className="lg:col-span-1">
-                    <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 sticky top-8">
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-3">
-                            <ShoppingCart className="text-purple-500" size={24} />
-                            <span>สรุปรายการ</span>
-                        </h2>
-                        <div className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                            {orderItems.length === 0 ? (
-                                <div className="text-center py-12 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
-                                    <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
-                                    <p className="text-gray-500 dark:text-gray-400">ยังไม่มีสินค้า</p>
-                                </div>
-                            ) : (
-                                orderItems.map(item => (
-                                    <div key={item.p_id} className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 transition-all duration-200 hover:shadow-md">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <p className="font-semibold text-gray-800 dark:text-gray-100">{item.p_name}</p>
-                                            <button 
-                                                onClick={() => handleRemoveItem(item.p_id)} 
-                                                className="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                        
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                    จำนวน (กก.)
-                                                </label>
-                                                <input 
-                                                    type="text" 
-                                                    inputMode="decimal" 
-                                                    placeholder="จำนวน" 
-                                                    value={item.quantity} 
-                                                    onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)} 
-                                                    onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)} 
-                                                    className="w-full p-2.5 border-2 rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all duration-200" 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                    ราคา/หน่วย
-                                                </label>
-                                                <input 
-                                                    type="text" 
-                                                    inputMode="decimal" 
-                                                    placeholder="ราคา/หน่วย" 
-                                                    value={item.price_per_unit} 
-                                                    onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)} 
-                                                    onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)} 
-                                                    className="w-full p-2.5 border-2 rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all duration-200" 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                <div className="lg:col-span-1"><div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart/>สรุปรายการ</h2><div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">{orderItems.length === 0 ? <p className="text-center text-gray-500 py-12">ยังไม่มีสินค้า</p> : orderItems.map(item => (<div key={item.p_id} className="border-b dark:border-gray-700 pb-3"><div className="flex justify-between items-start"><p className="font-semibold dark:text-gray-100">{item.p_name}</p><button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button></div>
+                        {/* เพิ่มหัวข้อราคา/หน่วย */}
+                        <div className="flex gap-2 mb-1">
+                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
+                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
                         </div>
-                        {orderItems.length > 0 && (
-                            <div className="mt-6 pt-4 border-t-2 border-dashed dark:border-gray-700">
-                                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/5 dark:to-purple-500/5 rounded-2xl p-4 mb-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">ยอดรวม</span>
-                                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                            {totalPurchasePrice.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
-                                        </span>
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={handleConfirmOrder} 
-                                    disabled={isSubmitting || !selectedFarmer} 
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500 transition-all duration-300 transform hover:scale-[1.02]"
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <Loader className="animate-spin" size={20} />
-                                            <span>กำลังบันทึก...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle size={20} />
-                                            <span>ยืนยันการสร้างใบสั่งซื้อ</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                        <div className="flex gap-2 mt-2">
+                            <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity} onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                            <input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit} onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                    </div>))}</div>{orderItems.length > 0 && (<div className="mt-6 pt-4 border-t-2 border-dashed dark:border-gray-700"><div className="flex justify-between items-center text-xl font-bold mb-4"><span className="text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalPurchasePrice.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div><button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedFarmer} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">{isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}{isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งซื้อ'}</button></div>)}</div></div>
             </div>
 
             {/* ส่วนที่ซ่อนไว้สำหรับพิมพ์ (ref จะถูกผูกกับ div นี้เมื่อ completedOrder มีค่า) */}
