@@ -17,7 +17,7 @@
         "installCommand": "cd frontend && npm install",
 
         
-        "buildCommand": "cd frontend && CI=false npm run"
+        "buildCommand": "cd frontend && CI=false npm run build"
       }
     }
   ],
