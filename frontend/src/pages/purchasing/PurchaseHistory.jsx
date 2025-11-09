@@ -45,43 +45,63 @@ const PurchaseHistory = () => {
     };
 
     const getStatusChip = (status, type) => {
-        // ใช้สี Light Mode สำหรับ Chip เพื่อเน้นสถานะให้ชัดเจนทั้งใน Light และ Dark Mode
         const colors = {
-            payment: { Paid: "bg-green-100 text-green-800", Unpaid: "bg-red-100 text-red-800" },
-            stock: { Completed: "bg-blue-100 text-blue-800", Pending: "bg-yellow-100 text-yellow-800", 'Not Received': "bg-gray-100 text-gray-800" }
+            payment: {
+                Paid: "bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+                Unpaid: "bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+            },
+            stock: {
+                Completed: "bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+                Pending: "bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+                'Not Received': "bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800"
+            }
         };
-        const text = { 'Not Received': 'ยังไม่ได้รับ', Pending: 'รอรับเข้าคลัง', Completed: 'รับเข้าคลังแล้ว', Paid: 'จ่ายแล้ว', Unpaid: 'ยังไม่จ่าย' };
-        return <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colors[type][status]}`}>{text[status] || status}</span>;
+        const text = {
+            'Not Received': 'ยังไม่ได้รับ',
+            Pending: 'รอรับเข้าคลัง',
+            Completed: 'รับเข้าคลังแล้ว',
+            Paid: 'จ่ายแล้ว',
+            Unpaid: 'ยังไม่จ่าย'
+        };
+        return (
+            <span className={`text-xs font-medium px-3 py-1 rounded-full ${colors[type][status]} transition-all duration-200 shadow-sm hover:shadow-md`}>
+                {text[status] || status}
+            </span>
+        );
     };
 
     return (
         // ★★★ FIX 1: พื้นหลังหน้าหลักและสี Text Default ★★★
-        <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center dark:text-gray-100">
-                {/* ★★★ FIX 2: ปรับสี Icon ★★★ */}
-                <List className="mr-3 text-purple-600 dark:text-purple-400"/>
-                ประวัติการสั่งซื้อ
-            </h1>
+        <div className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen text-gray-900 dark:text-gray-100 transition-colors duration-300">
+            {/* Header Section with modern styling */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 mb-8 transform hover:scale-[1.01] transition-all duration-300">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-4">
+                    <List className="text-purple-600 dark:text-purple-400" size={32}/>
+                    ประวัติการสั่งซื้อ
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-2 ml-12">ค้นหาและตรวจสอบรายการสั่งซื้อทั้งหมด</p>
+            </div>
 
-            {/* Filter and Search Panel */}
-            {/* ★★★ FIX 3: Panel Background ★★★ */}
-            <div className="mb-6 p-4 bg-white rounded-2xl shadow-lg flex flex-col md:flex-row gap-4 items-center dark:bg-gray-800 transition-colors duration-300">
-                {/* Search Input */}
+            {/* Enhanced Filter and Search Panel */}
+            <div className="mb-8 p-6 bg-white rounded-3xl shadow-xl flex flex-col md:flex-row gap-6 items-center dark:bg-gray-800 transition-all duration-300 border border-gray-100 dark:border-gray-700">
+                {/* Improved Search Input */}
                 <div className="relative w-full md:w-2/3">
-                    {/* ★★★ FIX 4: Search Icon Color ★★★ */}
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
-                    <input type="text" placeholder="ค้นหาตามเลขที่ PO หรือชื่อเกษตรกร..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                        // ★★★ FIX 5: Input Field Styling ★★★
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500 dark:text-purple-400" size={20} />
+                    <input 
+                        type="text" 
+                        placeholder="ค้นหาตามเลขที่ PO หรือชื่อเกษตรกร..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 transition-all duration-200"
                     />
                 </div>
-                {/* Status Filter */}
+                {/* Enhanced Status Filter */}
                 <div className="relative w-full md:w-1/3">
-                    {/* ★★★ FIX 6: Filter Icon Color ★★★ */}
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} 
-                        // ★★★ FIX 7: Select Field Styling ★★★
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                    <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 dark:text-blue-400" size={20} />
+                    <select 
+                        value={statusFilter} 
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 border-2 rounded-xl appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 bg-white dark:bg-gray-700 transition-all duration-200"
                     >
                         <option value="">สถานะทั้งหมด</option>
                         <option value="Unpaid">ยังไม่จ่าย</option>
@@ -93,57 +113,91 @@ const PurchaseHistory = () => {
             </div>
 
             {loading ? (
-                 // ★★★ FIX 8: Loading State ★★★
-                 <div className="flex justify-center items-center h-64 text-gray-800 dark:text-gray-200"><Loader className="animate-spin text-blue-500" size={48} /></div>
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-16 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-700">
+                    <div className="relative">
+                        <div className="w-16 h-16 rounded-full border-4 border-purple-100 dark:border-purple-900 animate-pulse"></div>
+                        <Loader className="animate-spin text-purple-600 dark:text-purple-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" size={32} />
+                    </div>
+                    <p className="mt-4 text-gray-600 dark:text-gray-400 font-medium">กำลังโหลดข้อมูล...</p>
+                </div>
             ) : error ? (
-                // ★★★ FIX 9: Error State ★★★
-                <div className="flex flex-col justify-center items-center h-64 text-red-600 bg-white dark:bg-gray-800 dark:text-red-400 p-10 rounded-lg shadow-lg">
-                    <ServerCrash size={48} className="mb-4" /> 
-                    <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2>
-                    <p className="dark:text-gray-300">{error}</p>
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-16 border border-red-200 dark:border-red-800">
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-8 text-center">
+                        <ServerCrash size={48} className="mx-auto mb-4 text-red-500 dark:text-red-400" />
+                        <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">เกิดข้อผิดพลาด</h2>
+                        <p className="text-gray-600 dark:text-gray-400">{error}</p>
+                    </div>
                 </div>
             ) : orders.length === 0 ? (
-                // ★★★ FIX 10: Empty State Background และ Text ★★★
-                <div className="text-center py-20 bg-white rounded-2xl shadow-lg dark:bg-gray-800 transition-colors duration-300">
-                    <Inbox size={64} className="mx-auto text-gray-400 dark:text-gray-500" />
-                    <h2 className="mt-4 text-2xl font-semibold text-gray-700 dark:text-gray-200">ไม่พบข้อมูล</h2>
-                    <p className="mt-2 text-gray-500 dark:text-gray-400">ไม่พบรายการสั่งซื้อที่ตรงกับเงื่อนไข</p>
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-16 text-center border border-gray-100 dark:border-gray-700">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-8">
+                        <Inbox size={64} className="mx-auto text-gray-400 dark:text-gray-500 mb-6" />
+                        <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-200 mb-3">ไม่พบข้อมูล</h2>
+                        <p className="text-gray-500 dark:text-gray-400">ไม่พบรายการสั่งซื้อที่ตรงกับเงื่อนไข</p>
+                    </div>
                 </div>
             ) : (
                 // Main Table
                 // ★★★ FIX 11: Table Container Background และ Divider ★★★
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden dark:bg-gray-800 transition-colors duration-300">
+                <div className="bg-white rounded-3xl shadow-xl overflow-hidden dark:bg-gray-800 transition-all duration-300 border border-gray-100 dark:border-gray-700">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                             {/* ★★★ FIX 12: Table Header Background และ Text ★★★ */}
-                             <thead className="bg-gray-50 dark:bg-gray-700">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">เลขที่ PO</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">เกษตรกร</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">วันที่</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase dark:text-gray-300">ยอดรวม</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase dark:text-gray-300">สถานะ</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        เลขที่ PO
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        เกษตรกร
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        วันที่
+                                    </th>
+                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        ยอดรวม
+                                    </th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        สถานะ
+                                    </th>
                                 </tr>
                             </thead>
-                            {/* ★★★ FIX 13: Table Body Background และ Divider ★★★ */}
-                            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                            <tbody className="bg-white divide-y divide-gray-100 dark:bg-gray-800 dark:divide-gray-700">
                                 {orders.map(order => (
-                                    // ★★★ FIX 14: Table Row Hover และ Text Colors ★★★
-                                    <tr key={order.purchase_order_number} onClick={() => handleRowClick(order.purchase_order_number)} 
-                                        className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700 transition-colors duration-150"
+                                    <tr 
+                                        key={order.purchase_order_number} 
+                                        onClick={() => handleRowClick(order.purchase_order_number)}
+                                        className="hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-pointer transition-all duration-150"
                                     >
-                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{order.purchase_order_number}</td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{order.farmer_name}</td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{new Date((order.order_date || order.b_date) + 'Z').toLocaleString('th-TH', {
-        year: '2-digit', // '25
-        month: '2-digit', // '11
-        day: '2-digit',   // '08
-        hour: '2-digit',  // '00
-        minute: '2-digit' // '00
-    })}
-</td>
-                                        <td className="px-6 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">{parseFloat(order.b_total_price).toLocaleString('th-TH')} บาท</td>
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-6 py-4">
+                                            <span className="font-semibold text-purple-600 dark:text-purple-400">
+                                                {order.purchase_order_number}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center">
+                                                <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                                                <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                    {order.farmer_name}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-gray-600 dark:text-gray-400">
+                                                {new Date((order.order_date || order.b_date) + 'Z').toLocaleString('th-TH', {
+                                                    year: '2-digit',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-right font-bold text-blue-600 dark:text-blue-400 block">
+                                                {parseFloat(order.b_total_price).toLocaleString('th-TH')} บาท
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <div className="flex justify-center items-center gap-2">
                                                 {getStatusChip(order.payment_status, 'payment')}
                                                 {getStatusChip(order.stock_status, 'stock')}
