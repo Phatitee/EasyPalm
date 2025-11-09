@@ -176,8 +176,8 @@ const PurchaseProduct = () => {
             setLoading(true); setError('');
             try {
                 const [farmerRes, productRes] = await Promise.all([
-                    fetch('http://127.0.0.1:5000/farmers'),
-                    fetch('http://127.0.0.1:5000/products')
+                    fetch('/api/farmers'),
+                    fetch('/api/products')
                 ]);
                 if (!farmerRes.ok || !productRes.ok) throw new Error('ไม่สามารถโหลดข้อมูลเริ่มต้นได้');
                 setFarmers(await farmerRes.json());
@@ -295,7 +295,7 @@ const PurchaseProduct = () => {
             })),
         };
         try {
-            const response = await fetch('http://127.0.0.1:5000/purchaseorders', {
+            const response = await fetch('/api/purchaseorders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData),

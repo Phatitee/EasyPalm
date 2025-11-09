@@ -94,7 +94,7 @@ Follow these steps to install and set up EasyPalm:
 
 ## Usage Examples & API Documentation
 
-API Documentation is not directly provided but would be expected to be served from the backend. Routes are established in `backend/app/routes.py` (not shown) that handle API requests.  Access the backend API endpoints by sending requests to the server address, for example: `http://127.0.0.1:5000/employees` (if such an endpoint exists). Consult the code for exact route definitions.
+API Documentation is not directly provided but would be expected to be served from the backend. Routes are established in `backend/app/routes.py` (not shown) that handle API requests.  Access the backend API endpoints by sending requests to the server address, for example: `/api/employees` (if such an endpoint exists). Consult the code for exact route definitions.
 
 Frontend usage examples would involve interacting with the user interface to perform CRUD operations on data. Consult the frontend code for more specifics.
 

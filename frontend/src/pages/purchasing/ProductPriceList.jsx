@@ -73,7 +73,7 @@ const ProductPriceList = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:5000/products");
+            const response = await axios.get("/api/products");
             setProducts(response.data);
             setError(null);
         } catch (err) {
@@ -110,7 +110,7 @@ const ProductPriceList = () => {
         }
 
         try {
-            await axios.put(`http://127.0.0.1:5000/products/${productId}`, {
+            await axios.put(`/api/products/${productId}`, {
                 price_per_unit: parseFloat(newPrice),
             });
             // ★★★ FIX: Replace alert() with Modal ★★★

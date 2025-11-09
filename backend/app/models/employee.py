@@ -15,7 +15,7 @@ class Employee(db.Model):
     __tablename__ = 'employee'
     e_id = db.Column(db.String(5), primary_key=True)
     e_name = db.Column(db.String(100), nullable=False)
-    e_gender = db.Column(db.Enum('Male', 'Female'), nullable=True) # Allow null for flexibility
+    e_gender = db.Column(db.Enum('Male', 'Female', name='gender_enum', native_enum=False), nullable=True) # Allow null for flexibility
     e_citizen_id_card = db.Column(db.String(20), unique=True, nullable=False)
     e_tel = db.Column(db.String(10), nullable=True)
     e_citizen_address = db.Column(db.String(100), nullable=True)

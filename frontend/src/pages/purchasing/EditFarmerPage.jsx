@@ -18,7 +18,7 @@ const EditFarmerPage = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch(`http://127.0.0.1:5000/farmers/${id}`);
+                const response = await fetch(`/api/farmers/${id}`);
                 if (!response.ok) throw new Error('ไม่พบข้อมูลเกษตรกร');
                 const data = await response.json();
                 setInitialData(data);
@@ -34,7 +34,7 @@ const EditFarmerPage = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch(`http://127.0.0.1:5000/farmers/${id}`, {
+            const response = await fetch(`/api/farmers/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

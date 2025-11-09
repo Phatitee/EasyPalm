@@ -200,7 +200,7 @@ const PaymentManagement = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://127.0.0.1:5000/purchaseorders?status=unpaid', {
+            const response = await fetch('/api/purchaseorders?status=unpaid', {
                 cache: 'no-cache'
             });
 
@@ -268,7 +268,7 @@ const PaymentManagement = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`http://127.0.0.1:5000/purchaseorders/${orderNumber}/pay`, {
+            const response = await fetch(`/api/purchaseorders/${orderNumber}/pay`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),
@@ -279,7 +279,7 @@ const PaymentManagement = () => {
             }
 
             // ★★★★★ ดึงข้อมูลใบสั่งซื้อที่สมบูรณ์เพื่อพิมพ์ ★★★★★
-            const detailResponse = await fetch(`http://127.0.0.1:5000/purchaseorders/${orderNumber}`);
+            const detailResponse = await fetch(`/api/purchaseorders/${orderNumber}`);
             if (detailResponse.ok) {
                 const orderDetail = await detailResponse.json();
                 setCompletedPayment(orderDetail);

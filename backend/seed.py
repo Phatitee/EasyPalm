@@ -13,22 +13,35 @@ def clear_data():
     """Deletes all data from the tables in the correct order."""
     print("🧹 Clearing all existing data from the database...")
     # This order is crucial to avoid foreign key constraint errors
-    db.session.query(SalesOrderItemCost).delete()
-    db.session.query(StockTransactionReturn).delete()
-    db.session.query(StockTransactionOut).delete()
-    db.session.query(StockTransactionIn).delete()
-    db.session.query(SalesOrderItem).delete()
-    db.session.query(PurchaseOrderItem).delete()
-    db.session.query(StockLevel).delete()
-    db.session.query(SalesOrder).delete()
-    db.session.query(PurchaseOrder).delete()
-    db.session.query(Warehouse).delete()
-    db.session.query(Product).delete()
-    db.session.query(FoodIndustry).delete()
-    db.session.query(Farmer).delete()
-    db.session.query(Employee).delete()
-    db.session.commit()
-    print("✅ All existing data has been cleared successfully.")
+    
+    # (★ ★ ★ นี่คือส่วนที่ขาดหายไป ★ ★ ★)
+    # Delete records that have foreign key dependencies first
+    try:
+        # Delete records that have foreign key dependencies first
+        db.session.query(SalesOrderItemCost).delete()
+        db.session.query(StockTransactionReturn).delete() 
+        db.session.query(StockTransactionIn).delete()
+        db.session.query(StockTransactionOut).delete()
+        db.session.query(SalesOrderItem).delete()
+        db.session.query(PurchaseOrderItem).delete()
+        db.session.query(StockLevel).delete()
+        db.session.query(SalesOrder).delete()
+        db.session.query(PurchaseOrder).delete()
+
+        # Now delete the primary records
+        db.session.query(Warehouse).delete()
+        db.session.query(Product).delete()
+        db.session.query(FoodIndustry).delete()
+        db.session.query(Farmer).delete()
+        db.session.query(Employee).delete()
+        
+        db.session.commit()
+        print("✅ All existing data has been cleared successfully.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error clearing data: {e}")
+        # ถ้าตารางยังไม่มี (เช่น รันครั้งแรกสุด) ก็ไม่เป็นไร ให้ข้ามไป
+        pass
 
 def seed_base_data():
     """Seeds the database with foundational data like users, products, etc."""
@@ -157,36 +170,32 @@ def seed_transaction_history():
                 chosen_warehouse = random.choice(warehouses)
                 created_by = random.choice(purchasing_users) if purchasing_users else None
                 
-                # สถานะต่างๆ ขึ้นกับอายุของ PO
+                # ( ... โค้ดกำหนดสถานะและ timestamp ... )
                 days_old = i
-                if days_old <= 2:  # PO ล่าสุด อาจยังไม่จบทุกขั้นตอน
+                if days_old <= 2:
                     payment_status = random.choice(['Unpaid', 'Paid'])
                     stock_status = random.choice(['Not Received', 'Pending']) if payment_status == 'Paid' else 'Not Received'
-                elif days_old <= 5:  # PO ที่ค่อนข้างใหม่
+                elif days_old <= 5:
                     payment_status = random.choice(['Paid', 'Paid', 'Unpaid'])
                     stock_status = random.choice(['Pending', 'Completed']) if payment_status == 'Paid' else 'Not Received'
-                else:  # PO เก่า ส่วนใหญ่ควรเสร็จสมบูรณ์
+                else:
                     payment_status = 'Paid'
                     stock_status = 'Completed'
-
-                # กำหนด timestamps ตามลำดับของ workflow
                 created_date = current_date + timedelta(hours=random.randint(8, 10))
                 paid_date = None
                 received_date = None
                 paid_by = None
                 received_by = None
-
                 if payment_status == 'Paid':
                     paid_by = random.choice(accountant_users) if accountant_users else None
                     paid_date = created_date + timedelta(hours=random.randint(2, 48))
-                    
                     if stock_status == 'Pending':
                         received_by = random.choice(warehouse_users) if warehouse_users else None
-                        # ยังไม่ได้รับของ
                     elif stock_status == 'Completed':
                         received_by = random.choice(warehouse_users) if warehouse_users else None
                         received_date = paid_date + timedelta(hours=random.randint(4, 72))
 
+                # ( ★★★ 1. สร้าง PO (แม่) ก่อน ★★★ )
                 po = PurchaseOrder(
                     purchase_order_number=po_number,
                     f_id=random.choice(farmers).f_id,
@@ -198,35 +207,41 @@ def seed_transaction_history():
                     received_by_id=received_by.e_id if received_by else None,
                     created_date=created_date,
                     paid_date=paid_date,
-                    received_date=received_date
+                    received_date=received_date,
+                    b_total_price=0  # ( ★★★ 2. ใส่ค่าเริ่มต้น 0 ไปก่อน ★★★ )
                 )
+
+                # ( ★★★ 3. Add 'po' (แม่) เข้า Session "ทันที" ★★★ )
+                db.session.add(po)
 
                 # สร้าง PO Items
                 total_price = 0
                 num_items = random.randint(1, 3)
                 selected_products = random.sample(products, min(num_items, len(products)))
                 
+                # ( ★★★ 4. ลูปนี้จะทำงานได้ปกติแล้ว ★★★ )
                 for product in selected_products:
                     quantity = random.randint(500, 5000)
                     price = round(product.price_per_unit * random.uniform(0.9, 1.1), 2)
                     total_price += quantity * price
 
                     po_item = PurchaseOrderItem(
-                        purchase_order_number=po_number,
+                        purchase_order_number=po_number, # <-- อ้างอิง 'PO001'
                         p_id=product.p_id,
                         quantity=quantity,
                         price_per_unit=price
                     )
-                    db.session.add(po_item)
-                    db.session.flush()
+                    db.session.add(po_item) # <-- เพิ่ม 'ลูก'
+                    
+                    # (Flush นี้จะทำงานได้ เพราะ 'แม่' (po) อยู่ใน session แล้ว)
+                    db.session.flush() # <-- นี่คือบรรทัด 234 เดิม
 
-                    # สร้าง Stock Transaction In เฉพาะเมื่อรับของเข้าคลังแล้ว
+                    # ( ... โค้ด StockTransactionIn ฯลฯ ... )
                     if stock_status == 'Completed' and received_date:
                         stock_level = StockLevel.query.filter_by(
                             p_id=product.p_id, 
                             warehouse_id=chosen_warehouse.warehouse_id
                         ).first()
-                        
                         if stock_level:
                             stock_level.quantity += quantity
                         else:
@@ -236,7 +251,6 @@ def seed_transaction_history():
                                 quantity=quantity
                             )
                             db.session.add(new_stock)
-
                         db.session.add(StockTransactionIn(
                             in_transaction_date=received_date,
                             p_id=product.p_id,
@@ -246,35 +260,28 @@ def seed_transaction_history():
                             warehouse_id=chosen_warehouse.warehouse_id,
                             po_item_id=po_item.po_item_id
                         ))
-
+                
+                # ( ★★★ 5. อัปเดตราคาสุดท้ายให้ 'po' (แม่) ★★★ )
                 po.b_total_price = total_price
-                db.session.add(po)
                 po_counter += 1
 
-            # --- SALES ORDERS: สร้าง 2-5 SO ต่อวัน ---
+            # --- SALES ORDERS: (โค้ดส่วนนี้ถูกต้องอยู่แล้ว) ---
             for _ in range(random.randint(2, 5)):
+                # ( ... โค้ดทั้งหมดของ Sales Order ... )
+                # (ตรรกะของ Sales Order ถูกต้องอยู่แล้ว คือ add(so) ก่อน flush() ลูก)
                 so_number = f'SO{so_counter:03d}'
                 customer = random.choice(food_industries)
                 chosen_warehouse = random.choice(warehouses)
-                
-                # เลือกสินค้าที่มีในสต็อก
                 available_products = []
                 for p in products:
-                    stock = StockLevel.query.filter_by(
-                        p_id=p.p_id,
-                        warehouse_id=chosen_warehouse.warehouse_id
-                    ).first()
+                    stock = StockLevel.query.filter_by(p_id=p.p_id, warehouse_id=chosen_warehouse.warehouse_id).first()
                     if stock and stock.quantity >= 100:
                         available_products.append((p, stock))
-                
                 if not available_products:
                     continue
-
-                # สถานะต่างๆ ตามอายุของ SO
                 days_old = i
                 created_by = random.choice(sales_users) if sales_users else None
-                
-                if days_old <= 1:  # SO ใหม่สุด
+                if days_old <= 1:
                     shipment_status = random.choice(['Pending', 'Shipped'])
                     delivery_status = 'Not Delivered'
                     payment_status = 'Unpaid'
@@ -286,8 +293,6 @@ def seed_transaction_history():
                     shipment_status = 'Delivered'
                     delivery_status = 'Delivered'
                     payment_status = 'Paid'
-
-                # กำหนด timestamps
                 created_date = current_date + timedelta(hours=random.randint(9, 16))
                 shipped_date = None
                 delivered_date = None
@@ -295,35 +300,26 @@ def seed_transaction_history():
                 shipped_by = None
                 delivered_by = None
                 paid_by = None
-
                 if shipment_status in ['Shipped', 'Delivered']:
                     shipped_by = random.choice(warehouse_users) if warehouse_users else None
                     shipped_date = created_date + timedelta(hours=random.randint(4, 24))
-
                 if delivery_status == 'Delivered':
                     delivered_by = random.choice(sales_users) if sales_users else None
                     delivered_date = shipped_date + timedelta(hours=random.randint(2, 48)) if shipped_date else created_date + timedelta(hours=24)
-
                 if payment_status == 'Paid':
                     paid_by = random.choice(accountant_users) if accountant_users else None
                     paid_date = delivered_date + timedelta(hours=random.randint(1, 72)) if delivered_date else created_date + timedelta(hours=48)
-
-                # สร้าง SO Items
                 num_items = random.randint(1, min(3, len(available_products)))
                 selected_items = random.sample(available_products, num_items)
-                
                 total_price = 0
                 so_items = []
-
                 for product, stock in selected_items:
                     max_qty = min(2000, int(stock.quantity * 0.3))
                     if max_qty < 100:
                         continue
-                    
                     quantity = random.randint(100, max_qty)
                     price = round(product.price_per_unit * random.uniform(1.15, 1.45), 2)
                     total_price += quantity * price
-
                     so_item = SalesOrderItem(
                         sale_order_number=so_number,
                         p_id=product.p_id,
@@ -332,10 +328,8 @@ def seed_transaction_history():
                     )
                     db.session.add(so_item)
                     so_items.append((so_item, product, quantity))
-
                 if not so_items:
                     continue
-
                 so = SalesOrder(
                     sale_order_number=so_number,
                     F_id=customer.F_id,
@@ -356,55 +350,41 @@ def seed_transaction_history():
                 )
                 db.session.add(so)
                 db.session.flush()
-
-                # ★★★ FIX: ประมวลผล FIFO และสร้าง StockTransactionOut ที่มีครบทุกฟิลด์ ★★★
                 if shipment_status in ['Shipped', 'Delivered'] and shipped_date:
                     for so_item, product, quantity in so_items:
-                        db.session.flush()  # ให้แน่ใจว่า so_item.so_item_id มีค่า
-                        
+                        db.session.flush() 
                         quantity_to_process = quantity
                         total_cogs = 0
-
-                        # FIFO: ดึง lot ที่เก่าที่สุดมาก่อน
                         stock_lots = StockTransactionIn.query.filter(
                             StockTransactionIn.p_id == product.p_id,
                             StockTransactionIn.warehouse_id == chosen_warehouse.warehouse_id,
                             StockTransactionIn.remaining_quantity > 0
                         ).order_by(StockTransactionIn.in_transaction_date.asc()).all()
-
                         for lot in stock_lots:
                             if quantity_to_process <= 0:
                                 break
-                            
                             take_qty = min(quantity_to_process, lot.remaining_quantity)
                             total_cogs += take_qty * lot.unit_cost
                             lot.remaining_quantity -= take_qty
                             quantity_to_process -= take_qty
-
-                            # ★★★ สร้าง StockTransactionOut พร้อมฟิลด์ครบถ้วน ★★★
                             db.session.add(StockTransactionOut(
                                 out_transaction_date=shipped_date,
                                 out_quantity=take_qty,
                                 p_id=product.p_id,
                                 warehouse_id=chosen_warehouse.warehouse_id,
                                 so_item_id=so_item.so_item_id,
-                                in_transaction_id=lot.in_transaction_id  # ★★★ เพิ่มฟิลด์นี้ ★★★
+                                in_transaction_id=lot.in_transaction_id 
                             ))
-
-                        # สร้าง COGS
                         db.session.add(SalesOrderItemCost(
                             so_item_id=so_item.so_item_id,
                             cogs=total_cogs
                         ))
-
-                        # ลดสต็อก
                         stock_level = StockLevel.query.filter_by(
                             p_id=product.p_id,
                             warehouse_id=chosen_warehouse.warehouse_id
                         ).first()
                         if stock_level:
                             stock_level.quantity = max(0, stock_level.quantity - quantity)
-
                 so_counter += 1
 
             # Commit ทุก 10 วัน
@@ -495,9 +475,10 @@ def seed_returns():
 if __name__ == '__main__':
     app = create_app()
     with app.app_context():
+        print("Creating all tables in the database (if they don't exist)...")
+        db.create_all()
+        print("✅ Tables created successfully.")
         clear_data()
         seed_base_data()
         seed_initial_stock()
-        seed_transaction_history()
-        seed_returns()
         print("\n🎉 Database seeding complete! 🎉")

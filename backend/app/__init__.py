@@ -12,11 +12,10 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
 
-    # --- (★ ★ ★ จุดแก้ไข ★ ★ ★) ---
-    # เปลี่ยนจากการอ้างอิงไฟล์ .db มาเป็น DATABASE_URL จาก Vercel
+    # --- (★ ★ ★ จุดแก้ไขที่ถูกต้อง ★ ★ ★) ---
     
-    # ดึงค่า DATABASE_URL จาก Environment Variable
-    database_url = os.environ.get('postgresql://postgres:pat1058pat@db.vtmntlxdbrpfpfvvvbgb.supabase.co:5432/postgres')
+    # ดึงค่า DATABASE_URL จาก Environment Variable โดยใช้ "ชื่อ" ของมัน
+    database_url = os.environ.get('DATABASE_URL') # <--- นี่คือบรรทัดที่แก้ไขให้ถูกต้อง
 
     if not database_url:
         # ถ้าหา DATABASE_URL ไม่เจอ (เช่น ตอนรันในเครื่อง) ให้ใช้ SQLite เป็นค่าเริ่มต้น
@@ -47,7 +46,9 @@ def create_app():
         # --- Create Database Tables from Models ---
         # (หมายเหตุ: Vercel ไม่ควรสั่ง create_all() ใน production 
         # คุณควร migrate ฐานข้อมูลจริงด้วยตนเองก่อน)
-        # db.create_all() 
+        # 
+        # (★ ★ ★ ผมลบ db.create_all() ออกจากตรงนี้ตามไฟล์ seed.py ★ ★ ★)
+        # db.create_all() <-- บรรทัดนี้ไม่ควรอยู่ที่นี่เมื่อใช้ seed.py
         pass
 
     return app

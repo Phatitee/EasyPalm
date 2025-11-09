@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // 1. import axios ที่เราเพิ่งติดตั้ง
 
 // URL ของ Backend ของเรา
-const API_URL = 'http://127.0.0.1:5000/products';
+const API_URL = '/api/products';
 
 const ProductList = () => {
     // 2. สร้าง "State" หรือ "กล่องเก็บข้อมูล" ใน Component

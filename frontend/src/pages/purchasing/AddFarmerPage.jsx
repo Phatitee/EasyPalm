@@ -12,7 +12,7 @@ const AddFarmerPage = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch('http://127.0.0.1:5000/farmers', {
+            const response = await fetch('/api/farmers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

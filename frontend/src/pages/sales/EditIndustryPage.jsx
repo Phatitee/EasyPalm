@@ -39,7 +39,7 @@ const EditIndustryPage = () => {
         const fetchIndustry = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`http://127.0.0.1:5000/food-industries/${id}`);
+                const response = await axios.get(`/api/food-industries/${id}`);
                 const industry = response.data;
                 setName(industry.F_name);
                 setTel(industry.F_tel);
@@ -57,7 +57,7 @@ const EditIndustryPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`http://127.0.0.1:5000/food-industries/${id}`, {
+            await axios.put(`/api/food-industries/${id}`, {
                 F_name: name,
                 F_tel: tel,
                 F_address: address,

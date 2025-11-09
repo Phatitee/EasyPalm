@@ -49,7 +49,7 @@ const AddIndustryPage = () => {
         }
 
         try {
-            const response = await axios.post('http://127.0.0.1:5000/food-industries', formData);
+            const response = await axios.post('/api/food-industries', formData);
             setResultDialog({
                 isOpen: true,
                 type: 'success',

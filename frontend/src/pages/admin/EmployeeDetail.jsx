@@ -15,7 +15,7 @@ const EmployeeDetail = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await axios.get(`http://127.0.0.1:5000/employees/${e_id}`);
+                const response = await axios.get(`/api/employees/${e_id}`);
                 setEmployee(response.data);
             } catch (err) {
                 setError('ไม่สามารถโหลดข้อมูลพนักงานได้');

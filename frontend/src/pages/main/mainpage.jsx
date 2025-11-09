@@ -200,7 +200,7 @@ const MainPage = ({ products, error: productsError }) => {
             setChartLoading(true);
             setChartError(null);
             try {
-                const response = await fetch('http://127.0.0.1:5000/palm-price-history');
+                const response = await fetch('/api/palm-price-history');
                 if (!response.ok) throw new Error('ไม่สามารถโหลดข้อมูลกราฟราคาได้');
                 const data = await response.json();
                 setChartData(data);

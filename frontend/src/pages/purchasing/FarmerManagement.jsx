@@ -54,7 +54,7 @@ const FarmerManagement = () => {
     setLoading(true);
     setError(""); // Clear previous errors
     try {
-      const response = await axios.get("http://127.0.0.1:5000/farmers");
+      const response = await axios.get("/api/farmers");
       setFarmers(response.data);
     } catch (err) {
       setError("ไม่สามารถโหลดข้อมูลเกษตรกรได้");
@@ -98,7 +98,7 @@ const FarmerManagement = () => {
   const executeDelete = async (id) => {
     handleCloseConfirmModal();
     try {
-      await axios.delete(`http://127.0.0.1:5000/farmers/${id}`);
+      await axios.delete(`/api/farmers/${id}`);
       setModalInfo({ show: true, type: "success", message: "ลบข้อมูลสำเร็จ" });
       fetchFarmers(); // <<< PROBLEM WAS LIKELY HERE (Line 99 in previous version) - This call should work now.
     } catch (err) {
@@ -174,7 +174,7 @@ const FarmerManagement = () => {
         f_address: editingFarmer.f_address,
       };
       await axios.put(
-        `http://127.0.0.1:5000/farmers/${editingFarmer.f_id}`,
+        `/api/farmers/${editingFarmer.f_id}`,
         dataToUpdate
       );
       handleCloseEditModal();
@@ -247,7 +247,7 @@ const FarmerManagement = () => {
     }
 
     try {
-      await axios.post("http://127.0.0.1:5000/farmers", newFarmerData);
+      await axios.post("/api/farmers", newFarmerData);
       handleCloseAddModal();
       setModalInfo({
         show: true,

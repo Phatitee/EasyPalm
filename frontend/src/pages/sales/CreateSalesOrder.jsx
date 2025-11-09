@@ -114,9 +114,9 @@ const CreateSalesOrder = () => {
             setError('');
             try {
                 const [custRes, whRes, stockRes] = await Promise.all([
-                    fetch('http://127.0.0.1:5000/food-industries'),
-                    fetch('http://127.0.0.1:5000/warehouses'),
-                    fetch('http://127.0.0.1:5000/stock')
+                    fetch('/api/food-industries'),
+                    fetch('/api/warehouses'),
+                    fetch('/api/stock')
                 ]);
 
                 if (!custRes.ok || !whRes.ok || !stockRes.ok) {
@@ -318,7 +318,7 @@ const CreateSalesOrder = () => {
             })),
         };
         try {
-            const response = await fetch('http://127.0.0.1:5000/salesorders', {
+            const response = await fetch('/api/salesorders', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData),
             });
             const result = await response.json();
@@ -326,7 +326,7 @@ const CreateSalesOrder = () => {
 
             setResultDialog({ isOpen: true, type: 'success', message: `สร้างใบสั่งขาย ${result.sale_order_number} สำเร็จ!` });
 
-            const stockRes = await fetch('http://127.0.0.1:5000/stock');
+            const stockRes = await fetch('/api/stock');
             setStockLevels(await stockRes.json());
 
             // Reset form

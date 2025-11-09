@@ -29,7 +29,7 @@ const ExecutiveDashboard = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch('http://127.0.0.1:5000/executive/dashboard-summary', { cache: 'no-cache' });
+                const response = await fetch('/api/executive/dashboard-summary', { cache: 'no-cache' });
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสรุปได้');
                 const data = await response.json();
                 setSummary(data);

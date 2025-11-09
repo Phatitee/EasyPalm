@@ -53,7 +53,7 @@ const ProfitLossReport = () => {
         setReportData(null);
         try {
             const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
-            const response = await fetch(`http://127.0.0.1:5000/reports/profit-loss?${params.toString()}`);
+            const response = await fetch(`/api/reports/profit-loss?${params.toString()}`);
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.error || 'ไม่สามารถสร้างรายงานได้');

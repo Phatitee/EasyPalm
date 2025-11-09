@@ -24,7 +24,7 @@ const StorageHistory = () => {
             if (searchTerm) params.append('search', searchTerm);
             if (warehouseFilter) params.append('warehouse_id', warehouseFilter);
             
-            const response = await fetch(`http://127.0.0.1:5000/warehouse/storage-history?${params.toString()}`);
+            const response = await fetch(`/api/warehouse/storage-history?${params.toString()}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการจัดเก็บได้');
             
             const data = await response.json();
@@ -39,7 +39,7 @@ const StorageHistory = () => {
     useEffect(() => {
         const fetchWarehouses = async () => {
             try {
-                const res = await fetch('http://127.0.0.1:5000/warehouses');
+                const res = await fetch('/api/warehouses');
                 if (!res.ok) throw new Error('Failed to fetch warehouses');
                 setWarehouses(await res.json());
             } catch (err) { console.error(err); }

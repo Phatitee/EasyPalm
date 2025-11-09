@@ -61,7 +61,7 @@ const WarehouseManagement = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://127.0.0.1:5000/purchasing/warehouse-summary', { cache: 'no-cache' });
+            const response = await fetch('/api/purchasing/warehouse-summary', { cache: 'no-cache' });
             
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลคลังสินค้าได้');
             const data = await response.json();
@@ -109,8 +109,8 @@ const WarehouseManagement = () => {
         }
 
         const url = isEditMode 
-            ? `http://127.0.0.1:5000/warehouses/${warehouseData.warehouse_id}` 
-            : 'http://127.0.0.1:5000/warehouses';
+            ? `/api/warehouses/${warehouseData.warehouse_id}` 
+            : '/api/warehouses';
         const method = isEditMode ? 'PUT' : 'POST';
 
         try {
@@ -145,7 +145,7 @@ const WarehouseManagement = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`http://127.0.0.1:5000/warehouses/${warehouse.warehouse_id}`, {
+            const response = await fetch(`/api/warehouses/${warehouse.warehouse_id}`, {
                 method: 'DELETE',
             });
             const result = await response.json();

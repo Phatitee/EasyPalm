@@ -82,7 +82,7 @@ function App() {
     const fetchProducts = async () => {
       try {
         // --- (★ ★ ★ จุดแก้ไข ★ ★ ★) ---
-        // เปลี่ยนจาก "http://127.0.0.1:5000/products"
+        // เปลี่ยนจาก "/api/products"
         const response = await axios.get('/api/products'); 
         // --- (สิ้นสุดจุดแก้ไข) ---
         

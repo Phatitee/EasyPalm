@@ -35,7 +35,7 @@ const CustomerManagement = () => {
     const fetchIndustries = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://127.0.0.1:5000/food-industries');
+            const response = await axios.get('/api/food-industries');
             setIndustries(response.data);
         } catch (err) {
             setError('ไม่สามารถโหลดข้อมูลโรงงานได้');
@@ -73,7 +73,7 @@ const CustomerManagement = () => {
     const executeDelete = async (id) => {
         handleCloseConfirmModal();
         try {
-            await axios.delete(`http://127.0.0.1:5000/food-industries/${id}`);
+            await axios.delete(`/api/food-industries/${id}`);
             setModalInfo({ show: true, type: 'success', message: 'ลบข้อมูลสำเร็จ' });
             fetchIndustries();
         } catch (err) {
@@ -121,7 +121,7 @@ const CustomerManagement = () => {
         // --- (สิ้นสุดการแก้ไข) ---
 
         try {
-            await axios.put(`http://127.0.0.1:5000/food-industries/${editingIndustry.F_id}`, editingIndustry);
+            await axios.put(`/api/food-industries/${editingIndustry.F_id}`, editingIndustry);
             handleCloseEditModal();
             setModalInfo({ show: true, type: 'success', message: 'แก้ไขข้อมูลโรงงานสำเร็จ' });
             fetchIndustries();
@@ -178,7 +178,7 @@ const CustomerManagement = () => {
         // --- (สิ้นสุดการแก้ไข) ---
 
         try {
-            await axios.post('http://127.0.0.1:5000/food-industries', newIndustryData);
+            await axios.post('/api/food-industries', newIndustryData);
             handleCloseAddModal();
             setModalInfo({ show: true, type: 'success', message: 'เพิ่มข้อมูลโรงงานสำเร็จ' });
             fetchIndustries(); // โหลดข้อมูลใหม่

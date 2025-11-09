@@ -20,7 +20,7 @@ const PurchaseHistory = () => {
             if (searchTerm) params.append('search', searchTerm);
             if (statusFilter) params.append('status', statusFilter);
             
-            const response = await fetch(`http://127.0.0.1:5000/purchaseorders?${params.toString()}`);
+            const response = await fetch(`/api/purchaseorders?${params.toString()}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการสั่งซื้อได้');
             
             const data = await response.json();

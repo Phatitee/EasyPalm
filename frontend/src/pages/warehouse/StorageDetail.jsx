@@ -35,7 +35,7 @@ const StorageDetail = ({ orderId, onClose }) => {
             setLoading(true);
             try {
                 // Endpoint is correct for fetching Purchase Order details
-                const response = await fetch(`http://127.0.0.1:5000/purchaseorders/${orderId}`);
+                const response = await fetch(`/api/purchaseorders/${orderId}`);
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
                 const data = await response.json();
                 setOrder(data);

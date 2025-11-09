@@ -36,7 +36,7 @@ const ShipmentDetails = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`http://127.0.0.1:5000/salesorders/${orderId}`);
+                const response = await fetch(`/api/salesorders/${orderId}`);
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
                 const data = await response.json();
                 setOrder(data);

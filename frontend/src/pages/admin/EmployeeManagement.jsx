@@ -238,7 +238,7 @@ const EmployeeManagement = () => {
     const fetchEmployees = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://127.0.0.1:5000/employees');
+            const response = await axios.get('/api/employees');
             setEmployees(response.data);
             setError('');
         } catch (err) {
@@ -275,7 +275,7 @@ const EmployeeManagement = () => {
                     title: `ยืนยันการ${actionText}`,
                     message: `คุณต้องการ${actionText}พนักงาน "${e_name}" ใช่หรือไม่?`,
                     onConfirm: async () => {
-                        const url = `http://127.0.0.1:5000/employees/${e_id}/${is_active ? 'suspend' : 'unsuspend'}`;
+                        const url = `/api/employees/${e_id}/${is_active ? 'suspend' : 'unsuspend'}`;
                         await axios.put(url);
                         setResultDialog({ isOpen: true, type: 'success', message: `${actionText}สำเร็จ!` });
                         fetchEmployees();
@@ -287,7 +287,7 @@ const EmployeeManagement = () => {
                     title: 'ยืนยันการลบ',
                     message: `คุณต้องการลบพนักงาน "${e_name}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
                     onConfirm: async () => {
-                        await axios.delete(`http://127.0.0.1:5000/employees/${e_id}`);
+                        await axios.delete(`/api/employees/${e_id}`);
                         setResultDialog({ isOpen: true, type: 'success', message: 'ลบพนักงานสำเร็จ!' });
                         fetchEmployees();
                     }
@@ -354,7 +354,7 @@ const EmployeeManagement = () => {
 
 
         const method = editingEmployee ? 'put' : 'post';
-        const url = editingEmployee ? `http://127.0.0.1:5000/employees/${editingEmployee.e_id}` : 'http://127.0.0.1:5000/employees';
+        const url = editingEmployee ? `/api/employees/${editingEmployee.e_id}` : '/api/employees';
         try {
             await axios({ method, url, data });
             setIsModalOpen(false);

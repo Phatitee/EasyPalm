@@ -73,8 +73,8 @@ const PendingStorage = () => {
         try {
             // (สันนิษฐานว่า /pending-storage-items สำหรับ SO_Return จะมี field 'warehouse_id' มาให้ด้วย)
             const [itemsRes, warehousesRes] = await Promise.all([
-                fetch('http://127.0.0.1:5000/warehouse/pending-storage-items'),
-                fetch('http://127.0.0.1:5000/warehouses')
+                fetch('/api/warehouse/pending-storage-items'),
+                fetch('/api/warehouses')
             ]);
 
             if (!itemsRes.ok || !warehousesRes.ok) throw new Error('ไม่สามารถดึงข้อมูลเริ่มต้นได้');
@@ -142,8 +142,8 @@ const PendingStorage = () => {
 
         const isReturn = item.type === 'SO_Return';
         const url = isReturn
-            ? 'http://127.0.0.1:5000/warehouse/confirm-return'
-            : 'http://127.0.0.1:5000/warehouse/receive-items';
+            ? '/api/warehouse/confirm-return'
+            : '/api/warehouse/receive-items';
 
         const body = isReturn
             ? { sales_order_number: item.order_number, warehouse_id: warehouseId, employee_id: user.e_id }

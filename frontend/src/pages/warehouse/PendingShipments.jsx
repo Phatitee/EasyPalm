@@ -63,7 +63,7 @@ const PendingShipments = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://127.0.0.1:5000/warehouse/pending-shipments', { cache: 'no-cache' });
+            const response = await fetch('/api/warehouse/pending-shipments', { cache: 'no-cache' });
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -96,7 +96,7 @@ const PendingShipments = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`http://127.0.0.1:5000/warehouse/ship-order/${orderNumber}`, {
+            const response = await fetch(`/api/warehouse/ship-order/${orderNumber}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),

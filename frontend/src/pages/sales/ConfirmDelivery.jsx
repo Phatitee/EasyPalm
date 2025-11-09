@@ -80,7 +80,7 @@ const ConfirmDelivery = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://127.0.0.1:5000/salesorders/pending-delivery', { cache: 'no-cache' });
+            const response = await fetch('/api/salesorders/pending-delivery', { cache: 'no-cache' });
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -127,9 +127,9 @@ const ConfirmDelivery = () => {
 
         let url = '';
         if (action === 'confirm') {
-            url = `http://127.0.0.1:5000/salesorders/${orderNumber}/confirm-delivery`;
+            url = `/api/salesorders/${orderNumber}/confirm-delivery`;
         } else if (action === 'return') {
-            url = `http://127.0.0.1:5000/salesorders/${orderNumber}/request-return`;
+            url = `/api/salesorders/${orderNumber}/request-return`;
         } else {
             console.error("Unknown action type:", action);
             setSubmittingId(null);
