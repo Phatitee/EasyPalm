@@ -130,88 +130,126 @@ const ProductPriceList = () => {
 
     return (
         // ★★★ Dark Mode FIX: Main Page Background ★★★
-        <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-            {/* ★★★ ADDED: Result Dialog Component ★★★ */}
+        <div className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen transition-all duration-300">
             <ResultDialog isOpen={resultDialog.isOpen} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} type={resultDialog.type} message={resultDialog.message} />
 
-            <div className="text-center mb-8">
-                {/* ★★★ Dark Mode FIX: Header Text Colors ★★★ */}
-                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">จัดการราคารับซื้อ</h1>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">อัปเดตราคารับซื้อผลผลิตจากเกษตรกร</p>
+            <div className="text-center mb-8 bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                    จัดการราคารับซื้อ
+                </h1>
+                <p className="text-lg text-gray-500 dark:text-gray-400 mt-3">
+                    อัปเดตราคารับซื้อผลผลิตจากเกษตรกร
+                </p>
             </div>
 
-            {/* ★★★ Dark Mode FIX: Card Container Background and Shadow ★★★ */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden transition-all duration-300 border border-gray-100 dark:border-gray-700">
                 {/* ★★★ Dark Mode FIX: Section Header Border and Text Colors ★★★ */}
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                        <DollarSign className="text-green-500" />
+                <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
+                    <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-200 flex items-center gap-3">
+                        <DollarSign className="text-green-500 h-8 w-8" />
                         <span>รายการราคาสินค้า</span>
                     </h2>
                 </div>
 
                 {loading ? (
-                    // ★★★ Dark Mode FIX: Loading State ★★★
-                    <div className="flex justify-center items-center p-16 text-gray-800 dark:text-gray-200">
-                        <Loader className="animate-spin text-green-500" size={48} />
+                    <div className="flex flex-col justify-center items-center p-16">
+                        <div className="relative">
+                            <div className="w-16 h-16 rounded-full border-4 border-green-100 dark:border-green-900 animate-pulse"></div>
+                            <Loader className="animate-spin text-green-500 dark:text-green-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" size={32} />
+                        </div>
+                        <p className="mt-4 text-gray-600 dark:text-gray-400 font-medium">กำลังโหลดข้อมูล...</p>
                     </div>
                 ) : error ? (
-                    // ★★★ Dark Mode FIX: Error State ★★★
-                    <div className="text-center py-10 text-red-500 dark:text-red-400">
-                        <ServerCrash className="mx-auto" size={48} />
-                        <p>{error}</p>
+                    <div className="text-center py-12">
+                        <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-8 mx-8">
+                            <ServerCrash className="mx-auto mb-4 text-red-500 dark:text-red-400" size={48} />
+                            <h3 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">เกิดข้อผิดพลาด</h3>
+                            <p className="text-gray-600 dark:text-gray-400">{error}</p>
+                        </div>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            {/* ★★★ Dark Mode FIX: Table Header Background and Text Colors ★★★ */}
-                            <thead className="bg-gray-50 dark:bg-gray-700">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">รหัสสินค้า</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ชื่อสินค้า</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ราคา/หน่วย (บาท)</th>
-                                    {canEdit && <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">จัดการ</th>}
+                                    <th scope="col" className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        รหัสสินค้า
+                                    </th>
+                                    <th scope="col" className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        ชื่อสินค้า
+                                    </th>
+                                    <th scope="col" className="px-8 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        ราคา/หน่วย (บาท)
+                                    </th>
+                                    {canEdit && <th scope="col" className="px-8 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
+                                        จัดการ
+                                    </th>}
                                 </tr>
                             </thead>
-                            {/* ★★★ Dark Mode FIX: Table Body Background and Divider ★★★ */}
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                                 {products.map((product) => (
-                                    <tr key={product.p_id} className={`transition-colors duration-200 ${editingId === product.p_id ? 'bg-green-100 dark:bg-gray-900' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                                    <tr key={product.p_id} 
+                                        className={`transition-all duration-200 ${
+                                            editingId === product.p_id 
+                                            ? 'bg-green-50 dark:bg-green-900/20' 
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                        }`}>
                                         {/* ★★★ Dark Mode FIX: Cell Text Colors ★★★ */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600 dark:text-gray-300">{product.p_id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{product.p_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                        <td className="px-8 py-4">
+                                            <span className="font-mono text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                                                {product.p_id}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-4">
+                                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                                                {product.p_name}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-4 text-right">
                                             {editingId === product.p_id ? (
-                                                // ★★★ Dark Mode FIX: Input Field Styling ★★★
                                                 <input
                                                     type="number"
                                                     step="0.01"
-                                                    min="0.01" // ★★★ เพิ่ม: ป้องกันการใส่ค่า 0 หรือติดลบ
+                                                    min="0.01"
                                                     max={MAX_ALLOWED_PRICE} 
                                                     value={newPrice}
                                                     onChange={handlePriceChange}
-                                                    className="block w-28 ml-auto p-2 text-right text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-green-500 focus:border-green-500
-                                                               dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-green-400 dark:focus:border-green-400"
+                                                    className="block w-32 ml-auto p-2.5 text-right text-sm font-medium text-gray-900 border-2 rounded-xl bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500
+                                                             dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-green-400 dark:focus:border-green-400 transition-all duration-200"
                                                     autoFocus
                                                 />
                                             ) : (
-                                                <span className="font-semibold text-lg text-gray-800 dark:text-green-400">{product.price_per_unit.toFixed(2)}</span>
+                                                <span className="font-semibold text-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-1.5 rounded-xl inline-block">
+                                                    {product.price_per_unit.toFixed(2)}
+                                                </span>
                                             )}
                                         </td>
                                         {canEdit && (
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                            <td className="px-8 py-4 text-center">
                                                 {editingId === product.p_id ? (
-                                                    <div className="flex justify-center gap-4">
-                                                        <button onClick={() => handleSaveClick(product.p_id)} className="text-green-600 hover:text-green-800 transition-transform transform hover:scale-110 dark:text-green-400 dark:hover:text-green-200" title="บันทึก">
-                                                            <Save size={20} />
+                                                    <div className="flex justify-center gap-3">
+                                                        <button 
+                                                            onClick={() => handleSaveClick(product.p_id)} 
+                                                            className="p-2 text-white bg-green-500 hover:bg-green-600 rounded-xl transition-all duration-200 hover:scale-105"
+                                                            title="บันทึก"
+                                                        >
+                                                            <Save size={18} />
                                                         </button>
-                                                        <button onClick={handleCancelClick} className="text-gray-500 hover:text-gray-700 transition-transform transform hover:scale-110 dark:text-gray-400 dark:hover:text-gray-200" title="ยกเลิก">
-                                                            <XCircle size={20} />
+                                                        <button 
+                                                            onClick={handleCancelClick} 
+                                                            className="p-2 text-white bg-gray-400 hover:bg-gray-500 rounded-xl transition-all duration-200 hover:scale-105"
+                                                            title="ยกเลิก"
+                                                        >
+                                                            <XCircle size={18} />
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <button onClick={() => handleEditClick(product)} className="text-yellow-600 hover:text-yellow-800 transition-transform transform hover:scale-110 dark:text-yellow-400 dark:hover:text-yellow-200" title="แก้ไข">
-                                                        <Edit size={20} />
+                                                    <button 
+                                                        onClick={() => handleEditClick(product)} 
+                                                        className="p-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 rounded-xl transition-all duration-200 hover:scale-105 dark:text-yellow-500 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/20"
+                                                        title="แก้ไข"
+                                                    >
+                                                        <Edit size={18} />
                                                     </button>
                                                 )}
                                             </td>
