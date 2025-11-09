@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/run.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.9",
+        "maxLambdaSize": "15mb"
+      }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "outputDirectory": "frontend/build",
+        "installCommand": "cd frontend && npm install",
+        "buildCommand": "cd frontend && npm run build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/run.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/build/$1"
+    }
+  ]
+}
