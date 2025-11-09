@@ -83,8 +83,12 @@ function App() {
         // --- (★ ★ ★ จุดแก้ไข ★ ★ ★) ---
         // เปลี่ยนจาก "/api/products"
         const response = await axios.get('/api/products'); 
-        // --- (สิ้นสุดจุดแก้ไข) ---
-        
+        if (Array.isArray(response.data)) {
+          setProducts(response.data);
+        } else {
+          // ถ้า API คืนค่ามาแปลกๆ (ไม่ใช่ Array) ให้โยน Error ไปเลย
+          throw new Error("API response is not a valid array");
+        }
         setProducts(response.data);
       } catch (err) {
         setError('ไม่สามารถเชื่อมต่อกับ Server เพื่อโหลดราคาได้');
