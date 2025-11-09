@@ -81,7 +81,11 @@ function App() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/products');
+        // --- (★ ★ ★ จุดแก้ไข ★ ★ ★) ---
+        // เปลี่ยนจาก "http://127.0.0.1:5000/products"
+        const response = await axios.get('/api/products'); 
+        // --- (สิ้นสุดจุดแก้ไข) ---
+        
         setProducts(response.data);
       } catch (err) {
         setError('ไม่สามารถเชื่อมต่อกับ Server เพื่อโหลดราคาได้');
