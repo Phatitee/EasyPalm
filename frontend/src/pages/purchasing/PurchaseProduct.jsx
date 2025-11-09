@@ -34,13 +34,13 @@ const PrintableReceipt = React.forwardRef(({ order }, ref) => {
             <header className="flex justify-between items-center pb-4 border-b-2 border-black"><h1 className="text-3xl font-bold">EasyPalm Co., Ltd.</h1><h2 className="text-4xl font-bold text-gray-800">ใบเสร็จรับซื้อ</h2></header>
             <section className="my-6 grid grid-cols-2 gap-4">
                 <div><h3 className="text-md font-semibold mb-1">ข้อมูลเกษตรกร:</h3><p><strong>ชื่อ:</strong> {order?.farmer_name ?? 'N/A'}</p></div>
-                <div className="text-right"><p><strong>เลขที่ใบสั่งซื้อ:</strong> {order?.purchase_order_number ?? 'N/A'}</p><p><strong>วันที่:</strong> {new Date(order?.b_date || order?.created_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p></div>
+                <div className="text-right"><p><strong>เลขที่ใบสั่งซื้อ:</strong> {order?.purchase_order_number ?? 'N/A'}</p><p><strong>วันที่/เวลา:</strong> {new Date((order?.b_date || order?.created_date) + 'Z').toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p></div>
             </section>
             <table className="w-full text-left border-collapse my-8">
                 <thead><tr className="bg-gray-100"><th className="p-2 border">#</th><th className="p-2 border">รายการ</th><th className="p-2 border text-right">จำนวน (กก.)</th><th className="p-2 border text-right">ราคา/หน่วย</th><th className="p-2 border text-right">ราคารวม</th></tr></thead>
                 <tbody>
                     {order?.items?.map((item, index) => (
-                        <tr key={item?.p_id || index}><td className="p-2 border">{index + 1}</td><td className="p-2 border">{item?.p_name ?? 'N/A'}</td><td className="p-2 border text-right">{item?.quantity?.toLocaleString() ?? 0}</td><td className="p-2 border text-right">{item?.price_per_unit?.toFixed(2) ?? '0.00'}</td><td className="p-2 border text-right">{(item?.quantity * item?.price_per_unit)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}</td></tr>
+                        <tr key={item?.p_id || index}><td className="p-2 border">{index + 1}</td><td className="p-2 border">{item?.p_name ?? 'N/A'}</td><td className="p-2 border text-right">{Number(item?.quantity ?? 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td></tr>
                     ))}
                 </tbody>
                 <tfoot><tr className="font-bold"><td colSpan="4" className="p-2 border text-right">ยอดรวมทั้งสิ้น</td><td className="p-2 border text-right text-lg">{order?.b_total_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}</td></tr></tfoot>
@@ -57,7 +57,7 @@ const PrintableReceipt = React.forwardRef(({ order }, ref) => {
 });
 
 // --- Helper Modal (ไม่มีการแก้ไข) ---
-const ResultDialog = ({ isOpen, onClose, type, message }) => { /* ... โค้ดส่วนนี้เหมือนเดิม ... */ 
+const ResultDialog = ({ isOpen, onClose, type, message }) => { /* ... โค้ดส่วนนี้เหมือนเดิม ... */
     if (!isOpen) return null;
     const isSuccess = type === 'success';
     return (
@@ -95,7 +95,7 @@ const ConfirmOrderDialog = ({ isOpen, onClose, onConfirm, farmer, items, total }
                                 <tr key={item.p_id}>
                                     <td className="p-2 border">{idx + 1}</td>
                                     <td className="p-2 border">{item.p_name}</td>
-                                    <td className="p-2 border text-right">{parseFloat(item.quantity || 0).toLocaleString()}</td>
+                                    <td className="p-2 border text-right">{Number(item?.quantity ?? 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
                                     <td className="p-2 border text-right">{parseFloat(item.price_per_unit || 0).toFixed(2)}</td>
                                     <td className="p-2 border text-right">{(parseFloat(item.quantity || 0) * parseFloat(item.price_per_unit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
@@ -148,10 +148,10 @@ const PurchaseProduct = () => {
         },
         onPrintError: (errorLocation, error) => {
             console.error('Print error:', errorLocation, error);
-            setResultDialog({ 
-                isOpen: true, 
-                type: 'error', 
-                message: 'เกิดข้อผิดพลาดในการพิมพ์ กรุณาลองใหม่อีกครั้ง' 
+            setResultDialog({
+                isOpen: true,
+                type: 'error',
+                message: 'เกิดข้อผิดพลาดในการพิมพ์ กรุณาลองใหม่อีกครั้ง'
             });
         }
     });
@@ -163,16 +163,16 @@ const PurchaseProduct = () => {
             handlePrint();
         } else {
             console.error("Print Error: Missing ref or order data");
-            setResultDialog({ 
-                isOpen: true, 
-                type: 'error', 
-                message: 'ไม่สามารถพิมพ์ได้: ไม่พบข้อมูลใบเสร็จ' 
+            setResultDialog({
+                isOpen: true,
+                type: 'error',
+                message: 'ไม่สามารถพิมพ์ได้: ไม่พบข้อมูลใบเสร็จ'
             });
         }
     };
 
     useEffect(() => { /* ... fetchData เหมือนเดิม ... */
-        const fetchData = async () => { 
+        const fetchData = async () => {
             setLoading(true); setError('');
             try {
                 const [farmerRes, productRes] = await Promise.all([
@@ -209,11 +209,47 @@ const PurchaseProduct = () => {
         }]);
     };
     const handleItemChange = (p_id, field, value) => {
-        if (value && !/^\d*\.?\d*$/.test(value)) return;
-        // Prevent price_per_unit from being 0
-        if (field === 'price_per_unit' && (parseFloat(value) === 0 || value === '0')) return;
+
+        // ★★★★★ จุดแก้ไขที่ 1: สร้าง Regex แยกกัน ★★★★★
+        // Regex สำหรับราคา (2 ตำแหน่ง)
+        const decimalRegexPrice = /^\d*(\.\d{0,2})?$/;
+        // Regex สำหรับจำนวน (3 ตำแหน่ง)
+        const decimalRegexQuantity = /^\d*(\.\d{0,3})?$/;
+
+        // ★★★★★ จุดแก้ไขที่ 2: ใช้ Regex ให้ถูก field ★★★★★
+        if (field === 'quantity') {
+            if (value && !decimalRegexQuantity.test(value)) {
+                return; // ถ้าไม่ตรง format 3 ตำแหน่ง ให้ออก
+            }
+        } else if (field === 'price_per_unit') {
+            if (value && !decimalRegexPrice.test(value)) {
+                return; // ถ้าไม่ตรง format 2 ตำแหน่ง ให้ออก
+            }
+        }
+        // ★★★★★ สิ้นสุดจุดแก้ไข ★★★★★
+
+        const MAX_PRICE = 9999999.999;
+
+        // ★★★★★ จุดแก้ไขที่ 3: ปรับ MAX_QUANTITY ให้รองรับ .999 ★★★★★
+        const MAX_QUANTITY = 999999.999;
+        // ★★★★★ สิ้นสุดจุดแก้ไข ★★★★★
+
+        const numericValue = parseFloat(value);
+
+        if (field === 'price_per_unit') {
+            if (numericValue > MAX_PRICE) return;
+            if (numericValue === 0 && value.trim() !== '') return;
+        }
+
+        if (field === 'quantity') {
+            // ถ้าค่าตัวเลขเกินกำหนด ให้หยุด
+            if (numericValue > MAX_QUANTITY) return;
+        }
+
+        // ถ้าผ่านทุกเงื่อนไข ให้อัปเดต state
         setOrderItems(prev => prev.map(item => item.p_id === p_id ? { ...item, [field]: value } : item));
     };
+
     const handleItemBlur = (p_id, field, value) => { /* ... โค้ดส่วนนี้เหมือนเดิม ... */
         setOrderItems(prev => prev.map(item => {
             if (item.p_id === p_id) {
@@ -288,34 +324,34 @@ const PurchaseProduct = () => {
     return (
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <ResultDialog isOpen={resultDialog.isOpen} onClose={() => setResultDialog({ ...resultDialog, isOpen: false })} type={resultDialog.type} message={resultDialog.message} />
-            
-            <SuccessPrintDialog 
-                isOpen={!!completedOrder} 
-                onClose={handleCloseSuccessDialog} 
+
+            <SuccessPrintDialog
+                isOpen={!!completedOrder}
+                onClose={handleCloseSuccessDialog}
                 onPrint={triggerPrint} // ★★★★★ จุดแก้ไขที่ 4: เรียกใช้ triggerPrint ★★★★★
-                orderNumber={completedOrder?.purchase_order_number} 
+                orderNumber={completedOrder?.purchase_order_number}
             />
-            
+
             {/* ... (JSX ที่เหลือเหมือนเดิม) ... */}
             <div className="text-center mb-8"><h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">สร้างใบสั่งซื้อ</h1><p className="text-lg text-gray-500 dark:text-gray-400 mt-2">บันทึกรายการสั่งซื้อวัตถุดิบจากเกษตรกร</p></div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">ข้อมูลหลัก</h2><div ref={farmerSearchRef}><label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><User size={16} className="mr-2"/>ค้นหาเกษตรกร</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} /><input type="text" placeholder="พิมพ์เพื่อค้นหา..." value={farmerSearch} onFocus={() => setIsFarmerListOpen(true)} onChange={(e) => {setFarmerSearch(e.target.value); setSelectedFarmer(''); setIsFarmerListOpen(true);}} className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />{isFarmerListOpen && (<div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">{filteredFarmers.length > 0 ? filteredFarmers.map(f => (<div key={f.f_id} onClick={() => handleSelectFarmer(f)} className="p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-600">{f.f_name}</div>)) : <div className="p-2 text-gray-500">ไม่พบเกษตรกร</div>}</div>)}</div></div></div>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">ข้อมูลหลัก</h2><div ref={farmerSearchRef}><label className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-1"><User size={16} className="mr-2" />ค้นหาเกษตรกร</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} /><input type="text" placeholder="พิมพ์เพื่อค้นหา..." value={farmerSearch} onFocus={() => setIsFarmerListOpen(true)} onChange={(e) => { setFarmerSearch(e.target.value); setSelectedFarmer(''); setIsFarmerListOpen(true); }} className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />{isFarmerListOpen && (<div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600">{filteredFarmers.length > 0 ? filteredFarmers.map(f => (<div key={f.f_id} onClick={() => handleSelectFarmer(f)} className="p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-600">{f.f_name}</div>)) : <div className="p-2 text-gray-500">ไม่พบเกษตรกร</div>}</div>)}</div></div></div>
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">รายการสินค้าทั้งหมด</h2><div className="max-h-64 overflow-y-auto pr-2"><ul className="divide-y divide-gray-200 dark:divide-gray-700">{products.map(p => (<li key={p.p_id} className="flex justify-between items-center py-3"><div><p className="font-semibold text-gray-800 dark:text-gray-100">{p.p_name}</p><p className="text-sm text-gray-500 dark:text-gray-400">ราคาล่าสุด: <span className="font-mono text-blue-600 ml-1">{p.price_per_unit.toFixed(2)} บ.</span></p></div><button onClick={() => handleAddItem(p)} disabled={orderItems.some(item => item.p_id === p.p_id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded-full text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><PlusCircle size={14} /> {orderItems.some(item => item.p_id === p.p_id) ? 'เพิ่มแล้ว' : 'เพิ่ม'}</button></li>))}</ul></div></div>
                 </div>
-                <div className="lg:col-span-1"><div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart/>สรุปรายการ</h2><div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">{orderItems.length === 0 ? <p className="text-center text-gray-500 py-12">ยังไม่มีสินค้า</p> : orderItems.map(item => (<div key={item.p_id} className="border-b dark:border-gray-700 pb-3"><div className="flex justify-between items-start"><p className="font-semibold dark:text-gray-100">{item.p_name}</p><button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button></div>
-                        {/* เพิ่มหัวข้อราคา/หน่วย */}
-                        <div className="flex gap-2 mb-1">
-                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน</span>
-                            <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                            <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity} onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
-                            <input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit} onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
-                        </div>
-                    </div>))}</div>{orderItems.length > 0 && (<div className="mt-6 pt-4 border-t-2 border-dashed dark:border-gray-700"><div className="flex justify-between items-center text-xl font-bold mb-4"><span className="text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalPurchasePrice.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div><button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedFarmer} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">{isSubmitting ? <Loader className="animate-spin"/> : <CheckCircle/>}{isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งซื้อ'}</button></div>)}</div></div>
+                <div className="lg:col-span-1"><div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3"><ShoppingCart />สรุปรายการ</h2><div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">{orderItems.length === 0 ? <p className="text-center text-gray-500 py-12">ยังไม่มีสินค้า</p> : orderItems.map(item => (<div key={item.p_id} className="border-b dark:border-gray-700 pb-3"><div className="flex justify-between items-start"><p className="font-semibold dark:text-gray-100">{item.p_name}</p><button onClick={() => handleRemoveItem(item.p_id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16} /></button></div>
+                    {/* เพิ่มหัวข้อราคา/หน่วย */}
+                    <div className="flex gap-2 mb-1">
+                        <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">จำนวน (กก.)</span>
+                        <span className="w-1/2 text-xs text-gray-500 dark:text-gray-400">ราคา/หน่วย</span>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                        <input type="text" inputMode="decimal" placeholder="จำนวน" value={item.quantity} onChange={(e) => handleItemChange(item.p_id, 'quantity', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'quantity', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="text" inputMode="decimal" placeholder="ราคา/หน่วย" value={item.price_per_unit} onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)} onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)} className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                    </div>
+                </div>))}</div>{orderItems.length > 0 && (<div className="mt-6 pt-4 border-t-2 border-dashed dark:border-gray-700"><div className="flex justify-between items-center text-xl font-bold mb-4"><span className="text-gray-700 dark:text-gray-300">ยอดรวม</span><span className="dark:text-gray-100">{totalPurchasePrice.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</span></div><button onClick={handleConfirmOrder} disabled={isSubmitting || !selectedFarmer} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">{isSubmitting ? <Loader className="animate-spin" /> : <CheckCircle />}{isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการสร้างใบสั่งซื้อ'}</button></div>)}</div></div>
             </div>
-            
+
             {/* ส่วนที่ซ่อนไว้สำหรับพิมพ์ (ref จะถูกผูกกับ div นี้เมื่อ completedOrder มีค่า) */}
             {completedOrder && <div style={{ display: "none" }}><PrintableReceipt ref={receiptRef} order={completedOrder} /></div>}
 

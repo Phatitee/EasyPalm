@@ -30,7 +30,7 @@ const EmployeeDetail = () => {
     const formatDateTime = (dateString) => {
         if (!dateString) return '-';
         try {
-            return new Date(dateString).toLocaleString('th-TH', {
+            return new Date(dateString + 'Z').toLocaleString('th-TH', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',

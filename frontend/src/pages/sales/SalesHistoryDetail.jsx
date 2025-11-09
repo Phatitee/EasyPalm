@@ -6,14 +6,14 @@ import { useReactToPrint } from 'react-to-print';
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
 
-    const formattedDate = date 
-        ? new Date(date).toLocaleString('th-TH', {
+    const formattedDate = date
+        ? new Date(date + 'Z').toLocaleString('th-TH', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
-          })
+        })
         : '';
 
     return (
@@ -32,14 +32,14 @@ const ActionDetail = ({ icon, label, person, date }) => {
 const PrintableSalesOrder = React.forwardRef(({ order }, ref) => {
     if (!order) return null;
     const today = new Date();
-    
+
     return (
         <div ref={ref} className="p-8 font-sans">
             <header className="flex justify-between items-center pb-4 border-b-2 border-black">
                 <h1 className="text-3xl font-bold">EasyPalm Co., Ltd.</h1>
                 <h2 className="text-4xl font-bold text-gray-800">ใบสั่งขาย</h2>
             </header>
-            
+
             <section className="my-6 grid grid-cols-2 gap-4">
                 <div>
                     <h3 className="text-md font-semibold mb-1">ข้อมูลลูกค้า:</h3>
@@ -47,30 +47,31 @@ const PrintableSalesOrder = React.forwardRef(({ order }, ref) => {
                 </div>
                 <div className="text-right">
                     <p><strong>เลขที่ใบสั่งขาย:</strong> {order?.sale_order_number ?? 'N/A'}</p>
-                    <p><strong>วันที่:</strong> {new Date(order?.s_date || order?.created_date).toLocaleDateString('th-TH', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
+                    <p><strong>วันที่:</strong> {new Date((order?.s_date || order?.created_date) + 'Z').toLocaleString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                     })}</p>
-                    <p><strong>สถานะการจัดส่ง:</strong> 
-                        <span className={`ml-2 ${
-                            order?.delivery_status === 'Delivered' ? 'text-green-600' : 
-                            order?.delivery_status === 'ขอคืน' ? 'text-red-600' : 
-                            'text-orange-600'
-                        }`}>
-                            {order?.delivery_status === 'Delivered' ? 'จัดส่งแล้ว' : 
-                             order?.delivery_status === 'ขอคืน' ? 'ขอคืนสินค้า' : 
-                             order?.delivery_status || 'รอดำเนินการ'}
+                    <p><strong>สถานะการจัดส่ง:</strong>
+                        <span className={`ml-2 ${order?.delivery_status === 'Delivered' ? 'text-green-600' :
+                            order?.delivery_status === 'ขอคืน' ? 'text-red-600' :
+                                'text-orange-600'
+                            }`}>
+                            {order?.delivery_status === 'Delivered' ? 'จัดส่งแล้ว' :
+                                order?.delivery_status === 'ขอคืน' ? 'ขอคืนสินค้า' :
+                                    order?.delivery_status || 'รอดำเนินการ'}
                         </span>
                     </p>
-                    <p><strong>สถานะชำระเงิน:</strong> 
+                    <p><strong>สถานะชำระเงิน:</strong>
                         <span className={`ml-2 ${order?.payment_status === 'Paid' ? 'text-green-600' : 'text-red-600'}`}>
                             {order?.payment_status === 'Paid' ? 'ชำระแล้ว' : 'ยังไม่ชำระ'}
                         </span>
                     </p>
                 </div>
             </section>
-            
+
             <table className="w-full text-left border-collapse my-8">
                 <thead>
                     <tr className="bg-gray-100">
@@ -89,9 +90,9 @@ const PrintableSalesOrder = React.forwardRef(({ order }, ref) => {
                             <td className="p-2 border text-right">{item?.quantity?.toLocaleString() ?? 0}</td>
                             <td className="p-2 border text-right">{item?.price_per_unit?.toFixed(2) ?? '0.00'}</td>
                             <td className="p-2 border text-right">
-                                {(item?.quantity * item?.price_per_unit)?.toLocaleString(undefined, { 
-                                    minimumFractionDigits: 2, 
-                                    maximumFractionDigits: 2 
+                                {(item?.quantity * item?.price_per_unit)?.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
                                 }) ?? '0.00'}
                             </td>
                         </tr>
@@ -101,22 +102,22 @@ const PrintableSalesOrder = React.forwardRef(({ order }, ref) => {
                     <tr className="font-bold">
                         <td colSpan="4" className="p-2 border text-right">ยอดรวมทั้งสิ้น</td>
                         <td className="p-2 border text-right text-lg">
-                            {order?.s_total_price?.toLocaleString(undefined, { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
+                            {order?.s_total_price?.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
                             }) ?? '0.00'}
                         </td>
                     </tr>
                 </tfoot>
             </table>
-            
+
             {/* แสดงหมายเหตุถ้าเป็นการขอคืน */}
             {order?.delivery_status === 'ขอคืน' && (
                 <div className="my-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-red-800 font-semibold">⚠️ หมายเหตุ: รายการนี้เป็นการขอคืนสินค้า</p>
                 </div>
             )}
-            
+
             <footer className="mt-12 pt-4 border-t text-xs text-gray-500">
                 <div className="grid grid-cols-2 gap-4 mt-8 text-center">
                     <div>
@@ -194,20 +195,20 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
     const renderDeliveryAction = () => {
         if (order.delivery_status === 'ขอคืน') {
             return (
-                <ActionDetail 
-                    icon={<RefreshCw size={16} className="mr-3 text-red-500"/>} 
-                    label="ยืนยันขอคืนโดย" 
-                    person={order.delivered_by_name} 
-                    date={order.delivered_date} 
+                <ActionDetail
+                    icon={<RefreshCw size={16} className="mr-3 text-red-500" />}
+                    label="ยืนยันขอคืนโดย"
+                    person={order.delivered_by_name}
+                    date={order.delivered_date}
                 />
             );
         }
         return (
-            <ActionDetail 
-                icon={<Truck size={16} className="mr-3 text-orange-500"/>} 
-                label="ยืนยันจัดส่งโดย" 
-                person={order.delivered_by_name} 
-                date={order.delivered_date} 
+            <ActionDetail
+                icon={<Truck size={16} className="mr-3 text-orange-500" />}
+                label="ยืนยันจัดส่งโดย"
+                person={order.delivered_by_name}
+                date={order.delivered_date}
             />
         );
     };
@@ -225,28 +226,30 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                         <div className="flex justify-between items-start border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
                             <div>
                                 <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                                    <Hash className="mr-2 text-blue-600 dark:text-blue-400"/>
+                                    <Hash className="mr-2 text-blue-600 dark:text-blue-400" />
                                     ใบสั่งขาย: {order.sale_order_number}
                                 </h2>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    วันที่สร้าง: {new Date(order.created_date).toLocaleDateString('th-TH', { 
-                                        year: 'numeric', 
-                                        month: 'long', 
-                                        day: 'numeric'
+                                    วันที่สร้าง: {new Date(order.created_date + 'Z').toLocaleString('th-TH', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
                                     })}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
                                 {/* ★★★★★ ปุ่มพิมพ์ ★★★★★ */}
-                                <button 
+                                <button
                                     onClick={triggerPrint}
                                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
                                 >
                                     <Printer size={18} />
                                     พิมพ์
                                 </button>
-                                <button 
-                                    onClick={onClose} 
+                                <button
+                                    onClick={onClose}
                                     className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                                 >
                                     <X size={28} />
@@ -260,7 +263,7 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                 {/* Customer Information */}
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
-                                        <User className="mr-2"/>ข้อมูลลูกค้า
+                                        <User className="mr-2" />ข้อมูลลูกค้า
                                     </h3>
                                     <div className="text-gray-800 dark:text-gray-100 pl-8">
                                         <p>{order.customer_name}</p>
@@ -270,7 +273,7 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                 {/* Order Items Section */}
                                 <div className="bg-white dark:bg-gray-800 rounded-lg">
                                     <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
-                                        <ShoppingCart className="mr-2"/>รายการสินค้า
+                                        <ShoppingCart className="mr-2" />รายการสินค้า
                                     </h3>
                                     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -311,9 +314,9 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
                                             <div className="flex flex-col items-end">
                                                 <span className="text-sm text-gray-600 dark:text-gray-400">ยอดรวมทั้งสิ้น</span>
                                                 <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {parseFloat(order.s_total_price).toLocaleString('th-TH', { 
-                                                        style: 'currency', 
-                                                        currency: 'THB' 
+                                                    {parseFloat(order.s_total_price).toLocaleString('th-TH', {
+                                                        style: 'currency',
+                                                        currency: 'THB'
                                                     })}
                                                 </span>
                                             </div>
@@ -326,27 +329,27 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
 
                             <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border border-gray-100 dark:border-gray-600">
                                 <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center">
-                                    <Calendar className="mr-2"/>ประวัติการดำเนินการ
+                                    <Calendar className="mr-2" />ประวัติการดำเนินการ
                                 </h3>
                                 <div className="space-y-2 pl-8 border-l-2 border-gray-200 dark:border-gray-600">
-                                    <ActionDetail 
-                                        icon={<User size={16} className="mr-3 text-blue-500"/>} 
-                                        label="สร้างรายการโดย" 
-                                        person={order.created_by_name} 
-                                        date={order.created_date} 
+                                    <ActionDetail
+                                        icon={<User size={16} className="mr-3 text-blue-500" />}
+                                        label="สร้างรายการโดย"
+                                        person={order.created_by_name}
+                                        date={order.created_date}
                                     />
-                                    <ActionDetail 
-                                        icon={<Package size={16} className="mr-3 text-purple-500"/>} 
-                                        label="เบิกสินค้าโดย" 
-                                        person={order.shipped_by_name} 
-                                        date={order.shipped_date} 
+                                    <ActionDetail
+                                        icon={<Package size={16} className="mr-3 text-purple-500" />}
+                                        label="เบิกสินค้าโดย"
+                                        person={order.shipped_by_name}
+                                        date={order.shipped_date}
                                     />
                                     {renderDeliveryAction()}
-                                    <ActionDetail 
-                                        icon={<CheckSquare size={16} className="mr-3 text-green-500"/>} 
-                                        label="ยืนยันรับเงินโดย" 
-                                        person={order.paid_by_name} 
-                                        date={order.paid_date} 
+                                    <ActionDetail
+                                        icon={<CheckSquare size={16} className="mr-3 text-green-500" />}
+                                        label="ยืนยันรับเงินโดย"
+                                        person={order.paid_by_name}
+                                        date={order.paid_date}
                                     />
                                 </div>
                             </div>
@@ -357,8 +360,8 @@ const SalesHistoryDetail = ({ orderId, onClose }) => {
 
             {/* ★★★★★ Component สำหรับพิมพ์ (ซ่อนไว้) ★★★★★ */}
             {order && (
-                <div style={{ 
-                    position: "absolute", 
+                <div style={{
+                    position: "absolute",
                     left: "-9999px",
                     top: 0
                 }}>
