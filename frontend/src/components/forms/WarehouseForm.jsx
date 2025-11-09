@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, X, Archive, MapPin, Hash, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Save, X, Archive, MapPin, Hash, AlertTriangle } from 'lucide-react';
 
 const WarehouseForm = ({ initialData, onSave, onClose }) => {
     const [warehouse, setWarehouse] = useState({

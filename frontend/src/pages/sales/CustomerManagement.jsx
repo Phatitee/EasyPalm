@@ -1,7 +1,7 @@
 // frontend/src/pages/IndustryManagement.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { PlusCircle, Trash2, Pencil, Factory, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, Search } from 'lucide-react';
 import ResultModal from '../../components/modals/ResultModal';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import IndustryForm from '../../components/forms/IndustryForm';

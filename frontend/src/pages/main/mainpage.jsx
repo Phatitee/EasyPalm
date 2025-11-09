@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-    User, Package, Phone, TrendingUp, Loader, Sparkles, 
+    User, Package, TrendingUp, Loader, Sparkles, 
     ArrowRight, CheckCircle, Award, Zap, ShieldCheck,
-    Calendar, DollarSign, BarChart3
+    Calendar, BarChart3
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 

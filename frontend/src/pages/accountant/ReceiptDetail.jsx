@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Home, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare } from 'lucide-react';
+import { X, User, Calendar, ShoppingCart, Hash, Package, Truck, CheckSquare } from 'lucide-react';
 
 // Component ย่อยสำหรับแสดงข้อมูลแต่ละขั้นตอน
 const ActionDetail = ({ icon, label, person, date }) => {

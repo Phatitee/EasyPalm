@@ -1,7 +1,7 @@
 // frontend/src/config/menuConfig.js
 import {
     UsersIcon, ShoppingCartIcon, ClockIcon, ScaleIcon, CircleStackIcon, UserGroupIcon,
-    RectangleStackIcon, ClipboardDocumentListIcon, DocumentCheckIcon, TruckIcon, ArchiveBoxIcon,
+    RectangleStackIcon, ClipboardDocumentListIcon, TruckIcon, ArchiveBoxIcon,
     ArrowUpOnSquareIcon, BriefcaseIcon, CheckBadgeIcon,
     DocumentTextIcon, BanknotesIcon,
     ChartPieIcon, PresentationChartLineIcon,BuildingStorefrontIcon,ClipboardDocumentCheckIcon

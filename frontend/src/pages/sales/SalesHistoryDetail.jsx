@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare, Loader, RefreshCw, Printer } from 'lucide-react';
+import { X, User, Calendar, ShoppingCart, Hash, Package, Truck, CheckSquare, Loader, RefreshCw, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 
 // Component ย่อยสำหรับแสดงประวัติ

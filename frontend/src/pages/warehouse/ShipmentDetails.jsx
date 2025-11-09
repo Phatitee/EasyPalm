@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, ShoppingCart, Hash, DollarSign, Package, Truck, CheckSquare, Loader } from 'lucide-react';
+import { X, User, Calendar, ShoppingCart, Hash, Package, Truck, CheckSquare, Loader } from 'lucide-react';
 
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {

@@ -5,11 +5,7 @@ import {
   PlusCircle,
   Trash2,
   Pencil,
-  User,
   Search,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
 } from "lucide-react";
 import ResultModal from "../../components/modals/ResultModal";
 import ConfirmModal from "../../components/modals/ConfirmModal";

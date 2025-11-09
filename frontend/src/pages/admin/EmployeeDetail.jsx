@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, User, Mail, Phone, Briefcase, Key, MapPin, Calendar, CheckCircle, XCircle, BadgeInfo, CalendarClock } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Briefcase, Key, MapPin, CheckCircle, XCircle, BadgeInfo, CalendarClock } from 'lucide-react';
 
 const EmployeeDetail = () => {
     const { e_id } = useParams();

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart, DollarSign, TrendingUp, TrendingDown, ArrowRight, Loader, ServerCrash } from 'lucide-react';
+import { BarChart, DollarSign, TrendingUp, TrendingDown, ArrowRight, Loader } from 'lucide-react';
 
 const ReportCard = ({ title, value, icon, color }) => {
     const Icon = icon;

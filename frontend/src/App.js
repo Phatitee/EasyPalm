@@ -39,7 +39,6 @@ import SalesHistoryDetail from './pages/sales/SalesHistoryDetail';
 // Warehouse
 import PendingStorage from './pages/warehouse/PendingStorage';
 import StorageHistory from './pages/warehouse/StorageHistory';
-import PendingRequests from './pages/warehouse/ShipmentHistory';
 import PendingShipments from './pages/warehouse/PendingShipments';
 import WarehouseManagement from './pages/warehouse/WarehouseManagement';
 import ShipmentDetails from './pages/warehouse/ShipmentDetails';

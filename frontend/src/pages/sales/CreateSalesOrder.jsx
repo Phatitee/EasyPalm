@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search, XCircle, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Helper Modal (ResultDialog) - (ไม่มีการแก้ไข)

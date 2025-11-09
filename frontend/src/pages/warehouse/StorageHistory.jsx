@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, List, Loader, ServerCrash, Inbox, Archive, Users, Truck } from 'lucide-react';
+import { Search, List, Loader, ServerCrash, Inbox, Users, Truck } from 'lucide-react';
 import StorageDetail from './StorageDetail'; 
 import SalesHistoryDetail from '../sales/SalesHistoryDetail'; // (เพิ่ม) Import Modal ของ Sales
 
@@ -87,6 +87,20 @@ const StorageHistory = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                     />
+                </div>
+                <div className="w-full md:w-1/3 flex items-center">
+                    <label htmlFor="warehouse-filter" className="sr-only">คลังสินค้า</label>
+                    <select
+                        id="warehouse-filter"
+                        value={warehouseFilter}
+                        onChange={(e) => setWarehouseFilter(e.target.value)}
+                        className="w-full md:w-60 px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                    >
+                        <option value="">ทั้งหมด (ทุกคลัง)</option>
+                        {warehouses.map(w => (
+                            <option key={w.warehouse_id} value={w.warehouse_id}>{w.name}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

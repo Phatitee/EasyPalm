@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search, XCircle, AlertTriangle, Printer } from 'lucide-react';
+import { ShoppingCart, User, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, Search, XCircle, Printer } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Tag } from 'antd';
 import { useReactToPrint } from 'react-to-print';
 
 // --- Dialog แจ้งผลสำเร็จ (ไม่มีการแก้ไข) ---

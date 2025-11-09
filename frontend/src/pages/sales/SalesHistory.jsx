@@ -1,7 +1,6 @@
 // frontend/src/pages/sales/SalesHistory.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, Filter, List, Loader, ServerCrash, Inbox } from 'lucide-react';
 import SalesHistoryDetail from './SalesHistoryDetail'; // Import the modal component
 

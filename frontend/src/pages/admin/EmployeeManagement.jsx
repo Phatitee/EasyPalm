@@ -187,13 +187,13 @@ const EmployeeCard = ({ emp, onDoubleClick, onEdit, onAction }) => {
                         {menuOpen && (
                             // Dark Mode FIX: Dropdown Menu Background and Border
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-600">
-                                {/* Dark Mode FIX: Dropdown Item Text and Hover */}
-                                <a onClick={(e) => { e.stopPropagation(); onEdit(); setMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer dark:text-gray-200 dark:hover:bg-gray-600"><Edit size={16}/> แก้ไข</a>
-                                <a onClick={(e) => { e.stopPropagation(); onAction('suspend', emp); setMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer dark:text-gray-200 dark:hover:bg-gray-600">
+                                {/* Dark Mode FIX: Dropdown Item Text and Hover - use button for accessibility */}
+                                <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(); setMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer dark:text-gray-200 dark:hover:bg-gray-600" role="menuitem"><Edit size={16}/> แก้ไข</button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); onAction('suspend', emp); setMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer dark:text-gray-200 dark:hover:bg-gray-600" role="menuitem">
                                     {emp.is_active ? <UserX size={16}/> : <UserCheck size={16}/>} {emp.is_active ? 'ระงับสิทธิ์' : 'ยกเลิกการระงับ'}
-                                </a>
-                                {/* Dark Mode FIX: Delete Item Color and Hover */}
-                                <a onClick={(e) => { e.stopPropagation(); onAction('delete', emp); setMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer dark:hover:bg-red-900/50"><Trash2 size={16}/> ลบ</a>
+                                </button>
+                                {/* Dark Mode FIX: Delete Item Color and Hover - use button */}
+                                <button type="button" onClick={(e) => { e.stopPropagation(); onAction('delete', emp); setMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer dark:hover:bg-red-900/50" role="menuitem"><Trash2 size={16}/> ลบ</button>
                             </div>
                         )}
                     </div>
