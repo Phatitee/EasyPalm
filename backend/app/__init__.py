@@ -1,47 +1,38 @@
 # backend/app/__init__.py
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import os
 
-# --- Initialize Extensions ---
+# Initialize the database instance
 db = SQLAlchemy()
 
-def create_app():
-    # --- App Configuration ---
+def create_app(config_object='config.Config'): # ★★★ ใช้ config.Config เป็นค่าเริ่มต้น ★★★
+    """
+    An application factory.
+    :param config_object: The configuration object to use.
+    """
     app = Flask(__name__)
-    CORS(app)
-
-    # --- (★ ★ ★ จุดแก้ไขที่ถูกต้อง ★ ★ ★) ---
     
-    # ดึงค่า DATABASE_URL จาก Environment Variable โดยใช้ "ชื่อ" ของมัน
-    database_url = os.environ.get('DATABASE_URL') # <--- นี่คือบรรทัดที่แก้ไขให้ถูกต้อง
+    # ★★★ โหลดการตั้งค่าจาก object ที่ส่งเข้ามา ★★★
+    app.config.from_object(config_object)
 
-    if not database_url:
-        # ถ้าหา DATABASE_URL ไม่เจอ (เช่น ตอนรันในเครื่อง) ให้ใช้ SQLite เป็นค่าเริ่มต้น
-        print("WARNING: DATABASE_URL not set, falling back to local sqlite.")
-        basedir = os.path.abspath(os.path.dirname(__file__))
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '..', 'easypalm.db')
-    else:
-        # Vercel มักจะให้ URL ของ Postgres มา ซึ่ง SQLAlchemy 1.x อาจไม่รู้จัก
-        # เราต้องแก้ prefix "postgres://" ให้เป็น "postgresql://"
-        if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
-        
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    # --- (สิ้นสุดจุดแก้ไข) ---
-
-    # --- Link Extensions to App ---
+    # Initialize extensions
     db.init_app(app)
+    CORS(app) # Enable CORS for all routes
 
     with app.app_context():
-        # --- Import models to ensure they are registered with SQLAlchemy ---
+        # Import all models to make them known to SQLAlchemy
         from . import models
-        # --- Import and Register Blueprints (Routes) ---
+
+        # Import and register the blueprint for API routes
         from . import routes
+        
+        # ★★★ แก้ไขบรรทัดนี้: เพิ่ม url_prefix='/api' ★★★
         app.register_blueprint(routes.bp, url_prefix='/api')
-        pass
+
+        # Create database tables for all models
+        db.create_all()
 
     return app
