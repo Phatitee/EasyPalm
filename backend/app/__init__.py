@@ -28,11 +28,22 @@ def create_app():
 
     # 4. "ผูก" db Proxy เข้ากับ App ที่ Config แล้ว
     db.init_app(app)
-    CORS(app) 
+    
+    # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    # ★★★ นี่คือจุดแก้ไข CORS ที่ถูกต้องและแม่นยำที่สุด ★★★
+    # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    
+    # แทนที่ 'CORS(app)' เดิม ด้วยโค้ดนี้:
+    # ระบุชัดเจนว่าให้รับ Request จาก Frontend Domain ของคุณเท่านั้น
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": "https://easy-palm-frontend.vercel.app"
+        }
+    })
+    # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
-    # 5. ★★★ จุดแก้ไขที่สำคัญ ★★★
-    # ย้าย Imports และ Blueprints ออกมานอก app_context
-    # และต้องทำ *หลังจาก* db.init_app() เท่านั้น
+    # 5. ย้าย Imports และ Blueprints ออกมานอก app_context
+    # (เหมือนเดิม)
     
     from . import models 
     from . import routes
@@ -40,5 +51,4 @@ def create_app():
     app.register_blueprint(routes.bp, url_prefix='/api')
 
     # 6. คืนค่า App ที่พร้อมใช้งาน
-    # (เราเอา 'with app.app_context():' ออกไปทั้งหมด)
     return app
