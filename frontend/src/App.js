@@ -1,7 +1,14 @@
+// frontend/src/App.js (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import './App.css';
-import axios from 'axios';
+
+// 1. ★★★ ลบ 'axios' ออกไป ★★★
+// import axios from 'axios'; 
+
+// 2. ★★★ Import 'getProducts' จาก api.js ที่เราสร้างไว้ ★★★
+import { getProducts } from './services/api';
 
 //Theme context
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -44,7 +51,6 @@ import WarehouseManagement from './pages/warehouse/WarehouseManagement';
 import ShipmentDetails from './pages/warehouse/ShipmentDetails';
 
 // Accountant
-// ★★★ แก้ไขบรรทัดนี้: เปลี่ยนการ import ให้ถูกต้อง ★★★
 import PaymentManagement from './pages/accountant/PaymentManagement'; 
 import SoReceipts from './pages/accountant/SoReceipts';
 import ReceiptDetail from './pages/accountant/ReceiptDetail';
@@ -80,27 +86,31 @@ function App() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // --- (★ ★ ★ จุดแก้ไข ★ ★ ★) ---
-        // เปลี่ยนจาก "${API_URL}/products"
-        const response = await axios.get('${API_URL}/products'); 
-        if (Array.isArray(response.data)) {
-          setProducts(response.data);
+        // 3. ★★★ เรียกใช้ฟังก์ชัน 'getProducts' ที่ import มา ★★★
+        // (api.js จะจัดการเรื่อง 'API_URL' และ '.json()' ให้เอง)
+        const data = await getProducts(); 
+        
+        if (Array.isArray(data)) {
+          setProducts(data);
         } else {
-          // ถ้า API คืนค่ามาแปลกๆ (ไม่ใช่ Array) ให้โยน Error ไปเลย
+          // ถ้า API คืนค่ามาแปลกๆ (ไม่ใช่ Array) ให้โยน Error
           throw new Error("API response is not a valid array");
         }
-        setProducts(response.data);
+        
+        // (บรรทัด setProducts(response.data) ซ้ำด้านล่าง ลบทิ้งได้)
+        
       } catch (err) {
-        setError('ไม่สามารถเชื่อมต่อกับ Server เพื่อโหลดราคาได้');
+        // 4. ★★★ 'err.message' จะมาจาก 'apiFetch' ที่เราสร้างไว้ ★★★
+        setError(err.message || 'ไม่สามารถเชื่อมต่อกับ Server เพื่อโหลดราคาได้');
         console.error("Failed to fetch products:", err);
       }
     };
 
     fetchProducts();
-  }, []);
+  }, []); // (Dependency array ว่างเปล่า ถูกต้องแล้ว ให้ทำงานครั้งเดียว)
 
   return (
-<ThemeProvider>  
+<ThemeProvider> 
       <Router>
         <Routes>
           {/* === Public Routes === */}

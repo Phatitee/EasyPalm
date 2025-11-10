@@ -1,7 +1,12 @@
+// frontend/src/pages/executive/ExecutiveDashboard.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { DollarSign, TrendingUp, ShoppingCart, Archive, Loader, ServerCrash, List } from 'lucide-react';
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getExecutiveDashboardSummary } from '../../services/api';
+
 const StatCard = ({ title, value, icon, color }) => {
     const Icon = icon;
     return (
@@ -31,9 +36,9 @@ const ExecutiveDashboard = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch('${API_URL}/executive/dashboard-summary', { cache: 'no-cache' });
-                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสรุปได้');
-                const data = await response.json();
+                // 2. ★★★ แก้ไข: นี่คือบรรทัดที่ 34 ที่ Error ★★★
+                // เปลี่ยนจาก fetch('${API_URL}/...') มาใช้ฟังก์ชันจาก api.js
+                const data = await getExecutiveDashboardSummary();
                 setSummary(data);
             } catch (err) {
                 setError(err.message);

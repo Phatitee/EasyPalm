@@ -1,10 +1,16 @@
+// frontend/src/pages/warehouse/PendingShipments.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Truck, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, XCircle } from 'lucide-react';
 import ShipmentDetails from './ShipmentDetails';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPendingShipments, shipSalesOrder } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 // Helper Modal (ConfirmDialog) - สำหรับยืนยัน
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
@@ -65,11 +71,8 @@ const PendingShipments = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('${API_URL}/warehouse/pending-shipments', { cache: 'no-cache' });
-            if (!response.ok) {
-                throw new Error('ไม่สามารถดึงข้อมูลได้');
-            }
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 68 ที่ Error ★★★
+            const data = await getPendingShipments();
             setOrders(data);
         } catch (err) {
             setError(err.message);
@@ -98,16 +101,8 @@ const PendingShipments = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`${API_URL}/warehouse/ship-order/${orderNumber}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employee_id: user.e_id }),
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'เกิดข้อผิดพลาดในการยืนยัน');
-            }
+            // 4. ★★★ แก้ไข: ใช้ api.js ★★★
+            const result = await shipSalesOrder(orderNumber, user.e_id);
 
             setResultDialog({ isOpen: true, type: 'success', message: result.message });
             fetchPendingOrders();

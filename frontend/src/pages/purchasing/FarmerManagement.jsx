@@ -1,6 +1,7 @@
-// frontend/src/pages/FarmerManagement.jsx
+// frontend/src/pages/purchasing/FarmerManagement.jsx (FIXED)
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// 1. ★★★ ลบ axios ออก
+// import axios from "axios";
 import {
   PlusCircle,
   Trash2,
@@ -11,8 +12,12 @@ import ResultModal from "../../components/modals/ResultModal";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import FarmerForm from "../../components/forms/FarmerForm";
 
+// 2. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getFarmers, deleteFarmer, updateFarmer, createFarmer } from "../../services/api";
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const FarmerManagement = () => {
   // ... (State declarations remain the same) ...
   const [farmers, setFarmers] = useState([]);
@@ -52,8 +57,9 @@ const FarmerManagement = () => {
     setLoading(true);
     setError(""); // Clear previous errors
     try {
-      const response = await axios.get("${API_URL}/farmers");
-      setFarmers(response.data);
+      // 4. ★★★ แก้ไข: นี่คือบรรทัดที่ 55 ที่ Error ★★★
+      const data = await getFarmers();
+      setFarmers(data);
     } catch (err) {
       setError("ไม่สามารถโหลดข้อมูลเกษตรกรได้");
       console.error("Error fetching farmers:", err); // Log the error for debugging
@@ -96,7 +102,8 @@ const FarmerManagement = () => {
   const executeDelete = async (id) => {
     handleCloseConfirmModal();
     try {
-      await axios.delete(`${API_URL}/farmers/${id}`);
+      // 5. ★★★ แก้ไข: ใช้ api.js ★★★
+      await deleteFarmer(id);
       setModalInfo({ show: true, type: "success", message: "ลบข้อมูลสำเร็จ" });
       fetchFarmers(); // <<< PROBLEM WAS LIKELY HERE (Line 99 in previous version) - This call should work now.
     } catch (err) {
@@ -105,7 +112,7 @@ const FarmerManagement = () => {
         show: true,
         type: "error",
         message:
-          "เกิดข้อผิดพลาดในการลบข้อมูลเนื่องเกษตรกรมีประวัติการขายอยู่ในระบบ",
+          err.message || "เกิดข้อผิดพลาดในการลบข้อมูลเนื่องเกษตรกรมีประวัติการขายอยู่ในระบบ",
       });
     }
   }; // --- Logic การแก้ไข ---
@@ -171,10 +178,10 @@ const FarmerManagement = () => {
         f_tel: editingFarmer.f_tel,
         f_address: editingFarmer.f_address,
       };
-      await axios.put(
-        `${API_URL}/farmers/${editingFarmer.f_id}`,
-        dataToUpdate
-      );
+      
+      // 6. ★★★ แก้ไข: ใช้ api.js ★★★
+      await updateFarmer(editingFarmer.f_id, dataToUpdate);
+
       handleCloseEditModal();
       setModalInfo({
         show: true,
@@ -188,7 +195,7 @@ const FarmerManagement = () => {
       setModalInfo({
         show: true,
         type: "error",
-        message: error.response?.data?.message || "เกิดข้อผิดพลาดในการบันทึก",
+        message: error.message || "เกิดข้อผิดพลาดในการบันทึก",
       });
     }
   }; // --- LOGIC "ADD" ---
@@ -245,7 +252,8 @@ const FarmerManagement = () => {
     }
 
     try {
-      await axios.post("${API_URL}/farmers", newFarmerData);
+      // 7. ★★★ แก้ไข: นี่คือบรรทัดที่ 248 ที่ Error ★★★
+      await createFarmer(newFarmerData);
       handleCloseAddModal();
       setModalInfo({
         show: true,
@@ -261,7 +269,7 @@ const FarmerManagement = () => {
       setModalInfo({
         show: true,
         type: "error",
-        message: error.response?.data?.message || "เกิดข้อผิดพลาดในการบันทึก",
+        message: error.message || "เกิดข้อผิดพลาดในการบันทึก",
       });
     }
   }; // --- กรองข้อมูล ---

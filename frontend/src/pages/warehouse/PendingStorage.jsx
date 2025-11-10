@@ -1,4 +1,4 @@
-// frontend/src/pages/warehouse/PendingStorage.jsx
+// frontend/src/pages/warehouse/PendingStorage.jsx (FIXED)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,8 +6,10 @@ import { PackagePlus, CheckCircle, Loader, ServerCrash, Inbox, Archive, AlertTri
 import StorageDetail from './StorageDetail';
 import SalesHistoryDetail from '../sales/SalesHistoryDetail';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPendingStorageItems, getWarehouses, confirmReturn, receiveItemsIntoStock } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+
 // (Component ConfirmDialog และ ResultDialog ไม่มีการแก้ไข)
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, actionType }) => {
     if (!isOpen) return null;
@@ -73,16 +75,12 @@ const PendingStorage = () => {
         setLoading(true);
         setError(null);
         try {
+            // 2. ★★★ แก้ไข: นี่คือบรรทัดที่ 78-79 ที่ Error ★★★
             // (สันนิษฐานว่า /pending-storage-items สำหรับ SO_Return จะมี field 'warehouse_id' มาให้ด้วย)
-            const [itemsRes, warehousesRes] = await Promise.all([
-                fetch('${API_URL}/warehouse/pending-storage-items'),
-                fetch('${API_URL}/warehouses')
+            const [itemsData, warehousesData] = await Promise.all([
+                getPendingStorageItems(),
+                getWarehouses()
             ]);
-
-            if (!itemsRes.ok || !warehousesRes.ok) throw new Error('ไม่สามารถดึงข้อมูลเริ่มต้นได้');
-
-            const itemsData = await itemsRes.json();
-            const warehousesData = await warehousesRes.json();
 
             setItems(itemsData);
             setWarehouses(warehousesData);
@@ -143,23 +141,21 @@ const PendingStorage = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         const isReturn = item.type === 'SO_Return';
-        const url = isReturn
-            ? '${API_URL}/warehouse/confirm-return'
-            : '${API_URL}/warehouse/receive-items';
-
+        
+        // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 147-148 ที่ Error ★★★
+        // (สร้าง body object)
         const body = isReturn
             ? { sales_order_number: item.order_number, warehouse_id: warehouseId, employee_id: user.e_id }
             : { purchase_order_number: item.order_number, warehouse_id: warehouseId, employee_id: user.e_id };
 
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'เกิดข้อผิดพลาด');
+            let result;
+            if (isReturn) {
+                // 4. ★★★ แก้ไข: เรียกใช้ confirmReturn ★★★
+                result = await confirmReturn(body);
+            } else {
+                // 5. ★★★ แก้ไข: เรียกใช้ receiveItemsIntoStock ★★★
+                result = await receiveItemsIntoStock(body);
             }
 
             setResultDialog({ isOpen: true, type: 'success', message: result.message });

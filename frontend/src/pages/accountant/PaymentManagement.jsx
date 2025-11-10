@@ -1,11 +1,18 @@
+// frontend/src/pages/accountant/PaymentManagement.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FileText, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, XCircle, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import PurchaseOrderDetail from './PurchaseOrderDetail';
 
+// 1. ★★★ Import ฟังก์ชันที่เราจะใช้จาก api.js ★★★
+import { getPurchaseOrders, markOrderAsPaid, getPurchaseOrder } from '../../services/api';
+
 // --- Helper Modal: Confirm Dialog ---
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ 'API_URL' ทิ้งไป เราไม่ใช้มันในไฟล์นี้อีกแล้ว ★★★
+// const API_URL = process.env.REACT_APP_API_URL; 
+
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
     return (
@@ -110,10 +117,6 @@ const PrintablePaymentReceipt = React.forwardRef(({ order }, ref) => {
                         year: 'numeric', month: 'long', day: 'numeric',
                         hour: '2-digit', minute: '2-digit'
                     })}</p>
-                    {/* <p><strong>วันที่สั่งซื้อ:</strong> {new Date((order?.b_date || order?.created_date) + 'Z').toLocaleString('th-TH', {
-                        year: 'numeric', month: 'long', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                    })}</p> */}
                 </div>
             </section>
 
@@ -201,21 +204,17 @@ const PaymentManagement = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('${API_URL}/purchaseorders?status=unpaid', {
-                cache: 'no-cache'
-            });
-
-            if (!response.ok) {
-                throw new Error('ไม่สามารถดึงข้อมูลรายการที่ยังไม่จ่ายได้');
-            }
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: เรียกใช้ 'getPurchaseOrders' จาก api.js ★★★
+            // (เราส่ง object { status: 'unpaid' } เพื่อให้ api.js สร้าง query string)
+            const data = await getPurchaseOrders({ status: 'unpaid' });
             setOrders(data);
         } catch (err) {
+            // (err.message จะมาจาก apiFetch)
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, []); // Dependency array ว่างเปล่า ถูกต้องแล้ว
 
     useEffect(() => {
         fetchUnpaidOrders();
@@ -269,24 +268,16 @@ const PaymentManagement = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`${API_URL}/purchaseorders/${orderNumber}/pay`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employee_id: user.e_id }),
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-            }
+            // 4. ★★★ แก้ไข: เรียกใช้ 'markOrderAsPaid' จาก api.js ★★★
+            await markOrderAsPaid(orderNumber, user.e_id);
 
-            // ★★★★★ ดึงข้อมูลใบสั่งซื้อที่สมบูรณ์เพื่อพิมพ์ ★★★★★
-            const detailResponse = await fetch(`${API_URL}/purchaseorders/${orderNumber}`);
-            if (detailResponse.ok) {
-                const orderDetail = await detailResponse.json();
-                setCompletedPayment(orderDetail);
-            }
-
+            // 5. ★★★ แก้ไข: เรียกใช้ 'getPurchaseOrder' จาก api.js ★★★
+            const orderDetail = await getPurchaseOrder(orderNumber);
+            setCompletedPayment(orderDetail);
+            
+            // 6. Refresh ข้อมูล
             fetchUnpaidOrders();
+
         } catch (err) {
             setResultDialog({ isOpen: true, type: 'error', message: `เกิดข้อผิดพลาด: ${err.message}` });
         } finally {

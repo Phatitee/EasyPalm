@@ -1,10 +1,14 @@
+// frontend/src/pages/sales/CreateSalesOrder.jsx (FIXED)
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+// (ลบ axios ออก)
+import { getFoodIndustries, getWarehouses, getStockLevels, createSalesOrder } from '../../services/api';
 
 
-const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ResultDialog) - (ไม่มีการแก้ไข)
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
@@ -116,23 +120,17 @@ const CreateSalesOrder = () => {
             setLoading(true);
             setError('');
             try {
-                const [custRes, whRes, stockRes] = await Promise.all([
-                    fetch('${API_URL}/food-industries'),
-                    fetch('${API_URL}/warehouses'),
-                    fetch('${API_URL}/stock')
+                // 2. ★★★ แก้ไข: นี่คือบรรทัดที่ 118, 119, 120 ที่ Error ★★★
+                const [custData, whData, stockData] = await Promise.all([
+                    getFoodIndustries(),
+                    getWarehouses(),
+                    getStockLevels()
                 ]);
 
-                if (!custRes.ok || !whRes.ok || !stockRes.ok) {
-                    const custErr = !custRes.ok ? `Customer: ${custRes.statusText}` : '';
-                    const whErr = !whRes.ok ? `Warehouse: ${whRes.statusText}` : '';
-                    const stockErr = !stockRes.ok ? `Stock: ${stockRes.statusText}` : '';
-                    throw new Error(`ไม่สามารถโหลดข้อมูลเริ่มต้นได้: ${custErr} ${whErr} ${stockErr}`.trim());
-                }
-
-                const whData = await whRes.json();
-                setCustomers(await custRes.json());
+                // (Logic ส่วนนี้เหมือนเดิม แต่ไม่ต้อง .json() แล้ว)
+                setCustomers(custData);
                 setWarehouses(whData);
-                setStockLevels(await stockRes.json());
+                setStockLevels(stockData);
 
                 if (whData.length > 0) {
                     setSelectedWarehouse(whData[0].warehouse_id);
@@ -321,16 +319,14 @@ const CreateSalesOrder = () => {
             })),
         };
         try {
-            const response = await fetch('${API_URL}/salesorders', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData),
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดที่ไม่รู้จัก');
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 322 ที่ Error ★★★
+            const result = await createSalesOrder(orderData);
 
             setResultDialog({ isOpen: true, type: 'success', message: `สร้างใบสั่งขาย ${result.sale_order_number} สำเร็จ!` });
 
-            const stockRes = await fetch('${API_URL}/stock');
-            setStockLevels(await stockRes.json());
+            // 4. ★★★ แก้ไข: นี่คือบรรทัดที่ 330 ที่ Error ★★★
+            const stockData = await getStockLevels();
+            setStockLevels(stockData);
 
             // Reset form
             setSelectedCustomer('');
@@ -463,7 +459,7 @@ const CreateSalesOrder = () => {
                                                     value={item.price_per_unit}
                                                     onChange={(e) => handleItemChange(item.p_id, 'price_per_unit', e.target.value)}
                                                     onBlur={(e) => handleItemBlur(item.p_id, 'price_per_unit', e.target.value)}
-                                                    _ className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                                                    className="w-1/2 p-1.5 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                                                     max={MAX_ALLOWED_PRICE}
                                                 />
                                             </div>
@@ -494,7 +490,7 @@ const CreateSalesOrder = () => {
                 isOpen={isConfirmDialogOpen}
                 onClose={() => setIsConfirmDialogOpen(false)}
                 onConfirm={handleSubmitOrder}
-                T customer={customers.find(c => c.F_id === selectedCustomer)}
+                customer={customers.find(c => c.F_id === selectedCustomer)}
                 warehouse={warehouses.find(w => w.warehouse_id === selectedWarehouse)}
                 items={orderItems}
                 totalRevenue={totalRevenue}

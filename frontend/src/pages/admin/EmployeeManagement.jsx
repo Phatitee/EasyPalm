@@ -1,12 +1,27 @@
+// frontend/src/pages/admin/EmployeeManagement.jsx (FIXED)
+
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+// import axios from 'axios'; // 1. ★★★ ลบ axios ออก
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, UserX, UserCheck, Search, ShieldCheck, ShieldX, MoreVertical, Building, UserCircle, Mail, Phone, AlertTriangle,XCircle, CheckCircle as CheckCircleIcon } from 'lucide-react';
+
+// 2. ★★★ Import api.js functions ★★★
+import { 
+    getEmployees, 
+    createEmployee, 
+    updateEmployee, 
+    deleteEmployee, 
+    suspendEmployee, 
+    unsuspendEmployee 
+} from '../../services/api';
 
 //================================================================================
 //  1. Reusable UI Components (DARK MODE FIXES)
 //================================================================================
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const StatCard = ({ title, value, icon }) => (
     // ★★★ Dark Mode FIX: Card Background, Border, and Text ★★★
     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 transition-colors duration-300">
@@ -144,14 +159,14 @@ const InputField = ({ label, ...props }) => (
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{label}{props.required && ' *'}</label>
         {/* Dark Mode FIX: Input Field Styling */}
         <input {...props} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100
-                                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:disabled:bg-gray-600 dark:disabled:text-gray-400" />
+                                        dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:disabled:bg-gray-600 dark:disabled:text-gray-400" />
     </div>
 );
 const SelectField = ({ label, children, ...props }) => (
      <div>
-         {/* Dark Mode FIX: Label Text Color */}
+        {/* Dark Mode FIX: Label Text Color */}
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{label}{props.required && ' *'}</label>
-         {/* Dark Mode FIX: Select Field Styling */}
+        {/* Dark Mode FIX: Select Field Styling */}
         <select {...props} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white
                                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
             {children}
@@ -238,8 +253,10 @@ const EmployeeManagement = () => {
     const fetchEmployees = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('${API_URL}/employees');
-            setEmployees(response.data);
+            // 4. ★★★ แก้ไข: นี่คือบรรทัด 241 ที่ Error ★★★
+            // เปลี่ยนจาก axios.get('${API_URL}/employees')
+            const data = await getEmployees();
+            setEmployees(data);
             setError('');
         } catch (err) {
             setError('ไม่สามารถโหลดข้อมูลพนักงานได้ กรุณาลองใหม่อีกครั้ง');
@@ -275,8 +292,12 @@ const EmployeeManagement = () => {
                     title: `ยืนยันการ${actionText}`,
                     message: `คุณต้องการ${actionText}พนักงาน "${e_name}" ใช่หรือไม่?`,
                     onConfirm: async () => {
-                        const url = `${API_URL}/employees/${e_id}/${is_active ? 'suspend' : 'unsuspend'}`;
-                        await axios.put(url);
+                        // 5. ★★★ แก้ไข: ใช้ api.js functions ★★★
+                        if (is_active) {
+                            await suspendEmployee(e_id);
+                        } else {
+                            await unsuspendEmployee(e_id);
+                        }
                         setResultDialog({ isOpen: true, type: 'success', message: `${actionText}สำเร็จ!` });
                         fetchEmployees();
                     }
@@ -287,7 +308,8 @@ const EmployeeManagement = () => {
                     title: 'ยืนยันการลบ',
                     message: `คุณต้องการลบพนักงาน "${e_name}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
                     onConfirm: async () => {
-                        await axios.delete(`${API_URL}/employees/${e_id}`);
+                        // 6. ★★★ แก้ไข: ใช้ api.js functions ★★★
+                        await deleteEmployee(e_id);
                         setResultDialog({ isOpen: true, type: 'success', message: 'ลบพนักงานสำเร็จ!' });
                         fetchEmployees();
                     }
@@ -353,16 +375,22 @@ const EmployeeManagement = () => {
         // --- ★★★ END: สิ้นสุดส่วนการตรวจสอบข้อมูล ★★★ ---
 
 
-        const method = editingEmployee ? 'put' : 'post';
-        const url = editingEmployee ? `${API_URL}/employees/${editingEmployee.e_id}` : '${API_URL}/employees';
+        // 7. ★★★ แก้ไข: นี่คือบรรทัด 357 ที่ Error ★★★
         try {
-            await axios({ method, url, data });
+            if (editingEmployee) {
+                // โหมดแก้ไข
+                await updateEmployee(editingEmployee.e_id, data);
+            } else {
+                // โหมดสร้างใหม่
+                await createEmployee(data);
+            }
+            
             setIsModalOpen(false);
             setResultDialog({ isOpen: true, type: 'success', message: editingEmployee ? 'อัปเดตข้อมูลสำเร็จ!' : 'เพิ่มพนักงานใหม่สำเร็จ!' });
             fetchEmployees();
         } catch (err) {
             // Don't close the form on error
-            setResultDialog({ isOpen: true, type: 'error', message: err.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลได้' });
+            setResultDialog({ isOpen: true, type: 'error', message: err.message || 'ไม่สามารถบันทึกข้อมูลได้' });
         }
     };
     
@@ -387,7 +415,7 @@ const EmployeeManagement = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <ConfirmDialog {...confirmDialog} onConfirm={() => {
                 confirmDialog.onConfirm().catch(err => {
-                     setResultDialog({ isOpen: true, type: 'error', message: err.response?.data?.message || 'เกิดข้อผิดพลาด' });
+                       setResultDialog({ isOpen: true, type: 'error', message: err.message || 'เกิดข้อผิดพลาด' });
                 });
                 setConfirmDialog({ isOpen: false });
             }}/>

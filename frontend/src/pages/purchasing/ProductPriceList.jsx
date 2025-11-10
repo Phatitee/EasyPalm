@@ -1,9 +1,17 @@
+// frontend/src/pages/purchasing/ProductPriceList.jsx (FIXED)
+
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// 1. ★★★ ลบ axios ออก
+// import axios from "axios";
 import { Edit, Save, XCircle, DollarSign, Loader, ServerCrash, CheckCircle } from "lucide-react";
 
+// 2. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getProducts, updateProduct } from "../../services/api";
+
 // --- Helper Modal: Result Dialog (สำหรับแจ้งผลลัพธ์) ---
-const API_URL = process.env.REACT_APP_API_URL;
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
     const isSuccess = type === 'success';
@@ -47,9 +55,9 @@ const ProductPriceList = () => {
         }
 
         // 2. ใช้ Regular Expression ตรวจสอบ
-        //    - อนุญาตเฉพาะตัวเลข
-        //    - อนุญาตให้มีจุดทศนิยม 1 จุด
-        //    - อนุญาตให้มีตัวเลขหลังจุดทศนิยมไม่เกิน 2 ตัว
+        //    - อนุญาตเฉพาะตัวเลข
+        //    - อนุญาตให้มีจุดทศนิยม 1 จุด
+        //    - อนุญาตให้มีตัวเลขหลังจุดทศนิยมไม่เกิน 2 ตัว
         const regex = /^\d*(\.\d{0,2})?$/;
 
         if (regex.test(value)) {
@@ -74,8 +82,9 @@ const ProductPriceList = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("${API_URL}/products");
-            setProducts(response.data);
+            // 4. ★★★ แก้ไข: นี่คือบรรทัดที่ 77 ที่ Error ★★★
+            const data = await getProducts();
+            setProducts(data);
             setError(null);
         } catch (err) {
             setError("ไม่สามารถโหลดข้อมูลราคาสินค้าได้");
@@ -111,16 +120,18 @@ const ProductPriceList = () => {
         }
 
         try {
-            await axios.put(`${API_URL}/products/${productId}`, {
+            // 5. ★★★ แก้ไข: ใช้ api.js ★★★
+            await updateProduct(productId, {
                 price_per_unit: parseFloat(newPrice),
             });
+            
             // ★★★ FIX: Replace alert() with Modal ★★★
             setResultDialog({ isOpen: true, type: 'success', message: "อัปเดตราคาสำเร็จ!" });
             setEditingId(null);
             fetchProducts(); // Refresh data
         } catch (err) {
-            // ★★★ FIX: Replace alert() with Modal ★★★
-            setResultDialog({ isOpen: true, type: 'error', message: "เกิดข้อผิดพลาดในการอัปเดตราคา" });
+            // ★★★ FIX: Replace alert() with Modal (and use err.message) ★★★
+            setResultDialog({ isOpen: true, type: 'error', message: err.message || "เกิดข้อผิดพลาดในการอัปเดตราคา" });
         }
     };
 

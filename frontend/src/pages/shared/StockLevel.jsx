@@ -1,8 +1,14 @@
+// frontend/src/pages/shared/StockLevel.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Layers, Search, Filter, Loader, ServerCrash, Inbox } from 'lucide-react';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getStockLevels, getWarehouses } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const StockLevel = () => {
     const [stockLevels, setStockLevels] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
@@ -16,14 +22,13 @@ const StockLevel = () => {
     const fetchStockLevels = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (searchTerm) params.append('search', searchTerm);
-            if (warehouseFilter) params.append('warehouse_id', warehouseFilter);
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
+            if (warehouseFilter) params.warehouse_id = warehouseFilter;
             
-            const response = await fetch(`${API_URL}/stock?${params.toString()}`, { cache: 'no-cache' });
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสต็อกได้');
-            
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 39 ที่ Error ★★★
+            // เปลี่ยนจาก fetch มาใช้ getStockLevels
+            const data = await getStockLevels(params);
             setStockLevels(data);
         } catch (err) {
             setError(err.message);
@@ -36,9 +41,9 @@ const StockLevel = () => {
     useEffect(() => {
         const fetchWarehouses = async () => {
             try {
-                const res = await fetch('${API_URL}/warehouses');
-                if (!res.ok) throw new Error('Failed to fetch warehouses');
-                setWarehouses(await res.json());
+                // 4. ★★★ แก้ไข: ใช้ getWarehouses ★★★
+                const data = await getWarehouses();
+                setWarehouses(data);
             } catch (err) {
                 console.error(err);
                 // Set a user-friendly error if warehouses fail to load

@@ -1,8 +1,12 @@
+// frontend/src/pages/purchasing/WarehouseSummary.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { Warehouse, Archive, Loader, Package } from 'lucide-react'; // (เพิ่ม Package icon)
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getWarehouseSummary } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+
 // --- Component: Progress Bar (เหมือนเดิม) ---
 const ProgressBar = ({ value, capacity }) => {
     const percentage = capacity > 0 ? Math.min((value / capacity) * 100, 100) : 0;
@@ -55,12 +59,9 @@ const WarehouseSummary = () => {
         const fetchSummary = async () => {
             setLoading(true);
             try {
+                // 2. ★★★ แก้ไข: นี่คือบรรทัดที่ 58 ที่ Error ★★★
                 // Endpoint นี้จะดึงข้อมูล (รวมถึง product_breakdown ที่เราเพิ่มใน backend)
-                const response = await fetch('${API_URL}/purchasing/warehouse-summary');
-                if (!response.ok) {
-                    throw new Error('ไม่สามารถโหลดข้อมูลสรุปคลังสินค้าได้');
-                }
-                const data = await response.json();
+                const data = await getWarehouseSummary();
                 setSummary(data);
                 setError(null);
             } catch (error) {

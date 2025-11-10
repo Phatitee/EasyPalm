@@ -1,15 +1,20 @@
-// frontend/src/pages/IndustryManagement.jsx
+// frontend/src/pages/sales/CustomerManagement.jsx (FIXED)
+// (ชื่อไฟล์เดิมคือ IndustryManagement.jsx แต่ Class คือ CustomerManagement, ผมจะยึดตาม Class)
+
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// 1. ★★★ ลบ axios ออก
+// import axios from 'axios';
 import { PlusCircle, Trash2, Pencil, Search } from 'lucide-react';
 import ResultModal from '../../components/modals/ResultModal';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import IndustryForm from '../../components/forms/IndustryForm';
 
+// 2. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getFoodIndustries, deleteFoodIndustry, updateFoodIndustry, createFoodIndustry } from '../../services/api';
 
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
 
-
-const API_URL = process.env.REACT_APP_API_URL;
 const CustomerManagement = () => {
     // --- State เดิม (Edit/Delete/List) ---
     const [industries, setIndustries] = useState([]);
@@ -39,8 +44,9 @@ const CustomerManagement = () => {
     const fetchIndustries = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('${API_URL}/food-industries');
-            setIndustries(response.data);
+            // 4. ★★★ แก้ไข: นี่คือบรรทัดที่ 42 ที่ Error ★★★
+            const data = await getFoodIndustries();
+            setIndustries(data);
         } catch (err) {
             setError('ไม่สามารถโหลดข้อมูลโรงงานได้');
         } finally {
@@ -77,11 +83,12 @@ const CustomerManagement = () => {
     const executeDelete = async (id) => {
         handleCloseConfirmModal();
         try {
-            await axios.delete(`${API_URL}/food-industries/${id}`);
+            // 5. ★★★ แก้ไข: ใช้ api.js ★★★
+            await deleteFoodIndustry(id);
             setModalInfo({ show: true, type: 'success', message: 'ลบข้อมูลสำเร็จ' });
             fetchIndustries();
         } catch (err) {
-            setModalInfo({ show: true, type: 'error', message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+            setModalInfo({ show: true, type: 'error', message: err.message || 'เกิดข้อผิดพลาดในการลบข้อมูล' });
         }
     };
 
@@ -125,7 +132,8 @@ const CustomerManagement = () => {
         // --- (สิ้นสุดการแก้ไข) ---
 
         try {
-            await axios.put(`${API_URL}/food-industries/${editingIndustry.F_id}`, editingIndustry);
+            // 6. ★★★ แก้ไข: ใช้ api.js ★★★
+            await updateFoodIndustry(editingIndustry.F_id, editingIndustry);
             handleCloseEditModal();
             setModalInfo({ show: true, type: 'success', message: 'แก้ไขข้อมูลโรงงานสำเร็จ' });
             fetchIndustries();
@@ -135,7 +143,7 @@ const CustomerManagement = () => {
             setModalInfo({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึก'
+                message: error.message || 'เกิดข้อผิดพลาดในการบันทึก'
             });
         }
     };
@@ -182,7 +190,8 @@ const CustomerManagement = () => {
         // --- (สิ้นสุดการแก้ไข) ---
 
         try {
-            await axios.post('${API_URL}/food-industries', newIndustryData);
+            // 7. ★★★ แก้ไข: นี่คือบรรทัดที่ 185 ที่ Error ★★★
+            await createFoodIndustry(newIndustryData);
             handleCloseAddModal();
             setModalInfo({ show: true, type: 'success', message: 'เพิ่มข้อมูลโรงงานสำเร็จ' });
             fetchIndustries(); // โหลดข้อมูลใหม่
@@ -192,7 +201,7 @@ const CustomerManagement = () => {
             setModalInfo({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึก'
+                message: error.message || 'เกิดข้อผิดพลาดในการบันทึก'
             });
         }
     };

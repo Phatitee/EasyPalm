@@ -1,12 +1,17 @@
+// frontend/src/pages/sales/ConfirmDelivery.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Truck, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, RefreshCw } from 'lucide-react'; // (เพิ่ม) Import ไอคอน RefreshCw
 import SalesHistoryDetail from './SalesHistoryDetail';
 import { XCircle } from "lucide-react";
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPendingDeliveryOrders, confirmDelivery, requestSalesOrderReturn } from '../../services/api';
 
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
 
-const API_URL = process.env.REACT_APP_API_URL;
 // (ปรับปรุง) Helper Modal (ConfirmDialog) - เพิ่ม actionType เพื่อเปลี่ยนสีปุ่มและไอคอน
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, actionType }) => {
     if (!isOpen) return null;
@@ -83,11 +88,8 @@ const ConfirmDelivery = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('${API_URL}/salesorders/pending-delivery', { cache: 'no-cache' });
-            if (!response.ok) {
-                throw new Error('ไม่สามารถดึงข้อมูลได้');
-            }
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 86 ที่ Error ★★★
+            const data = await getPendingDeliveryOrders();
             setOrders(data);
         } catch (err) {
             setError(err.message);
@@ -128,29 +130,18 @@ const ConfirmDelivery = () => {
         setSubmittingId(orderNumber);
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
-        let url = '';
-        if (action === 'confirm') {
-            url = `${API_URL}/salesorders/${orderNumber}/confirm-delivery`;
-        } else if (action === 'return') {
-            url = `${API_URL}/salesorders/${orderNumber}/request-return`;
-        } else {
-            console.error("Unknown action type:", action);
-            setSubmittingId(null);
-            return;
-        }
-
         try {
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employee_id: user.e_id }),
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'เกิดข้อผิดพลาดในการดำเนินการ');
+            let result;
+            if (action === 'confirm') {
+                // 4. ★★★ แก้ไข: ใช้ api.js ★★★
+                result = await confirmDelivery(orderNumber, user.e_id);
+            } else if (action === 'return') {
+                // 5. ★★★ แก้ไข: ใช้ api.js ★★★
+                result = await requestSalesOrderReturn(orderNumber, user.e_id);
+            } else {
+                throw new Error("Unknown action type");
             }
-
+            
             setResultDialog({ isOpen: true, type: 'success', message: result.message });
             fetchPendingDeliveries(); // Refresh list
 

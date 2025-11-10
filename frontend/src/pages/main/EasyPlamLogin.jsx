@@ -1,10 +1,13 @@
-// frontend/src/pages/main/EasyPalmLogin.jsx (PREMIUM VERSION)
+// frontend/src/pages/main/EasyPalmLogin.jsx (PREMIUM VERSION - FIXED)
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogIn, User, Lock, Eye, EyeOff, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 import palmLeafImage from '../../components/Gemini_Generated_Image_y930e8y930e8y930-removebg.png';
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 1. ★★★ แก้ไข: เปลี่ยนชื่อ import 'login' เป็น 'apiLogin' เพื่อกันชื่อซ้ำ ★★★
+import { login as apiLogin } from '../../services/api'; 
+
 const EasyPalmLogin = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -12,7 +15,9 @@ const EasyPalmLogin = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { login } = useAuth();
+    
+    // 2. ★★★ 'login' ตัวนี้คือฟังก์ชันจาก AuthContext (สำหรับเก็บ User) ★★★
+    const { login } = useAuth(); 
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -20,19 +25,12 @@ const EasyPalmLogin = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('${API_URL}/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Login ไม่สำเร็จ');
-            }
+            // 3. ★★★ เรียกใช้ 'apiLogin' ที่เรา import มา (แทน fetch) ★★★
+            // (ฟังก์ชัน 'apiFetch' ข้างใน 'apiLogin' จะจัดการเรื่อง .json() และ Error ให้เอง)
+            const data = await apiLogin(username, password);
             
-            login(data.user);
+            // 4. ★★★ เรียก 'login' จาก useAuth เพื่อบันทึกข้อมูล User ★★★
+            login(data.user); // data.user มาจาก apiLogin สำเร็จ
 
             // Navigate based on user role
             switch (data.user.e_role) {
@@ -45,6 +43,7 @@ const EasyPalmLogin = () => {
                 default: navigate('/login');
             }
         } catch (err) {
+            // (err.message จะถูกส่งมาจาก apiFetch ที่เราสร้างไว้)
             setError(err.message);
         } finally {
             setLoading(false);
@@ -75,10 +74,10 @@ const EasyPalmLogin = () => {
 
                     {/* Brand Text */}
                     <div className="space-y-4">
-                  
+                    
                         <div className="flex items-center justify-center gap-2">
                 
-                         
+                        
                         </div>
                         <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
                             ระบบจัดการสวนปาล์มครบวงจร เพิ่มประสิทธิภาพการทำงาน ด้วยเทคโนโลยีที่ทันสมัย

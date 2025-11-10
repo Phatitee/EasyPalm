@@ -1,4 +1,4 @@
-// frontend/src/pages/main/mainpage.jsx (PREMIUM VERSION)
+// frontend/src/pages/main/mainpage.jsx (PREMIUM VERSION - FIXED)
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -8,8 +8,11 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPalmPriceHistory } from '../../services/api';
+
 // --- Premium Price Card Component ---
-const API_URL = process.env.REACT_APP_API_URL;
+
 const PriceCard = ({ product, index }) => {
     const cardStyles = {
         "น้ำมันปาล์มดิบ": { 
@@ -201,9 +204,9 @@ const MainPage = ({ products, error: productsError }) => {
             setChartLoading(true);
             setChartError(null);
             try {
-                const response = await fetch('${API_URL}/palm-price-history');
-                if (!response.ok) throw new Error('ไม่สามารถโหลดข้อมูลกราฟราคาได้');
-                const data = await response.json();
+                // 2. ★★★ แก้ไข: นี่คือบรรทัดที่ 204 ที่ Error ★★★
+                // เปลี่ยนจาก fetch('${API_URL}/...') มาใช้ฟังก์ชันจาก api.js
+                const data = await getPalmPriceHistory();
                 setChartData(data);
             } catch (err) {
                 setChartError(err.message);

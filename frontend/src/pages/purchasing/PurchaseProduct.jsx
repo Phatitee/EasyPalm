@@ -1,12 +1,14 @@
+// frontend/src/pages/purchasing/PurchaseProduct.jsx (FIXED)
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, Search, XCircle, Printer } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useReactToPrint } from 'react-to-print';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getFarmers, getProducts, createPurchaseOrder } from '../../services/api';
 
 
-
-const API_URL = process.env.REACT_APP_API_URL;
 // --- Dialog แจ้งผลสำเร็จ (ไม่มีการแก้ไข) ---
 const SuccessPrintDialog = ({ isOpen, onClose, onPrint, orderNumber }) => {
     if (!isOpen) return null;
@@ -43,7 +45,7 @@ const PrintableReceipt = React.forwardRef(({ order }, ref) => {
                 <thead><tr className="bg-gray-100"><th className="p-2 border">#</th><th className="p-2 border">รายการ</th><th className="p-2 border text-right">จำนวน (กก.)</th><th className="p-2 border text-right">ราคา/หน่วย</th><th className="p-2 border text-right">ราคารวม</th></tr></thead>
                 <tbody>
                     {order?.items?.map((item, index) => (
-                        <tr key={item?.p_id || index}><td className="p-2 border">{index + 1}</td><td className="p-2 border">{item?.p_name ?? 'N/A'}</td><td className="p-2 border text-right">{Number(item?.quantity ?? 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td></tr>
+                        <tr key={item?.p_id || index}><td className="p-2 border">{index + 1}</td><td className="p-2 border">{item?.p_name ?? 'N/A'}</td><td className="p-2 border text-right">{Number(item?.quantity ?? 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td><td className="p-2 border text-right">{Number(item?.price_per_unit ?? 0).toFixed(2)}</td><td className="p-2 border text-right">{(Number(item?.quantity ?? 0) * Number(item?.price_per_unit ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
                     ))}
                 </tbody>
                 <tfoot><tr className="font-bold"><td colSpan="4" className="p-2 border text-right">ยอดรวมทั้งสิ้น</td><td className="p-2 border text-right text-lg">{order?.b_total_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}</td></tr></tfoot>
@@ -178,13 +180,14 @@ const PurchaseProduct = () => {
         const fetchData = async () => {
             setLoading(true); setError('');
             try {
-                const [farmerRes, productRes] = await Promise.all([
-                    fetch('${API_URL}/farmers'),
-                    fetch('${API_URL}/products')
+                // 2. ★★★ แก้ไข: นี่คือบรรทัดที่ 178 และ 179 ที่ Error ★★★
+                // ใช้ Promise.all กับ api.js functions
+                const [farmerData, productData] = await Promise.all([
+                    getFarmers(),
+                    getProducts()
                 ]);
-                if (!farmerRes.ok || !productRes.ok) throw new Error('ไม่สามารถโหลดข้อมูลเริ่มต้นได้');
-                setFarmers(await farmerRes.json());
-                setProducts(await productRes.json());
+                setFarmers(farmerData);
+                setProducts(productData);
             } catch (err) { setError(err.message); }
             finally { setLoading(false); }
         };
@@ -298,15 +301,9 @@ const PurchaseProduct = () => {
             })),
         };
         try {
-            const response = await fetch('${API_URL}/purchaseorders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData),
-            });
-            const resultData = await response.json();
-            if (!response.ok) {
-                throw new Error(resultData.message || 'เกิดข้อผิดพลาดในการสร้างใบสั่งซื้อ');
-            }
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 297 ที่ Error ★★★
+            const resultData = await createPurchaseOrder(orderData);
+            
             setCompletedOrder(resultData);
             setSelectedFarmer('');
             setOrderItems([]);

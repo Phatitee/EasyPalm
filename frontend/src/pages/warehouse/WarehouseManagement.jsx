@@ -1,10 +1,14 @@
-// frontend/src/pages/warehouse/WarehouseManagement.jsx
+// frontend/src/pages/warehouse/WarehouseManagement.jsx (FIXED)
 import React, { useState, useEffect, useCallback } from 'react';
 import { Archive, PlusCircle, Edit, Trash2, Loader, ServerCrash, Inbox, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
 import WarehouseForm from '../../components/forms/WarehouseForm';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getWarehouseSummary, updateWarehouse, createWarehouse, deleteWarehouse } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 // Helper Modal (ConfirmDialog) - สำหรับยืนยัน
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
@@ -63,10 +67,8 @@ const WarehouseManagement = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('${API_URL}/purchasing/warehouse-summary', { cache: 'no-cache' });
-            
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลคลังสินค้าได้');
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 66 ที่ Error ★★★
+            const data = await getWarehouseSummary();
             setWarehouses(data);
         } catch (err) {
             setError(err.message);
@@ -109,20 +111,15 @@ const WarehouseManagement = () => {
                 }
             }
         }
-
-        const url = isEditMode 
-            ? `${API_URL}/warehouses/${warehouseData.warehouse_id}` 
-            : '${API_URL}/warehouses';
-        const method = isEditMode ? 'PUT' : 'POST';
-
+        
+        // 4. ★★★ แก้ไข: นี่คือบรรทัดที่ 115 ที่ Error ★★★
         try {
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(warehouseData),
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
+            let result;
+            if (isEditMode) {
+                result = await updateWarehouse(warehouseData.warehouse_id, warehouseData);
+            } else {
+                result = await createWarehouse(warehouseData);
+            }
             
             setResultDialog({ isOpen: true, type: 'success', message: `บันทึกข้อมูลคลังสินค้า '${result.warehouse_name}' สำเร็จ!` });
             handleCloseModal();
@@ -147,11 +144,8 @@ const WarehouseManagement = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`${API_URL}/warehouses/${warehouse.warehouse_id}`, {
-                method: 'DELETE',
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาดในการลบ');
+            // 5. ★★★ แก้ไข: ใช้ api.js ★★★
+            const result = await deleteWarehouse(warehouse.warehouse_id);
             
             setResultDialog({ isOpen: true, type: 'success', message: result.message });
             fetchWarehouses();

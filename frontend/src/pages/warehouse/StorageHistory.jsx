@@ -1,10 +1,16 @@
+// frontend/src/pages/warehouse/StorageHistory.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, List, Loader, ServerCrash, Inbox, Users, Truck } from 'lucide-react';
 import StorageDetail from './StorageDetail'; 
 import SalesHistoryDetail from '../sales/SalesHistoryDetail'; // (เพิ่ม) Import Modal ของ Sales
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getStorageHistory, getWarehouses } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const StorageHistory = () => {
     const [items, setItems] = useState([]); // (ปรับปรุง) เปลี่ยนชื่อเป็น items
     const [warehouses, setWarehouses] = useState([]);
@@ -22,14 +28,12 @@ const StorageHistory = () => {
         setLoading(true);
         try {
             // (ปรับปรุง) เรียก API เส้นใหม่
-            const params = new URLSearchParams();
-            if (searchTerm) params.append('search', searchTerm);
-            if (warehouseFilter) params.append('warehouse_id', warehouseFilter);
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
+            if (warehouseFilter) params.warehouse_id = warehouseFilter;
             
-            const response = await fetch(`${API_URL}/warehouse/storage-history?${params.toString()}`);
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการจัดเก็บได้');
-            
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: นี่คือบรรทัดที่ 44 ที่ Error ★★★
+            const data = await getStorageHistory(params);
             setItems(data); // (ปรับปรุง) ตั้งค่า state ด้วยข้อมูลใหม่
         } catch (err) {
             setError(err.message);
@@ -41,9 +45,9 @@ const StorageHistory = () => {
     useEffect(() => {
         const fetchWarehouses = async () => {
             try {
-                const res = await fetch('${API_URL}/warehouses');
-                if (!res.ok) throw new Error('Failed to fetch warehouses');
-                setWarehouses(await res.json());
+                // 4. ★★★ แก้ไข: ใช้ api.js ★★★
+                const data = await getWarehouses();
+                setWarehouses(data);
             } catch (err) { console.error(err); }
         };
         fetchWarehouses();
@@ -100,7 +104,8 @@ const StorageHistory = () => {
                     >
                         <option value="">ทั้งหมด (ทุกคลัง)</option>
                         {warehouses.map(w => (
-                            <option key={w.warehouse_id} value={w.warehouse_id}>{w.name}</option>
+                            <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option> 
+                            // (แก้ไข) เปลี่ยน .name เป็น .warehouse_name
                         ))}
                     </select>
                 </div>

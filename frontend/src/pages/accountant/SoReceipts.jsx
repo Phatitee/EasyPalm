@@ -1,10 +1,17 @@
+// frontend/src/pages/accountant/SoReceipts.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DollarSign, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, XCircle } from 'lucide-react';
 import ReceiptDetail from './ReceiptDetail';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPendingPaymentOrders, getSalesOrder, confirmPayment } from '../../services/api';
+
 // --- Helper Modal: Confirm Dialog ---
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป (เราจะใช้ api.js แทน) ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
     return (
@@ -64,11 +71,9 @@ const SoReceipts = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('${API_URL}/salesorders/pending-payment');
-            if (!response.ok) {
-                throw new Error('ไม่สามารถดึงข้อมูลได้');
-            }
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: เรียกใช้ฟังก์ชันจาก api.js ★★★
+            // นี่คือบรรทัดที่ 67 ที่ Error
+            const data = await getPendingPaymentOrders();
             setOrders(data);
         } catch (err) {
             setError(err.message);
@@ -82,12 +87,9 @@ const SoReceipts = () => {
     }, [fetchPendingPayments]);
 
     const handleRowDoubleClick = async (orderNumber) => {
-
         try {
-            const response = await fetch(`${API_URL}/salesorders/${orderNumber}`);
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
-
-            const data = await response.json();
+            // 4. ★★★ แก้ไข: เรียกใช้ฟังก์ชันจาก api.js ★★★
+            const data = await getSalesOrder(orderNumber);
             setSelectedOrder(data);
             setIsDetailModalOpen(true);
         } catch (err) {
@@ -111,16 +113,9 @@ const SoReceipts = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         
         try {
-            const response = await fetch(`${API_URL}/salesorders/${orderNumber}/confirm-payment`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employee_id: user.e_id }),
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'เกิดข้อผิดพลาดในการยืนยัน');
-            }
+            // 5. ★★★ แก้ไข: เรียกใช้ฟังก์ชันจาก api.js ★★★
+            // (api.js จะจัดการเรื่อง .json() และ error ให้อัตโนมัติ)
+            const result = await confirmPayment(orderNumber, user.e_id);
 
             setResultDialog({ isOpen: true, type: 'success', message: result.message });
             fetchPendingPayments();
