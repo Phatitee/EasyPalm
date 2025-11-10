@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, List, Loader, ServerCrash, Inbox } from 'lucide-react';
 import ShipmentDetails from './ShipmentDetails'; // Reuse the existing detail modal
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 const ShipmentHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ const ShipmentHistory = () => {
             const params = new URLSearchParams();
             if (searchTerm) params.append('search', searchTerm);
 
-            const response = await fetch(`/api/warehouse/shipment-history?${params.toString()}`, { cache: 'no-cache' });
+            const response = await fetch(`${API_URL}/warehouse/shipment-history?${params.toString()}`, { cache: 'no-cache' });
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการเบิกได้');
 
             const data = await response.json();

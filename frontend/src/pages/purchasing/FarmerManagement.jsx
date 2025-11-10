@@ -11,6 +11,8 @@ import ResultModal from "../../components/modals/ResultModal";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import FarmerForm from "../../components/forms/FarmerForm";
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 const FarmerManagement = () => {
   // ... (State declarations remain the same) ...
   const [farmers, setFarmers] = useState([]);
@@ -50,7 +52,7 @@ const FarmerManagement = () => {
     setLoading(true);
     setError(""); // Clear previous errors
     try {
-      const response = await axios.get("/api/farmers");
+      const response = await axios.get("${API_URL}/farmers");
       setFarmers(response.data);
     } catch (err) {
       setError("ไม่สามารถโหลดข้อมูลเกษตรกรได้");
@@ -94,7 +96,7 @@ const FarmerManagement = () => {
   const executeDelete = async (id) => {
     handleCloseConfirmModal();
     try {
-      await axios.delete(`/api/farmers/${id}`);
+      await axios.delete(`${API_URL}/farmers/${id}`);
       setModalInfo({ show: true, type: "success", message: "ลบข้อมูลสำเร็จ" });
       fetchFarmers(); // <<< PROBLEM WAS LIKELY HERE (Line 99 in previous version) - This call should work now.
     } catch (err) {
@@ -170,7 +172,7 @@ const FarmerManagement = () => {
         f_address: editingFarmer.f_address,
       };
       await axios.put(
-        `/api/farmers/${editingFarmer.f_id}`,
+        `${API_URL}/farmers/${editingFarmer.f_id}`,
         dataToUpdate
       );
       handleCloseEditModal();
@@ -243,7 +245,7 @@ const FarmerManagement = () => {
     }
 
     try {
-      await axios.post("/api/farmers", newFarmerData);
+      await axios.post("${API_URL}/farmers", newFarmerData);
       handleCloseAddModal();
       setModalInfo({
         show: true,

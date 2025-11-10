@@ -9,6 +9,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // --- Premium Price Card Component ---
+const API_URL = process.env.REACT_APP_API_URL;
 const PriceCard = ({ product, index }) => {
     const cardStyles = {
         "น้ำมันปาล์มดิบ": { 
@@ -200,7 +201,7 @@ const MainPage = ({ products, error: productsError }) => {
             setChartLoading(true);
             setChartError(null);
             try {
-                const response = await fetch('/api/palm-price-history');
+                const response = await fetch('${API_URL}/palm-price-history');
                 if (!response.ok) throw new Error('ไม่สามารถโหลดข้อมูลกราฟราคาได้');
                 const data = await response.json();
                 setChartData(data);

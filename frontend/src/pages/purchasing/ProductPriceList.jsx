@@ -3,6 +3,7 @@ import axios from "axios";
 import { Edit, Save, XCircle, DollarSign, Loader, ServerCrash, CheckCircle } from "lucide-react";
 
 // --- Helper Modal: Result Dialog (สำหรับแจ้งผลลัพธ์) ---
+const API_URL = process.env.REACT_APP_API_URL;
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
     const isSuccess = type === 'success';
@@ -73,7 +74,7 @@ const ProductPriceList = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("/api/products");
+            const response = await axios.get("${API_URL}/products");
             setProducts(response.data);
             setError(null);
         } catch (err) {
@@ -110,7 +111,7 @@ const ProductPriceList = () => {
         }
 
         try {
-            await axios.put(`/api/products/${productId}`, {
+            await axios.put(`${API_URL}/products/${productId}`, {
                 price_per_unit: parseFloat(newPrice),
             });
             // ★★★ FIX: Replace alert() with Modal ★★★

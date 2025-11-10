@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Layers, Search, Filter, Loader, ServerCrash, Inbox } from 'lucide-react';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 const StockLevel = () => {
     const [stockLevels, setStockLevels] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
@@ -18,7 +20,7 @@ const StockLevel = () => {
             if (searchTerm) params.append('search', searchTerm);
             if (warehouseFilter) params.append('warehouse_id', warehouseFilter);
             
-            const response = await fetch(`/api/stock?${params.toString()}`, { cache: 'no-cache' });
+            const response = await fetch(`${API_URL}/stock?${params.toString()}`, { cache: 'no-cache' });
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสต็อกได้');
             
             const data = await response.json();
@@ -34,7 +36,7 @@ const StockLevel = () => {
     useEffect(() => {
         const fetchWarehouses = async () => {
             try {
-                const res = await fetch('/api/warehouses');
+                const res = await fetch('${API_URL}/warehouses');
                 if (!res.ok) throw new Error('Failed to fetch warehouses');
                 setWarehouses(await res.json());
             } catch (err) {

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Warehouse, Archive, Loader, Package } from 'lucide-react'; // (เพิ่ม Package icon)
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // --- Component: Progress Bar (เหมือนเดิม) ---
 const ProgressBar = ({ value, capacity }) => {
     const percentage = capacity > 0 ? Math.min((value / capacity) * 100, 100) : 0;
@@ -54,7 +56,7 @@ const WarehouseSummary = () => {
             setLoading(true);
             try {
                 // Endpoint นี้จะดึงข้อมูล (รวมถึง product_breakdown ที่เราเพิ่มใน backend)
-                const response = await fetch('/api/purchasing/warehouse-summary');
+                const response = await fetch('${API_URL}/purchasing/warehouse-summary');
                 if (!response.ok) {
                     throw new Error('ไม่สามารถโหลดข้อมูลสรุปคลังสินค้าได้');
                 }

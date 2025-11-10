@@ -81,8 +81,8 @@ function App() {
     const fetchProducts = async () => {
       try {
         // --- (★ ★ ★ จุดแก้ไข ★ ★ ★) ---
-        // เปลี่ยนจาก "/api/products"
-        const response = await axios.get('/api/products'); 
+        // เปลี่ยนจาก "${API_URL}/products"
+        const response = await axios.get('${API_URL}/products'); 
         if (Array.isArray(response.data)) {
           setProducts(response.data);
         } else {

@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
@@ -123,7 +125,7 @@ const PurchaseHistoryDetail = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`/api/purchaseorders/${orderId}`);
+                const response = await fetch(`${API_URL}/purchaseorders/${orderId}`);
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
                 const data = await response.json();
                 setOrder(data);

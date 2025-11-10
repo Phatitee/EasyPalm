@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { DollarSign, TrendingUp, ShoppingCart, Archive, Loader, ServerCrash, List } from 'lucide-react';
-
+const API_URL = process.env.REACT_APP_API_URL;
 const StatCard = ({ title, value, icon, color }) => {
     const Icon = icon;
     return (
@@ -24,12 +24,14 @@ const ExecutiveDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+
     useEffect(() => {
+
         const fetchSummary = async () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch('/api/executive/dashboard-summary', { cache: 'no-cache' });
+                const response = await fetch('${API_URL}/executive/dashboard-summary', { cache: 'no-cache' });
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสรุปได้');
                 const data = await response.json();
                 setSummary(data);

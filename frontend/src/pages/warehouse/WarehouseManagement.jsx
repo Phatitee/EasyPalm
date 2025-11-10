@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Archive, PlusCircle, Edit, Trash2, Loader, ServerCrash, Inbox, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
 import WarehouseForm from '../../components/forms/WarehouseForm';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ConfirmDialog) - สำหรับยืนยัน
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
@@ -61,7 +63,7 @@ const WarehouseManagement = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('/api/purchasing/warehouse-summary', { cache: 'no-cache' });
+            const response = await fetch('${API_URL}/purchasing/warehouse-summary', { cache: 'no-cache' });
             
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลคลังสินค้าได้');
             const data = await response.json();
@@ -109,8 +111,8 @@ const WarehouseManagement = () => {
         }
 
         const url = isEditMode 
-            ? `/api/warehouses/${warehouseData.warehouse_id}` 
-            : '/api/warehouses';
+            ? `${API_URL}/warehouses/${warehouseData.warehouse_id}` 
+            : '${API_URL}/warehouses';
         const method = isEditMode ? 'PUT' : 'POST';
 
         try {
@@ -145,7 +147,7 @@ const WarehouseManagement = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`/api/warehouses/${warehouse.warehouse_id}`, {
+            const response = await fetch(`${API_URL}/warehouses/${warehouse.warehouse_id}`, {
                 method: 'DELETE',
             });
             const result = await response.json();

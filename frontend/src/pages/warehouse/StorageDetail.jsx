@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign } from 'lucide-react';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
@@ -35,7 +37,7 @@ const StorageDetail = ({ orderId, onClose }) => {
             setLoading(true);
             try {
                 // Endpoint is correct for fetching Purchase Order details
-                const response = await fetch(`/api/purchaseorders/${orderId}`);
+                const response = await fetch(`${API_URL}/purchaseorders/${orderId}`);
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
                 const data = await response.json();
                 setOrder(data);

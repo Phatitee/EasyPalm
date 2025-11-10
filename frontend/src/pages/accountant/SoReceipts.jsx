@@ -4,6 +4,7 @@ import { DollarSign, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, XCi
 import ReceiptDetail from './ReceiptDetail';
 
 // --- Helper Modal: Confirm Dialog ---
+const API_URL = process.env.REACT_APP_API_URL;
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
     return (
@@ -63,7 +64,7 @@ const SoReceipts = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('/api/salesorders/pending-payment');
+            const response = await fetch('${API_URL}/salesorders/pending-payment');
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -81,8 +82,9 @@ const SoReceipts = () => {
     }, [fetchPendingPayments]);
 
     const handleRowDoubleClick = async (orderNumber) => {
+
         try {
-            const response = await fetch(`/api/salesorders/${orderNumber}`);
+            const response = await fetch(`${API_URL}/salesorders/${orderNumber}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
 
             const data = await response.json();
@@ -107,9 +109,9 @@ const SoReceipts = () => {
         const orderNumber = confirmDialog.orderNumber;
         setSubmittingId(orderNumber);
         setConfirmDialog({ ...confirmDialog, isOpen: false });
-
+        
         try {
-            const response = await fetch(`/api/salesorders/${orderNumber}/confirm-payment`, {
+            const response = await fetch(`${API_URL}/salesorders/${orderNumber}/confirm-payment`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),

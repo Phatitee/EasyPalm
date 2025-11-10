@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import PurchaseOrderDetail from './PurchaseOrderDetail';
 
 // --- Helper Modal: Confirm Dialog ---
+const API_URL = process.env.REACT_APP_API_URL;
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
     return (
@@ -195,12 +196,12 @@ const PaymentManagement = () => {
     // ★★★★★ States และ Refs สำหรับการพิมพ์ ★★★★★
     const [completedPayment, setCompletedPayment] = useState(null);
     const receiptRef = useRef(null);
-
+    
     const fetchUnpaidOrders = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('/api/purchaseorders?status=unpaid', {
+            const response = await fetch('${API_URL}/purchaseorders?status=unpaid', {
                 cache: 'no-cache'
             });
 
@@ -268,7 +269,7 @@ const PaymentManagement = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`/api/purchaseorders/${orderNumber}/pay`, {
+            const response = await fetch(`${API_URL}/purchaseorders/${orderNumber}/pay`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),
@@ -279,7 +280,7 @@ const PaymentManagement = () => {
             }
 
             // ★★★★★ ดึงข้อมูลใบสั่งซื้อที่สมบูรณ์เพื่อพิมพ์ ★★★★★
-            const detailResponse = await fetch(`/api/purchaseorders/${orderNumber}`);
+            const detailResponse = await fetch(`${API_URL}/purchaseorders/${orderNumber}`);
             if (detailResponse.ok) {
                 const orderDetail = await detailResponse.json();
                 setCompletedPayment(orderDetail);

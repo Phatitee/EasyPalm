@@ -3,7 +3,7 @@ import { UserPlus, Save, Loader, ArrowLeft } from 'lucide-react';
 import FarmerForm from '../../components/forms/FarmerForm';
 import ResultModal from '../../components/modals/ResultModal';
 import { useNavigate } from 'react-router-dom';
-
+const API_URL = process.env.REACT_APP_API_URL;
 const AddFarmerPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modal, setModal] = useState({ isOpen: false, success: false, message: '' });
@@ -12,7 +12,7 @@ const AddFarmerPage = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch('/api/farmers', {
+            const response = await fetch('${API_URL}/farmers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

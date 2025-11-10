@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Archive, PlusCircle, Trash2, CheckCircle, Loader, ServerCrash, TrendingUp, Search, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
+
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ResultDialog) - (ไม่มีการแก้ไข)
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
@@ -114,9 +117,9 @@ const CreateSalesOrder = () => {
             setError('');
             try {
                 const [custRes, whRes, stockRes] = await Promise.all([
-                    fetch('/api/food-industries'),
-                    fetch('/api/warehouses'),
-                    fetch('/api/stock')
+                    fetch('${API_URL}/food-industries'),
+                    fetch('${API_URL}/warehouses'),
+                    fetch('${API_URL}/stock')
                 ]);
 
                 if (!custRes.ok || !whRes.ok || !stockRes.ok) {
@@ -318,7 +321,7 @@ const CreateSalesOrder = () => {
             })),
         };
         try {
-            const response = await fetch('/api/salesorders', {
+            const response = await fetch('${API_URL}/salesorders', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData),
             });
             const result = await response.json();
@@ -326,7 +329,7 @@ const CreateSalesOrder = () => {
 
             setResultDialog({ isOpen: true, type: 'success', message: `สร้างใบสั่งขาย ${result.sale_order_number} สำเร็จ!` });
 
-            const stockRes = await fetch('/api/stock');
+            const stockRes = await fetch('${API_URL}/stock');
             setStockLevels(await stockRes.json());
 
             // Reset form

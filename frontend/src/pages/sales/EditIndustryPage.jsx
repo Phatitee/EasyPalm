@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Factory, ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
@@ -39,7 +41,7 @@ const EditIndustryPage = () => {
         const fetchIndustry = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`/api/food-industries/${id}`);
+                const response = await axios.get(`${API_URL}/food-industries/${id}`);
                 const industry = response.data;
                 setName(industry.F_name);
                 setTel(industry.F_tel);
@@ -57,7 +59,7 @@ const EditIndustryPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`/api/food-industries/${id}`, {
+            await axios.put(`${API_URL}/food-industries/${id}`, {
                 F_name: name,
                 F_tel: tel,
                 F_address: address,

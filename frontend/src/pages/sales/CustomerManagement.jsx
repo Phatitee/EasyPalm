@@ -6,6 +6,10 @@ import ResultModal from '../../components/modals/ResultModal';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import IndustryForm from '../../components/forms/IndustryForm';
 
+
+
+
+const API_URL = process.env.REACT_APP_API_URL;
 const CustomerManagement = () => {
     // --- State เดิม (Edit/Delete/List) ---
     const [industries, setIndustries] = useState([]);
@@ -35,7 +39,7 @@ const CustomerManagement = () => {
     const fetchIndustries = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('/api/food-industries');
+            const response = await axios.get('${API_URL}/food-industries');
             setIndustries(response.data);
         } catch (err) {
             setError('ไม่สามารถโหลดข้อมูลโรงงานได้');
@@ -73,7 +77,7 @@ const CustomerManagement = () => {
     const executeDelete = async (id) => {
         handleCloseConfirmModal();
         try {
-            await axios.delete(`/api/food-industries/${id}`);
+            await axios.delete(`${API_URL}/food-industries/${id}`);
             setModalInfo({ show: true, type: 'success', message: 'ลบข้อมูลสำเร็จ' });
             fetchIndustries();
         } catch (err) {
@@ -121,7 +125,7 @@ const CustomerManagement = () => {
         // --- (สิ้นสุดการแก้ไข) ---
 
         try {
-            await axios.put(`/api/food-industries/${editingIndustry.F_id}`, editingIndustry);
+            await axios.put(`${API_URL}/food-industries/${editingIndustry.F_id}`, editingIndustry);
             handleCloseEditModal();
             setModalInfo({ show: true, type: 'success', message: 'แก้ไขข้อมูลโรงงานสำเร็จ' });
             fetchIndustries();
@@ -178,7 +182,7 @@ const CustomerManagement = () => {
         // --- (สิ้นสุดการแก้ไข) ---
 
         try {
-            await axios.post('/api/food-industries', newIndustryData);
+            await axios.post('${API_URL}/food-industries', newIndustryData);
             handleCloseAddModal();
             setModalInfo({ show: true, type: 'success', message: 'เพิ่มข้อมูลโรงงานสำเร็จ' });
             fetchIndustries(); // โหลดข้อมูลใหม่

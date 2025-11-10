@@ -6,6 +6,8 @@ import { PackagePlus, CheckCircle, Loader, ServerCrash, Inbox, Archive, AlertTri
 import StorageDetail from './StorageDetail';
 import SalesHistoryDetail from '../sales/SalesHistoryDetail';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // (Component ConfirmDialog และ ResultDialog ไม่มีการแก้ไข)
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, actionType }) => {
     if (!isOpen) return null;
@@ -73,8 +75,8 @@ const PendingStorage = () => {
         try {
             // (สันนิษฐานว่า /pending-storage-items สำหรับ SO_Return จะมี field 'warehouse_id' มาให้ด้วย)
             const [itemsRes, warehousesRes] = await Promise.all([
-                fetch('/api/warehouse/pending-storage-items'),
-                fetch('/api/warehouses')
+                fetch('${API_URL}/warehouse/pending-storage-items'),
+                fetch('${API_URL}/warehouses')
             ]);
 
             if (!itemsRes.ok || !warehousesRes.ok) throw new Error('ไม่สามารถดึงข้อมูลเริ่มต้นได้');
@@ -142,8 +144,8 @@ const PendingStorage = () => {
 
         const isReturn = item.type === 'SO_Return';
         const url = isReturn
-            ? '/api/warehouse/confirm-return'
-            : '/api/warehouse/receive-items';
+            ? '${API_URL}/warehouse/confirm-return'
+            : '${API_URL}/warehouse/receive-items';
 
         const body = isReturn
             ? { sales_order_number: item.order_number, warehouse_id: warehouseId, employee_id: user.e_id }

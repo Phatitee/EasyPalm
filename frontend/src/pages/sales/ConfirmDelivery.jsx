@@ -4,6 +4,9 @@ import { Truck, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, RefreshC
 import SalesHistoryDetail from './SalesHistoryDetail';
 import { XCircle } from "lucide-react";
 
+
+
+const API_URL = process.env.REACT_APP_API_URL;
 // (ปรับปรุง) Helper Modal (ConfirmDialog) - เพิ่ม actionType เพื่อเปลี่ยนสีปุ่มและไอคอน
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, actionType }) => {
     if (!isOpen) return null;
@@ -80,7 +83,7 @@ const ConfirmDelivery = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('/api/salesorders/pending-delivery', { cache: 'no-cache' });
+            const response = await fetch('${API_URL}/salesorders/pending-delivery', { cache: 'no-cache' });
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -127,9 +130,9 @@ const ConfirmDelivery = () => {
 
         let url = '';
         if (action === 'confirm') {
-            url = `/api/salesorders/${orderNumber}/confirm-delivery`;
+            url = `${API_URL}/salesorders/${orderNumber}/confirm-delivery`;
         } else if (action === 'return') {
-            url = `/api/salesorders/${orderNumber}/request-return`;
+            url = `${API_URL}/salesorders/${orderNumber}/request-return`;
         } else {
             console.error("Unknown action type:", action);
             setSubmittingId(null);

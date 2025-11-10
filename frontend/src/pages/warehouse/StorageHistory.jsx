@@ -3,6 +3,8 @@ import { Search, List, Loader, ServerCrash, Inbox, Users, Truck } from 'lucide-r
 import StorageDetail from './StorageDetail'; 
 import SalesHistoryDetail from '../sales/SalesHistoryDetail'; // (เพิ่ม) Import Modal ของ Sales
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 const StorageHistory = () => {
     const [items, setItems] = useState([]); // (ปรับปรุง) เปลี่ยนชื่อเป็น items
     const [warehouses, setWarehouses] = useState([]);
@@ -24,7 +26,7 @@ const StorageHistory = () => {
             if (searchTerm) params.append('search', searchTerm);
             if (warehouseFilter) params.append('warehouse_id', warehouseFilter);
             
-            const response = await fetch(`/api/warehouse/storage-history?${params.toString()}`);
+            const response = await fetch(`${API_URL}/warehouse/storage-history?${params.toString()}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการจัดเก็บได้');
             
             const data = await response.json();
@@ -39,7 +41,7 @@ const StorageHistory = () => {
     useEffect(() => {
         const fetchWarehouses = async () => {
             try {
-                const res = await fetch('/api/warehouses');
+                const res = await fetch('${API_URL}/warehouses');
                 if (!res.ok) throw new Error('Failed to fetch warehouses');
                 setWarehouses(await res.json());
             } catch (err) { console.error(err); }

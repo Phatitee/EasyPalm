@@ -5,6 +5,7 @@ import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign, Pri
 import { useReactToPrint } from 'react-to-print';
 
 // Component ย่อยสำหรับแสดงประวัติ
+const API_URL = process.env.REACT_APP_API_URL;
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
     const formattedDate = date
@@ -118,13 +119,12 @@ const PurchaseOrderDetail = ({ orderId, onClose }) => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const printRef = useRef(null);
-
     useEffect(() => {
         if (!orderId) return;
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`/api/purchaseorders/${orderId}`);
+                const response = await fetch(`${API_URL}/purchaseorders/${orderId}`);
                 if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
                 const data = await response.json();
                 setOrder(data);

@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Factory, ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
 
+
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
@@ -49,7 +52,7 @@ const AddIndustryPage = () => {
         }
 
         try {
-            const response = await axios.post('/api/food-industries', formData);
+            const response = await axios.post('${API_URL}/food-industries', formData);
             setResultDialog({
                 isOpen: true,
                 type: 'success',

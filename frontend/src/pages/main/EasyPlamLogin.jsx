@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogIn, User, Lock, Eye, EyeOff, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 import palmLeafImage from '../../components/Gemini_Generated_Image_y930e8y930e8y930-removebg.png';
-
+const API_URL = process.env.REACT_APP_API_URL;
 const EasyPalmLogin = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -20,7 +20,7 @@ const EasyPalmLogin = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch('${API_URL}/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

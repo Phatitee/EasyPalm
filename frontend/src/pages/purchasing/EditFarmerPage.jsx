@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { User, Save, Loader, ArrowLeft, ServerCrash } from 'lucide-react';
 import FarmerForm from '../../components/forms/FarmerForm';
 import ResultModal from '../../components/modals/ResultModal';
-
+const API_URL = process.env.REACT_APP_API_URL;
 const EditFarmerPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -18,7 +18,7 @@ const EditFarmerPage = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch(`/api/farmers/${id}`);
+                const response = await fetch(`${API_URL}/farmers/${id}`);
                 if (!response.ok) throw new Error('ไม่พบข้อมูลเกษตรกร');
                 const data = await response.json();
                 setInitialData(data);
@@ -34,7 +34,7 @@ const EditFarmerPage = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch(`/api/farmers/${id}`, {
+            const response = await fetch(`${API_URL}/farmers/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

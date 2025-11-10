@@ -6,7 +6,7 @@ import { Plus, Edit, Trash2, UserX, UserCheck, Search, ShieldCheck, ShieldX, Mor
 //================================================================================
 //  1. Reusable UI Components (DARK MODE FIXES)
 //================================================================================
-
+const API_URL = process.env.REACT_APP_API_URL;
 const StatCard = ({ title, value, icon }) => (
     // ★★★ Dark Mode FIX: Card Background, Border, and Text ★★★
     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 transition-colors duration-300">
@@ -238,7 +238,7 @@ const EmployeeManagement = () => {
     const fetchEmployees = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('/api/employees');
+            const response = await axios.get('${API_URL}/employees');
             setEmployees(response.data);
             setError('');
         } catch (err) {
@@ -275,7 +275,7 @@ const EmployeeManagement = () => {
                     title: `ยืนยันการ${actionText}`,
                     message: `คุณต้องการ${actionText}พนักงาน "${e_name}" ใช่หรือไม่?`,
                     onConfirm: async () => {
-                        const url = `/api/employees/${e_id}/${is_active ? 'suspend' : 'unsuspend'}`;
+                        const url = `${API_URL}/employees/${e_id}/${is_active ? 'suspend' : 'unsuspend'}`;
                         await axios.put(url);
                         setResultDialog({ isOpen: true, type: 'success', message: `${actionText}สำเร็จ!` });
                         fetchEmployees();
@@ -287,7 +287,7 @@ const EmployeeManagement = () => {
                     title: 'ยืนยันการลบ',
                     message: `คุณต้องการลบพนักงาน "${e_name}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
                     onConfirm: async () => {
-                        await axios.delete(`/api/employees/${e_id}`);
+                        await axios.delete(`${API_URL}/employees/${e_id}`);
                         setResultDialog({ isOpen: true, type: 'success', message: 'ลบพนักงานสำเร็จ!' });
                         fetchEmployees();
                     }
@@ -354,7 +354,7 @@ const EmployeeManagement = () => {
 
 
         const method = editingEmployee ? 'put' : 'post';
-        const url = editingEmployee ? `/api/employees/${editingEmployee.e_id}` : '/api/employees';
+        const url = editingEmployee ? `${API_URL}/employees/${editingEmployee.e_id}` : '${API_URL}/employees';
         try {
             await axios({ method, url, data });
             setIsModalOpen(false);

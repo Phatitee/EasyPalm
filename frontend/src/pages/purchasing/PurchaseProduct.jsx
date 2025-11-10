@@ -3,6 +3,10 @@ import { ShoppingCart, User, PlusCircle, Trash2, CheckCircle, Loader, ServerCras
 import { useAuth } from '../../contexts/AuthContext';
 import { useReactToPrint } from 'react-to-print';
 
+
+
+
+const API_URL = process.env.REACT_APP_API_URL;
 // --- Dialog แจ้งผลสำเร็จ (ไม่มีการแก้ไข) ---
 const SuccessPrintDialog = ({ isOpen, onClose, onPrint, orderNumber }) => {
     if (!isOpen) return null;
@@ -175,8 +179,8 @@ const PurchaseProduct = () => {
             setLoading(true); setError('');
             try {
                 const [farmerRes, productRes] = await Promise.all([
-                    fetch('/api/farmers'),
-                    fetch('/api/products')
+                    fetch('${API_URL}/farmers'),
+                    fetch('${API_URL}/products')
                 ]);
                 if (!farmerRes.ok || !productRes.ok) throw new Error('ไม่สามารถโหลดข้อมูลเริ่มต้นได้');
                 setFarmers(await farmerRes.json());
@@ -294,7 +298,7 @@ const PurchaseProduct = () => {
             })),
         };
         try {
-            const response = await fetch('/api/purchaseorders', {
+            const response = await fetch('${API_URL}/purchaseorders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData),

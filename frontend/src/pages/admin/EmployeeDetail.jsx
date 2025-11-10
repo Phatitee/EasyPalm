@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, User, Mail, Phone, Briefcase, Key, MapPin, CheckCircle, XCircle, BadgeInfo, CalendarClock } from 'lucide-react';
-
+const API_URL = process.env.REACT_APP_API_URL;
 const EmployeeDetail = () => {
     const { e_id } = useParams();
     const navigate = useNavigate();
@@ -15,7 +15,7 @@ const EmployeeDetail = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await axios.get(`/api/employees/${e_id}`);
+                const response = await axios.get(`${API_URL}/employees/${e_id}`);
                 setEmployee(response.data);
             } catch (err) {
                 setError('ไม่สามารถโหลดข้อมูลพนักงานได้');

@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, List, Loader, ServerCrash, Inbox } from 'lucide-react';
 import SalesHistoryDetail from './SalesHistoryDetail'; // Import the modal component
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 const SalesHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ const SalesHistory = () => {
             if (searchTerm) params.append('search', searchTerm);
             if (statusFilter) params.append('status', statusFilter);
 
-            const response = await fetch(`/api/salesorders?${params.toString()}`);
+            const response = await fetch(`${API_URL}/salesorders?${params.toString()}`);
             if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการขายได้');
 
             const data = await response.json();

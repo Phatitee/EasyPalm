@@ -3,6 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Truck, CheckCircle, Loader, ServerCrash, Inbox, AlertTriangle, XCircle } from 'lucide-react';
 import ShipmentDetails from './ShipmentDetails';
 
+
+const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ConfirmDialog) - สำหรับยืนยัน
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
@@ -63,7 +65,7 @@ const PendingShipments = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('/api/warehouse/pending-shipments', { cache: 'no-cache' });
+            const response = await fetch('${API_URL}/warehouse/pending-shipments', { cache: 'no-cache' });
             if (!response.ok) {
                 throw new Error('ไม่สามารถดึงข้อมูลได้');
             }
@@ -96,7 +98,7 @@ const PendingShipments = () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
 
         try {
-            const response = await fetch(`/api/warehouse/ship-order/${orderNumber}`, {
+            const response = await fetch(`${API_URL}/warehouse/ship-order/${orderNumber}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employee_id: user.e_id }),
