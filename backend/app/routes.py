@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 bp = Blueprint('main', __name__)
 
-CORS(bp, resources={r"/*": {"origins": "http://localhost:3000"}})
+
 import random
 import requests
 import os
