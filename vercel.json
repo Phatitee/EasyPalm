@@ -17,7 +17,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/mainpage.jsx"
+      "destination": "frontend/src/pages/main/mainpage.jsx"
     }
   ]
 }
