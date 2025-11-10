@@ -3,47 +3,42 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import os  # ★★★ Import os ★★★
+import os
 
-# Initialize the database instance
+# 1. สร้าง 'db' เป็น Proxy (ยังไม่มี App)
 db = SQLAlchemy()
 
-def create_app(): # ★★★ 1. ลบ 'config_object' ออก ★★★
+def create_app():
     """
     An application factory.
     """
+    # 2. สร้าง App Instance
     app = Flask(__name__)
     
-    # ★★★ 2. โหลด Database URL จาก Environment Variable ★★★
-    # Vercel จะเก็บ URL ของ Postgres ไว้ในตัวแปรชื่อ 'DATABASE_URL'
+    # 3. โหลด Config (เช่น DATABASE_URL)
     db_url = os.environ.get('DATABASE_URL')
-
     if not db_url:
-        # ถ้าหาไม่เจอ ให้แจ้งเตือน (สำคัญมากตอน debug)
         raise RuntimeError("DATABASE_URL environment variable is not set.")
 
-    # ★★★ 3. แก้ไข URL สำหรับ SQLAlchemy ★★★
-    # Vercel อาจให้ URL ที่ขึ้นต้นด้วย 'postgres://' 
-    # แต่ SQLAlchemy ต้องการ 'postgresql://'
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Initialize extensions
+    # 4. "ผูก" db Proxy เข้ากับ App ที่ Config แล้ว
     db.init_app(app)
-    CORS(app) # Enable CORS for all routes
+    CORS(app) 
 
-    with app.app_context():
-        # Import all models to make them known to SQLAlchemy
-        from . import models
+    # 5. ★★★ จุดแก้ไขที่สำคัญ ★★★
+    # ย้าย Imports และ Blueprints ออกมานอก app_context
+    # และต้องทำ *หลังจาก* db.init_app() เท่านั้น
+    
+    from . import models 
+    from . import routes
+    
+    app.register_blueprint(routes.bp, url_prefix='/api')
 
-        # Import and register the blueprint for API routes
-        from . import routes
-        
-        # ★★★ 4. คงการตั้งค่า 'url_prefix' ไว้เหมือนเดิม ★★★
-        app.register_blueprint(routes.bp, url_prefix='/api')
-
-        # Create database tables for all models
+    # 6. คืนค่า App ที่พร้อมใช้งาน
+    # (เราเอา 'with app.app_context():' ออกไปทั้งหมด)
     return app
