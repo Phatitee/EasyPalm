@@ -13,14 +13,38 @@
       }
     }
   ],
-  "rewrites": [
+  "routes": [
     {
       "source": "/api/(.*)",
-      "destination": "/backend/run.py"
+      "dest": "/backend/run.py"
+    },
+    {
+      "source": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "source": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "source": "/logo192.png",
+      "dest": "/logo192.png"
+    },
+    {
+      "source": "/logo512.png",
+      "dest": "/logo512.png"
+    },
+    {
+      "source": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "source": "/robots.txt",
+      "dest": "/robots.txt"
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "dest": "/index.html"
     }
   ]
 }
