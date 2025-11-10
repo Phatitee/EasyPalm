@@ -2,35 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/requirements.txt",
-      "use": "@vercel/python",
-      "config": {
-        "runtime": "python3.9",
-        "maxLambdaSize": "15mb"
-      }
+      "src": "backend/run.py",
+      "use": "@vercel/python"
     },
     {
       "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "outputDirectory": "build",
-        "installCommand": "npm install",
-        "buildCommand": "CI=false npm run build"
-      }
+      "use": "@vercel/static-build"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "backend/run.py"
+      "source": "/api/(.*)",
+      "destination": "/backend/run.py"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "frontend/build/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/build/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

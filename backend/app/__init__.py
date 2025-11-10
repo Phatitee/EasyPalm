@@ -41,14 +41,7 @@ def create_app():
         from . import models
         # --- Import and Register Blueprints (Routes) ---
         from . import routes
-        app.register_blueprint(routes.bp)
-
-        # --- Create Database Tables from Models ---
-        # (หมายเหตุ: Vercel ไม่ควรสั่ง create_all() ใน production 
-        # คุณควร migrate ฐานข้อมูลจริงด้วยตนเองก่อน)
-        # 
-        # (★ ★ ★ ผมลบ db.create_all() ออกจากตรงนี้ตามไฟล์ seed.py ★ ★ ★)
-        # db.create_all() <-- บรรทัดนี้ไม่ควรอยู่ที่นี่เมื่อใช้ seed.py
+        app.register_blueprint(routes.bp, url_prefix='/api')
         pass
 
     return app
