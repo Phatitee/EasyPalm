@@ -46,6 +46,4 @@ def create_app(): # ★★★ 1. ลบ 'config_object' ออก ★★★
         app.register_blueprint(routes.bp, url_prefix='/api')
 
         # Create database tables for all models
-        db.create_all()
-
     return app
