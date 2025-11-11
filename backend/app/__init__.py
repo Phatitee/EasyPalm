@@ -37,7 +37,7 @@ def create_app():
     # ระบุชัดเจนว่าให้รับ Request จาก Frontend Domain ของคุณเท่านั้น
     CORS(app, resources={
         r"/api/*": {
-            "origins": "https://easy-palm-frontend.vercel.app"
+            "origins": "https://easy-palm.vercel.app"
         }
     })
     # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
