@@ -1,9 +1,15 @@
+// frontend/src/pages/warehouse/ShipmentHistory.jsx (FIXED)
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, List, Loader, ServerCrash, Inbox } from 'lucide-react';
 import ShipmentDetails from './ShipmentDetails'; // Reuse the existing detail modal
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getShipmentHistory } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const ShipmentHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,13 +25,12 @@ const ShipmentHistory = () => {
     const fetchShipmentHistory = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (searchTerm) params.append('search', searchTerm);
+            // 3. ★★★ แก้ไข: สร้าง params เป็น Object ธรรมดา ★★★
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
 
-            const response = await fetch(`${API_URL}/warehouse/shipment-history?${params.toString()}`, { cache: 'no-cache' });
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการเบิกได้');
-
-            const data = await response.json();
+            // 4. ★★★ แก้ไข: เรียกใช้ getShipmentHistory จาก api.js ★★★
+            const data = await getShipmentHistory(params);
             setOrders(data);
         } catch (err) {
             setError(err.message);

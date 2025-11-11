@@ -1,9 +1,17 @@
+// frontend/src/pages/purchasing/AddFarmerPage.jsx (FIXED)
+
 import React, { useState } from 'react';
 import { UserPlus, Save, Loader, ArrowLeft } from 'lucide-react';
 import FarmerForm from '../../components/forms/FarmerForm';
 import ResultModal from '../../components/modals/ResultModal';
 import { useNavigate } from 'react-router-dom';
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { createFarmer } from '../../services/api';
+
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const AddFarmerPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modal, setModal] = useState({ isOpen: false, success: false, message: '' });
@@ -12,16 +20,9 @@ const AddFarmerPage = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch('${API_URL}/farmers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'ไม่สามารถเพิ่มข้อมูลเกษตรกรได้');
-            }
+            // 3. ★★★ แก้ไข: เปลี่ยน fetch เป็น createFarmer ★★★
+            // (api.js จะจัดการ method, headers, body, .json() และ error ให้เอง)
+            await createFarmer(formData);
 
             setModal({
                 isOpen: true,
@@ -32,7 +33,7 @@ const AddFarmerPage = () => {
             setModal({
                 isOpen: true,
                 success: false,
-                message: error.message,
+                message: error.message, // (error.message จะมาจาก api.js)
             });
         } finally {
             setIsSubmitting(false);
@@ -42,7 +43,7 @@ const AddFarmerPage = () => {
     const closeModal = () => {
         setModal({ isOpen: false, success: false, message: '' });
         if (modal.success) {
-            navigate('/purchasing/farmer-management');
+            navigate('/purchasing/farmers'); // (แก้ไข: ไปที่หน้า /farmers)
         }
     };
 
@@ -50,7 +51,7 @@ const AddFarmerPage = () => {
         // ★★★ FIX: พื้นหลังหน้าหลักและสี Text Default ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
             <div className="flex items-center mb-6">
-                <button onClick={() => navigate('/purchasing/farmer-management')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition mr-4">
+                <button onClick={() => navigate('/purchasing/farmers')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition mr-4">
                     <ArrowLeft size={24} />
                 </button>
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
@@ -78,7 +79,8 @@ const AddFarmerPage = () => {
             <ResultModal 
                 isOpen={modal.isOpen}
                 onClose={closeModal}
-                success={modal.success}
+                success={modal.success} // (ResultModal component น่าจะใช้ prop ชื่อ success)
+                type={modal.success ? 'success' : 'error'} // (หรืออาจจะใช้ type)
                 message={modal.message}
             />
         </div>

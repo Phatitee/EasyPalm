@@ -1,9 +1,17 @@
+// frontend/src/pages/purchasing/EditFarmerPage.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Save, Loader, ArrowLeft, ServerCrash } from 'lucide-react';
 import FarmerForm from '../../components/forms/FarmerForm';
 import ResultModal from '../../components/modals/ResultModal';
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getFarmerById, updateFarmer } from '../../services/api';
+
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const EditFarmerPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -18,9 +26,8 @@ const EditFarmerPage = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await fetch(`${API_URL}/farmers/${id}`);
-                if (!response.ok) throw new Error('ไม่พบข้อมูลเกษตรกร');
-                const data = await response.json();
+                // 3. ★★★ แก้ไข: ใช้ getFarmerById จาก api.js ★★★
+                const data = await getFarmerById(id);
                 setInitialData(data);
             } catch (err) {
                 setError(err.message);
@@ -34,16 +41,9 @@ const EditFarmerPage = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch(`${API_URL}/farmers/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'ไม่สามารถบันทึกข้อมูลได้');
-            }
+            // 4. ★★★ แก้ไข: ใช้ updateFarmer จาก api.js ★★★
+            // (api.js จะจัดการ .json() และ error message ให้เอง)
+            await updateFarmer(id, formData);
 
             setModal({
                 isOpen: true,
@@ -54,7 +54,7 @@ const EditFarmerPage = () => {
             setModal({
                 isOpen: true,
                 success: false,
-                message: error.message,
+                message: error.message, // (error.message จะมาจาก api.js)
             });
         } finally {
             setIsSubmitting(false);
@@ -64,7 +64,7 @@ const EditFarmerPage = () => {
     const closeModal = () => {
         setModal({ isOpen: false, success: false, message: '' });
         if (modal.success) {
-            navigate('/purchasing/farmer-management');
+            navigate('/purchasing/farmer-management'); // (สันนิษฐานว่านี่คือหน้า List)
         }
     };
 
@@ -87,7 +87,7 @@ const EditFarmerPage = () => {
         // ★★★ FIX: พื้นหลังหน้าหลักและสี Text Default ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
             <div className="flex items-center mb-6">
-                <button onClick={() => navigate('/purchasing/farmer-management')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition mr-4">
+                <button onClick={() => navigate('/purchasing/farmers')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition mr-4">
                     <ArrowLeft size={24} />
                 </button>
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
@@ -115,7 +115,8 @@ const EditFarmerPage = () => {
             <ResultModal 
                 isOpen={modal.isOpen}
                 onClose={closeModal}
-                success={modal.success}
+                success={modal.success} // (ResultModal component น่าจะใช้ prop ชื่อ success)
+                type={modal.success ? 'success' : 'error'} // (หรืออาจจะใช้ type)
                 message={modal.message}
             />
         </div>

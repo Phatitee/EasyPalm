@@ -1,8 +1,14 @@
+// frontend/src/pages/warehouse/StorageDetail.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign } from 'lucide-react';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPurchaseOrder } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
@@ -36,10 +42,8 @@ const StorageDetail = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                // Endpoint is correct for fetching Purchase Order details
-                const response = await fetch(`${API_URL}/purchaseorders/${orderId}`);
-                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
-                const data = await response.json();
+                // 3. ★★★ แก้ไข: ใช้ getPurchaseOrder จาก api.js ★★★
+                const data = await getPurchaseOrder(orderId);
                 setOrder(data);
             } catch (error) {
                 console.error("Failed to fetch PO details:", error);

@@ -1,11 +1,17 @@
+// frontend/src/pages/sales/AddIndustryPage.jsx (FIXED)
+
 import React, { useState } from 'react';
-import axios from 'axios';
+// 1. ★★★ ลบ axios ออก ★★★
+// import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Factory, ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
 
+// 2. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { createFoodIndustry } from '../../services/api';
 
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
 
-const API_URL = process.env.REACT_APP_API_URL;
 // Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
@@ -52,11 +58,12 @@ const AddIndustryPage = () => {
         }
 
         try {
-            const response = await axios.post('${API_URL}/food-industries', formData);
+            // 4. ★★★ แก้ไข: ใช้ createFoodIndustry จาก api.js ★★★
+            const response = await createFoodIndustry(formData);
             setResultDialog({
                 isOpen: true,
                 type: 'success',
-                message: `เพิ่มข้อมูลลูกค้า "${response.data.F_name}" สำเร็จ!`,
+                message: `เพิ่มข้อมูลลูกค้า "${response.F_name}" สำเร็จ!`, // (api.js จะ return data กลับมา)
                 navigate: true
             });
 
@@ -64,7 +71,7 @@ const AddIndustryPage = () => {
             setResultDialog({
                 isOpen: true,
                 type: 'error',
-                message: 'เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message),
+                message: 'เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'),
                 navigate: false
             });
         }
@@ -73,14 +80,14 @@ const AddIndustryPage = () => {
     const handleCloseResultDialog = () => {
         setResultDialog({ ...resultDialog, isOpen: false });
         if (resultDialog.navigate) {
-            navigate('/sales/customer-management');
+            navigate('/sales/customers'); // (แก้ไข: ไปที่ /customers)
         }
     };
 
     return (
         // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-            <button onClick={() => navigate('/sales/customer-management')} className="flex items-center gap-2 text-gray-600 hover:text-blue-700 mb-6 font-semibold transition-colors dark:text-gray-400 dark:hover:text-blue-500">
+            <button onClick={() => navigate('/sales/customers')} className="flex items-center gap-2 text-gray-600 hover:text-blue-700 mb-6 font-semibold transition-colors dark:text-gray-400 dark:hover:text-blue-500">
                 <ArrowLeft size={18} /> กลับสู่หน้าจัดการลูกค้า
             </button>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
@@ -140,7 +147,7 @@ const AddIndustryPage = () => {
                     {/* ★★★ Dark Mode FIX: Cancel Button Styling ★★★ */}
                     <button 
                         type="button" 
-                        onClick={() => navigate('/sales/customer-management')} 
+                        onClick={() => navigate('/sales/customers')} 
                         className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-5 rounded-lg transition duration-150 ease-in-out dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-100"
                     >
                         ยกเลิก

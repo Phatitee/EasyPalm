@@ -1,8 +1,14 @@
+// frontend/src/pages/warehouse/ShipmentDetails.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, ShoppingCart, Hash, Package, Truck, CheckSquare, Loader } from 'lucide-react';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getSalesOrder } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
@@ -38,9 +44,8 @@ const ShipmentDetails = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`${API_URL}/salesorders/${orderId}`);
-                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
-                const data = await response.json();
+                // 3. ★★★ แก้ไข: ใช้ getSalesOrder จาก api.js ★★★
+                const data = await getSalesOrder(orderId);
                 setOrder(data);
             } catch (error) {
                 console.error("Failed to fetch order details:", error);

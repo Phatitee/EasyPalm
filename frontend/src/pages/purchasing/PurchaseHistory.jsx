@@ -1,10 +1,15 @@
-// frontend/src/pages/purchasing/PurchaseHistory.jsx
+// frontend/src/pages/purchasing/PurchaseHistory.jsx (FIXED)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, List, Loader, ServerCrash, Inbox } from 'lucide-react';
 import PurchaseHistoryDetail from './PurchaseHistoryDetail'; // Import the new modal
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPurchaseOrders } from '../../services/api';
+
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const PurchaseHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,14 +22,12 @@ const PurchaseHistory = () => {
     const fetchPurchaseHistory = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (searchTerm) params.append('search', searchTerm);
-            if (statusFilter) params.append('status', statusFilter);
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
+            if (statusFilter) params.status = statusFilter;
             
-            const response = await fetch(`${API_URL}/purchaseorders?${params.toString()}`);
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการสั่งซื้อได้');
-            
-            const data = await response.json();
+            // 3. ★★★ แก้ไข: เปลี่ยน fetch เป็น getPurchaseOrders ★★★
+            const data = await getPurchaseOrders(params);
             setOrders(data);
         } catch (err) {
             setError(err.message);

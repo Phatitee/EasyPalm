@@ -1,11 +1,15 @@
-// frontend/src/pages/sales/SalesHistory.jsx
+// frontend/src/pages/sales/SalesHistory.jsx (FIXED)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, List, Loader, ServerCrash, Inbox } from 'lucide-react';
 import SalesHistoryDetail from './SalesHistoryDetail'; // Import the modal component
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getSalesOrders } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const SalesHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,15 +26,13 @@ const SalesHistory = () => {
     const fetchSalesHistory = useCallback(async () => {
         setLoading(true);
         try {
-            // Build the query string
-            const params = new URLSearchParams();
-            if (searchTerm) params.append('search', searchTerm);
-            if (statusFilter) params.append('status', statusFilter);
+            // 3. ★★★ แก้ไข: สร้าง params เป็น Object ธรรมดา ★★★
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
+            if (statusFilter) params.status = statusFilter;
 
-            const response = await fetch(`${API_URL}/salesorders?${params.toString()}`);
-            if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติการขายได้');
-
-            const data = await response.json();
+            // 4. ★★★ แก้ไข: เรียกใช้ getSalesOrders จาก api.js ★★★
+            const data = await getSalesOrders(params);
             setOrders(data);
         } catch (err) {
             setError(err.message);

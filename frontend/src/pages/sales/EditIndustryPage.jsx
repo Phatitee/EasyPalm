@@ -1,10 +1,17 @@
+// frontend/src/pages/sales/EditIndustryPage.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// 1. ★★★ ลบ axios ออก ★★★
+// import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Factory, ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
 
+// 2. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getFoodIndustryById, updateFoodIndustry } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 // Helper Modal (ResultDialog) - สำหรับแจ้งผลลัพธ์
 const ResultDialog = ({ isOpen, onClose, type, message }) => {
     if (!isOpen) return null;
@@ -41,8 +48,8 @@ const EditIndustryPage = () => {
         const fetchIndustry = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`${API_URL}/food-industries/${id}`);
-                const industry = response.data;
+                // 4. ★★★ แก้ไข: ใช้ getFoodIndustryById จาก api.js ★★★
+                const industry = await getFoodIndustryById(id);
                 setName(industry.F_name);
                 setTel(industry.F_tel);
                 setAddress(industry.F_address || '');
@@ -59,32 +66,33 @@ const EditIndustryPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`${API_URL}/food-industries/${id}`, {
+            // 5. ★★★ แก้ไข: ใช้ updateFoodIndustry จาก api.js ★★★
+            await updateFoodIndustry(id, {
                 F_name: name,
                 F_tel: tel,
                 F_address: address,
             });
             setResultDialog({ isOpen: true, type: 'success', message: 'แก้ไขข้อมูลโรงงานสำเร็จ', navigate: true });
         } catch (err) {
-            setResultDialog({ isOpen: true, type: 'error', message: err.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึก', navigate: false });
+            setResultDialog({ isOpen: true, type: 'error', message: err.message || 'เกิดข้อผิดพลาดในการบันทึก', navigate: false });
         }
     };
 
     const handleCloseResultDialog = () => {
         setResultDialog({ ...resultDialog, isOpen: false });
         if (resultDialog.navigate) {
-            navigate('/sales/customer-management');
+            navigate('/sales/customers'); // (แก้ไข: ไปที่ /customers)
         }
     };
 
     if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">กำลังโหลด...</div>;
-    if (error) return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900 text-red-500 dark:text-red-400">{error}</div>;
+    if (error && !resultDialog.isOpen) return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900 text-red-500 dark:text-red-400">{error}</div>;
 
 
     return (
         // ★★★ Dark Mode FIX: Main Container Background ★★★
         <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-            <button onClick={() => navigate('/sales/customer-management')} className="flex items-center gap-2 text-gray-600 hover:text-blue-700 mb-6 font-semibold transition-colors dark:text-gray-400 dark:hover:text-blue-500">
+            <button onClick={() => navigate('/sales/customers')} className="flex items-center gap-2 text-gray-600 hover:text-blue-700 mb-6 font-semibold transition-colors dark:text-gray-400 dark:hover:text-blue-500">
                 <ArrowLeft size={18} /> กลับสู่หน้าจัดการลูกค้า
             </button>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
@@ -133,7 +141,7 @@ const EditIndustryPage = () => {
                     {/* ★★★ Dark Mode FIX: Cancel Button Styling ★★★ */}
                     <button 
                         type="button" 
-                        onClick={() => navigate('/sales/customer-management')} 
+                        onClick={() => navigate('/sales/customers')} 
                         className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded-lg transition duration-150 ease-in-out dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-100"
                     >
                         ยกเลิก

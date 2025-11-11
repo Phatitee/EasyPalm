@@ -1,6 +1,14 @@
+// frontend/src/pages/executive/ProfitLossReport.jsx (FIXED)
+
 import React, { useState } from 'react';
 import { BarChart, DollarSign, TrendingUp, TrendingDown, ArrowRight, Loader } from 'lucide-react';
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getProfitLossReport } from '../../services/api';
+
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const ReportCard = ({ title, value, icon, color }) => {
     const Icon = icon;
     const isProfit = title === 'กำไรขั้นต้น';
@@ -52,12 +60,8 @@ const ProfitLossReport = () => {
         setError('');
         setReportData(null);
         try {
-            const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
-            const response = await fetch(`${API_URL}/reports/profit-loss?${params.toString()}`);
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'ไม่สามารถสร้างรายงานได้');
-            }
+            // 3. ★★★ แก้ไข: ใช้ getProfitLossReport จาก api.js ★★★
+            const data = await getProfitLossReport(startDate, endDate);
             setReportData(data);
         } catch (err) {
             setError(err.message);

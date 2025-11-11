@@ -1,8 +1,17 @@
+// frontend/src/pages/admin/EmployeeDetail.jsx (FIXED)
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { ArrowLeft, User, Mail, Phone, Briefcase, Key, MapPin, CheckCircle, XCircle, BadgeInfo, CalendarClock } from 'lucide-react';
-const API_URL = process.env.REACT_APP_API_URL;
+// 1. ★★★ ลบ axios ออก ★★★
+// import axios from 'axios';
+import { ArrowLeft, User, Mail, Phone, Briefcase, Key, MapPin, CheckCircle, XCircle, BadgeInfo, CalendarClock, Loader, ServerCrash } from 'lucide-react';
+
+// 2. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getEmployeeById } from '../../services/api';
+
+// 3. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 const EmployeeDetail = () => {
     const { e_id } = useParams();
     const navigate = useNavigate();
@@ -15,8 +24,9 @@ const EmployeeDetail = () => {
             setLoading(true);
             setError('');
             try {
-                const response = await axios.get(`${API_URL}/employees/${e_id}`);
-                setEmployee(response.data);
+                // 4. ★★★ แก้ไข: ใช้ getEmployeeById จาก api.js ★★★
+                const data = await getEmployeeById(e_id);
+                setEmployee(data);
             } catch (err) {
                 setError('ไม่สามารถโหลดข้อมูลพนักงานได้');
             } finally {
@@ -62,8 +72,20 @@ const EmployeeDetail = () => {
         return <div className={iconClass}>🚻</div>;
     };
 
-    if (loading) return <div className="text-center p-10 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">กำลังโหลด...</div>;
-    if (error) return <div className="text-center p-10 text-red-500 dark:text-red-400 bg-red-50 dark:bg-gray-800 rounded-lg min-h-screen">{error}</div>;
+    if (loading) return (
+        // ★★★ FIX: Loading State Text Color ★★★
+        <div className="flex justify-center items-center h-screen dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+            <Loader className="animate-spin text-blue-500" size={48} />
+        </div>
+    );
+    if (error) return (
+        // ★★★ FIX: Error State Background and Text ★★★
+        <div className="flex flex-col justify-center items-center h-screen dark:bg-gray-900 text-red-600 dark:text-red-400">
+            <ServerCrash size={48} className="mb-4" />
+            <h2 className="text-2xl font-bold">เกิดข้อผิดพลาด</h2>
+            <p className="dark:text-gray-300">{error}</p>
+        </div>
+    );
     if (!employee) return <div className="text-center p-10 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 min-h-screen">ไม่พบข้อมูลพนักงาน</div>;
 
 return (
@@ -111,16 +133,16 @@ return (
                         <DetailItem icon={Briefcase} label="ตำแหน่ง" value={employee.position} />
                         <DetailItem icon={Key} label="สิทธิ์ (Role)" value={employee.e_role} />
                         <DetailItem icon={MapPin} label="ที่อยู่ปัจจุบัน" value={employee.e_address} />
-                            {!employee.is_active && employee.suspension_date && (
+                         {!employee.is_active && employee.suspension_date && (
                              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <DetailItem
-                                    icon={CalendarClock}
-                                    label="วันที่ระงับสิทธิ์"
-                                    value={formatDateTime(employee.suspension_date)} // Use the corrected function here
-                                    iconColor="text-red-500"
-                                />
+                                 <DetailItem
+                                     icon={CalendarClock}
+                                     label="วันที่ระงับสิทธิ์"
+                                     value={formatDateTime(employee.suspension_date)} // Use the corrected function here
+                                     iconColor="text-red-500"
+                                 />
                              </div>
-                        )}
+                         )}
                     </div>
                 </div>
             </div>

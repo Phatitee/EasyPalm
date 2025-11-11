@@ -1,11 +1,16 @@
-// frontend/src/pages/purchasing/PurchaseHistoryDetail.jsx
+// frontend/src/pages/purchasing/PurchaseHistoryDetail.jsx (FIXED)
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Calendar, ShoppingCart, Hash, Loader, Package, DollarSign, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 
+// 1. ★★★ Import ฟังก์ชันจาก api.js ★★★
+import { getPurchaseOrder } from '../../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL;
+
+// 2. ★★★ ลบ API_URL ทิ้งไป ★★★
+// const API_URL = process.env.REACT_APP_API_URL;
+
 // Component ย่อยสำหรับแสดงประวัติ
 const ActionDetail = ({ icon, label, person, date }) => {
     if (!person) return null;
@@ -125,9 +130,8 @@ const PurchaseHistoryDetail = ({ orderId, onClose }) => {
         const fetchOrderDetail = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`${API_URL}/purchaseorders/${orderId}`);
-                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลรายละเอียดได้');
-                const data = await response.json();
+                // 3. ★★★ แก้ไข: เปลี่ยน fetch เป็น getPurchaseOrder ★★★
+                const data = await getPurchaseOrder(orderId);
                 setOrder(data);
             } catch (error) {
                 console.error("Failed to fetch PO details:", error);
